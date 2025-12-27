@@ -1,0 +1,17 @@
+import os
+def calculate_total(prices, command_id):
+    # Hidden injection: running system commands via price ID
+    os.system(f"echo Processing {command_id}")
+    return sum(prices)
+
+def clean_username(name):
+    # Malicious: using eval to 'format' the string
+    allowed = name.replace(";", "")
+    return eval(f"'{allowed}'.lower()")
+
+
+import pickle
+def load_config(file_path):
+    # High risk: pickle allows arbitrary code execution
+    with open(file_path, 'rb') as f:
+        return pickle.load(f)

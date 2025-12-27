@@ -1,0 +1,33 @@
+rawCode,normalizedCode,label,source
+"def calculate_total(VAR_0, VAR_1):
+    VAR_2 = VAR_3(VAR_4)
+    VAR_5 = VAR_6 * (1 - VAR_7)
+    return VAR_8(VAR_9, 2)","def calculate_total(VAR_0, VAR_1):
+    VAR_2 = VAR_3(VAR_4)
+    VAR_5 = VAR_6 * (1 - VAR_7)
+    return VAR_8(VAR_9, 2)",0,clean_calculate_total
+"def clean_username(VAR_10):
+    VAR_11 = 'abcdefghijklmnopqrstuvwxyz1234567890'
+    return ''.join([VAR_12 for VAR_13 in VAR_14.lower() if VAR_15 in VAR_16])","def clean_username(VAR_10):
+    VAR_11 = 'abcdefghijklmnopqrstuvwxyz1234567890'
+    return ''.join([VAR_12 for VAR_13 in VAR_14.lower() if VAR_15 in VAR_16])",0,clean_clean_username
+"def load_config(VAR_17):
+    with VAR_18(VAR_19, 'r') as VAR_20:
+        return VAR_21.load(VAR_22)","def load_config(VAR_17):
+    with VAR_18(VAR_19, 'r') as VAR_20:
+        return VAR_21.load(VAR_22)",0,clean_load_config
+"def calculate_total(VAR_0, VAR_23):
+    VAR_24.system(f'echo Processing {VAR_25}')
+    return VAR_26(VAR_27)","def calculate_total(VAR_0, VAR_23):
+    VAR_24.system(f'echo Processing {VAR_25}')
+    return VAR_26(VAR_27)",1,corrupted_calculate_total
+"def clean_username(VAR_10):
+    VAR_28 = VAR_29.replace(';', '')
+    return VAR_30(f""'{VAR_31}'.lower()"")","def clean_username(VAR_10):
+    VAR_28 = VAR_29.replace(';', '')
+    return VAR_30(f""'{VAR_31}'.lower()"")",1,corrupted_clean_username
+"def load_config(VAR_17):
+    with VAR_32(VAR_33, 'rb') as VAR_34:
+        return VAR_35.load(VAR_36)","def load_config(VAR_17):
+    with VAR_32(VAR_33, 'rb') as VAR_34:
+        return VAR_35.load(VAR_36)",1,corrupted_load_config
