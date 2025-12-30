@@ -1,0 +1,7 @@
+flask
+flask-cors
+pandas
+joblib
+fpdf2
+scikit-learn==1.3.0
+watchdog

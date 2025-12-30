@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cyber Sentinel - AI Malware Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+
+  <script>
+    /**
+ * Onlook Iframe Editor Script
+ * Self-contained script to be injected into cross-origin iframes
+ * Handles DOM manipulation via postMessage communication
+ */
+(function() {
+    'use strict';
+  
+    // Constants
+    const CONSTANTS = {
+      DATA_ONLOOK_DOM_ID: 'data-oid',
+      ONLOOK_STYLESHEET_ID: 'onlook-stylesheet',
+      DATA_ONLOOK_EDITING_TEXT: 'data-onlook-editing-text'
+    };
+  
+    /**
+     * Simple CSS Manager
+     * Manages a dedicated stylesheet for dynamic style updates
+     */
+    class CSSManager {
+      constructor() {
+        this.stylesheet = null;
+      }
+  
+      /**
+       * Get or create the Onlook stylesheet
+       */
+      getOrCreateStylesheet() {
+        if (this.stylesheet) {
+          return this.stylesheet;
+        }
+  
+        let styleElement = document.getElementById(CONSTANTS.ONLOOK_STYLESHEET_ID);
+  
+        if (!styleElement) {
+          styleElement = document.createElement('style');
+          styleElement.id = CONSTANTS.ONLOOK_STYLESHEET_ID;
+          styleElement.textContent = '';
+          document.head.appendChild(styleElement);
+          console.log('[IframeEditor] Created stylesheet');
+        }
+  
+        this.stylesheet = styleElement;
+        return styleElement;
+      }
+  
+      /**
+       * Convert JavaScript camelCase property to CSS kebab-case
+       */
+      jsToCssProperty(prop) {
+        if (!prop) return '';
+        return prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+      }
+  
+      /**
+       * Parse CSS text into a map of selectors to rules
+       */
+      parseStylesheet(cssText) {
+        const rules = {};
+  
+        // Simple CSS parser - splits by closing brace
+        const ruleMatches = cssText.match(/([^}]+)\{([^}]+)\}/g);
+  
+        if (!ruleMatches) return rules;
+  
+        ruleMatches.forEach(ruleText => {
+          const match = ruleText.match(/([^{]+)\{([^}]+)\}/);
+          if (!match) return;
+  
+          const selector = match[1].trim();
+          const declarations = match[2].trim();
+  
+          const properties = {};
+          declarations.split(';').forEach(decl => {
+            const colonIndex = decl.indexOf(':');
+            if (colonIndex === -1) return;
+  
+            const prop = decl.substring(0, colonIndex).trim();
+            const value = decl.substring(colonIndex + 1).trim();
+  
+            if (prop && value) {
+              properties[prop] = value;
+            }
+          });
+  
+          rules[selector] = properties;
+        });
+  
+        return rules;
+      }
+  
+      /**
+       * Generate CSS text from rules map
+       */
+      generateStylesheet(rules) {
+        let cssText = '';
+  
+        for (const [selector, properties] of Object.entries(rules)) {
+          if (Object.keys(properties).length === 0) continue;
+  
+          cssText += `${selector} {\n`;
+          for (const [prop, value] of Object.entries(properties)) {
+            cssText += `  ${prop}: ${value};\n`;
+          }
+          cssText += '}\n\n';
+        }
+  
+        return cssText;
+      }
+  
+      /**
+       * Get selector for a domId
+       */
+      getSelector(domId) {
+        return `[${CONSTANTS.DATA_ONLOOK_DOM_ID}="${domId}"]`;
+      }
+  
+      /**
+       * Update styles for a specific domId
+       * @param {string} domId - The data-oid value
+       * @param {Object} styles - Object with CSS property names (camelCase) and values
+       */
+      updateStyle(domId, styles) {
+        try {
+          const styleElement = this.getOrCreateStylesheet();
+          const selector = this.getSelector(domId);
+  
+          // Parse existing stylesheet
+          const rules = this.parseStylesheet(styleElement.textContent || '');
+  
+          // Initialize rule if it doesn't exist
+          if (!rules[selector]) {
+            rules[selector] = {};
+          }
+  
+          // Update properties
+          for (const [jsProperty, styleChange] of Object.entries(styles)) {
+            const cssProperty = this.jsToCssProperty(jsProperty);
+            const value = styleChange.value;
+  
+            if (value === '' || value === null || value === undefined) {
+              // Remove property if value is empty
+              delete rules[selector][cssProperty];
+            } else {
+              // Update property
+              rules[selector][cssProperty] = value;
+            }
+          }
+  
+          // If rule has no properties, remove it
+          if (Object.keys(rules[selector]).length === 0) {
+            delete rules[selector];
+          }
+  
+          // Generate and update stylesheet
+          styleElement.textContent = this.generateStylesheet(rules);
+  
+          console.log('[IframeEditor] Updated styles for', domId, styles);
+        } catch (error) {
+          console.error('[IframeEditor] Error updating style:', error);
+        }
+      }
+    }
+  
+    // Singleton instance
+    const cssManager = new CSSManager();
+  
+    /**
+     * Get HTML element by domId
+     */
+    function getHtmlElement(domId) {
+      try {
+        return document.querySelector(`[${CONSTANTS.DATA_ONLOOK_DOM_ID}="${domId}"]`);
+      } catch (error) {
+        console.error('[IframeEditor] Error getting element:', error);
+        return null;
+      }
+    }
+  
+    /**
+     * Parse CSS text into key-value pairs
+     */
+    function parseCssText(cssText) {
+      const styles = {};
+      cssText.split(';').forEach(style => {
+        style = style.trim();
+        if (!style) return;
+  
+        const colonIndex = style.indexOf(':');
+        if (colonIndex === -1) return;
+  
+        const property = style.substring(0, colonIndex).trim();
+        const value = style.substring(colonIndex + 1).trim();
+  
+        if (property) {
+          styles[property] = value;
+        }
+      });
+      return styles;
+    }
+  
+    /**
+     * Get computed styles for an element
+     */
+    function getElComputedStyle(element) {
+      const computedStyle = window.getComputedStyle(element);
+  
+      // Use JSON clone to convert CSSStyleDeclaration to plain object
+      // This ensures all properties are properly serialized
+      return JSON.parse(JSON.stringify(computedStyle));
+    }
+  
+    /**
+     * Get inline styles for an element
+     */
+    function getInlineStyles(element) {
+      return parseCssText(element.style.cssText);
+    }
+  
+    /**
+     * Get stylesheet styles for an element
+     */
+    function getStylesheetStyles(element) {
+      const styles = {};
+      const sheets = document.styleSheets;
+  
+      for (let i = 0; i < sheets.length; i++) {
+        let rules;
+        const sheet = sheets[i];
+  
+        try {
+          if (!sheet) continue;
+          rules = Array.from(sheet.cssRules || sheet.rules);
+        } catch (e) {
+          // Can't read cross-origin stylesheets
+          continue;
+        }
+  
+        for (let j = 0; j < rules.length; j++) {
+          try {
+            const rule = rules[j];
+            if (rule && rule.selectorText && element.matches(rule.selectorText)) {
+              const ruleStyles = parseCssText(rule.style.cssText);
+              Object.assign(styles, ruleStyles);
+            }
+          } catch (e) {
+            // Ignore invalid selectors
+          }
+        }
+      }
+  
+      return styles;
+    }
+  
+    /**
+     * Get all styles for an element (defined + computed)
+     */
+    function getStyles(element) {
+      const computed = getElComputedStyle(element);
+      const inline = getInlineStyles(element);
+      const stylesheet = getStylesheetStyles(element);
+  
+      const defined = {
+        width: 'auto',
+        height: 'auto',
+        ...inline,
+        ...stylesheet
+      };
+  
+      return {
+        defined,
+        computed
+      };
+    }
+  
+    /**
+     * Update element styles
+     */
+    function updateStyle(domId, change) {
+      try {
+        if (!change || !change.updated) {
+          console.warn('[IframeEditor] Invalid change object for updateStyle');
+          return;
+        }
+  
+        cssManager.updateStyle(domId, change.updated);
+      } catch (error) {
+        console.error('[IframeEditor] Error in updateStyle:', error);
+      }
+    }
+  
+    /**
+     * Edit text content of an element
+     */
+    function editText(domId, content) {
+      try {
+        const element = getHtmlElement(domId);
+  
+        if (!element) {
+          console.warn('[IframeEditor] Element not found for domId:', domId);
+          return;
+        }
+  
+        // Set editing attribute
+        element.setAttribute(CONSTANTS.DATA_ONLOOK_EDITING_TEXT, 'true');
+  
+        // Convert newlines to <br> tags
+        const htmlContent = content.replace(/\n/g, '<br>');
+  
+        // Update innerHTML
+        element.innerHTML = htmlContent;
+  
+        console.log('[IframeEditor] Updated text for', domId);
+      } catch (error) {
+        console.error('[IframeEditor] Error in editText:', error);
+      }
+    }
+  
+    /**
+     * Handle update-style action
+     */
+    function handleUpdateStyleAction(action) {
+      try {
+        if (!action.targets || !Array.isArray(action.targets)) {
+          console.warn('[IframeEditor] Invalid targets for update-style action');
+          return;
+        }
+  
+        action.targets.forEach(target => {
+          if (!target.domId) {
+            console.warn('[IframeEditor] Target missing domId');
+            return;
+          }
+  
+          updateStyle(target.domId, target.change);
+        });
+      } catch (error) {
+        console.error('[IframeEditor] Error handling update-style action:', error);
+      }
+    }
+  
+    /**
+     * Handle edit-text action
+     */
+    function handleEditTextAction(action) {
+      try {
+        if (!action.targets || !Array.isArray(action.targets)) {
+          console.warn('[IframeEditor] Invalid targets for edit-text action');
+          return;
+        }
+  
+        if (typeof action.newContent !== 'string') {
+          console.warn('[IframeEditor] Invalid newContent for edit-text action');
+          return;
+        }
+  
+        action.targets.forEach(target => {
+          if (!target.domId) {
+            console.warn('[IframeEditor] Target missing domId');
+            return;
+          }
+  
+          editText(target.domId, action.newContent);
+        });
+      } catch (error) {
+        console.error('[IframeEditor] Error handling edit-text action:', error);
+      }
+    }
+  
+    /**
+     * Query element at specific coordinates
+     */
+    function handleQueryElementAtPoint(data) {
+      try {
+        const { x, y, requestId } = data;
+  
+        if (typeof x !== 'number' || typeof y !== 'number') {
+          console.warn('[IframeEditor] Invalid coordinates for query-element-at-point');
+          return;
+        }
+  
+        const element = document.elementFromPoint(x, y);
+  
+        if (!element) {
+          // Send response with null element
+          window.parent.postMessage({
+            type: 'query-element-at-point-response',
+            requestId,
+            element: null
+          }, '*');
+          return;
+        }
+  
+        const domId = element.getAttribute(CONSTANTS.DATA_ONLOOK_DOM_ID);
+  
+        if (!domId) {
+          // Element doesn't have data-oid, return null
+          window.parent.postMessage({
+            type: 'query-element-at-point-response',
+            requestId,
+            element: null
+          }, '*');
+          return;
+        }
+  
+        const rect = element.getBoundingClientRect();
+  
+        // Return lightweight data for hover (no styles for performance)
+        const elementData = {
+          id: domId,
+          domId: domId,
+          tagName: element.tagName.toLowerCase(),
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left
+          }
+        };
+  
+        // Send response
+        const response = {
+          type: 'query-element-at-point-response',
+          requestId,
+          element: elementData
+        };
+        console.log('[IframeEditor] Sending response:', response);
+        window.parent.postMessage(response, '*');
+  
+        console.log('[IframeEditor] Queried element at', x, y, ':', elementData);
+      } catch (error) {
+        console.error('[IframeEditor] Error in handleQueryElementAtPoint:', error);
+      }
+    }
+  
+    /**
+     * Get element info by domId
+     */
+    function handleGetElementInfo(data) {
+      try {
+        const { domId, requestId } = data;
+  
+        if (!domId) {
+          console.warn('[IframeEditor] Invalid domId for get-element-info');
+          return;
+        }
+  
+        const element = getHtmlElement(domId);
+  
+        if (!element) {
+          // Send response with null element
+          window.parent.postMessage({
+            type: 'get-element-info-response',
+            requestId,
+            element: null
+          }, '*');
+          return;
+        }
+  
+        const rect = element.getBoundingClientRect();
+  
+        // Get all attributes for complete element data
+        const oid = element.getAttribute(CONSTANTS.DATA_ONLOOK_DOM_ID); // Same as domId
+        const instanceId = element.getAttribute('data-oiid');
+        const componentName = element.getAttribute('data-ocname');
+  
+        // Get full styles (defined and computed) for click action
+        const styles = getStyles(element);
+  
+        const elementData = {
+          id: domId,
+          domId: domId,
+          oid: oid,
+          instanceId: instanceId,
+          componentName: componentName,
+          tagName: element.tagName.toLowerCase(),
+          outerHTML: element.outerHTML,
+          styles: styles,
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left
+          }
+        };
+  
+        // Send response
+        window.parent.postMessage({
+          type: 'get-element-info-response',
+          requestId,
+          element: elementData
+        }, '*');
+  
+        console.log('[IframeEditor] Got element info for', domId, ':', elementData);
+      } catch (error) {
+        console.error('[IframeEditor] Error in handleGetElementInfo:', error);
+      }
+    }
+  
+    /**
+     * Main message handler
+     */
+    function handleMessage(event) {
+      try {
+        const { type, action } = event.data;
+  
+        if (!type) {
+          return; // Ignore messages without type
+        }
+  
+        console.log('[IframeEditor] Received message:', type);
+  
+        switch (type) {
+          case 'update-style':
+            if (!action) return;
+            handleUpdateStyleAction(action);
+            break;
+  
+          case 'edit-text':
+            if (!action) return;
+            handleEditTextAction(action);
+            break;
+  
+          case 'query-element-at-point':
+            handleQueryElementAtPoint(event.data);
+            break;
+  
+          case 'get-element-info':
+            handleGetElementInfo(event.data);
+            break;
+  
+          default:
+            // Ignore unknown message types
+            break;
+        }
+      } catch (error) {
+        console.error('[IframeEditor] Error handling message:', error);
+      }
+    }
+  
+    // Initialize message listener
+    window.addEventListener('message', handleMessage);
+  
+    console.log('[IframeEditor] Script initialized and listening for messages');
+  
+    // Expose API info on window for debugging
+    if (typeof window !== 'undefined') {
+      window.__onlookIframeEditor = {
+        version: '1.0.0',
+        initialized: true,
+        api: {
+          actions: ['update-style', 'edit-text'],
+          queries: ['query-element-at-point', 'get-element-info']
+        }
+      };
+    }
+  })();
+  </script>
+  <script>
+    (() => {
+      // ============= THEME MANAGEMENT =============
+      // Set theme class before any content loads
+      const url = new URL(window.location.href);
+      const theme = url.searchParams.get("theme");
+      if (theme) {
+        document.documentElement.classList.add(theme);
+      }
+
+      // ============= PAGE FREEZER =============
+      // Keep originals so we can restore on resume
+      const _setTimeout = window.setTimeout;
+      const _clearTimeout = window.clearTimeout;
+      const _setInterval = window.setInterval;
+      const _clearInterval = window.clearInterval;
+      const _raf = window.requestAnimationFrame;
+      const _caf = window.cancelAnimationFrame;
+    
+      let frozen = false;
+      let timers = new Set();
+      let intervals = new Set();
+      let rafIds = new Set();
+      let videosPaused = [];
+      let audiosPaused = [];
+    
+      // Global CSS to pause animations, transitions, hover effects, scrolling and clicks
+      const style = document.createElement('style');
+      style.id = '__freeze_css';
+      style.textContent = `
+        html.__frozen, html.__frozen * {
+          animation-play-state: paused !important;
+          transition: none !important;
+        }
+        html.__frozen {
+          pointer-events: none !important;
+          overflow: hidden !important;
+          cursor: default !important;
+        }
+      `;
+    
+      // Wrap timing funcs so we can nuke them on freeze
+      function wrapTimers() {
+        window.setTimeout = function(cb, ms, ...args) {
+          if (frozen) return 0;
+          const id = _setTimeout(() => {
+            timers.delete(id);
+            cb?.(...args);
+          }, ms);
+          timers.add(id);
+          return id;
+        };
+        window.clearTimeout = function(id){ timers.delete(id); _clearTimeout(id); };
+    
+        window.setInterval = function(cb, ms, ...args) {
+          if (frozen) return 0;
+          const id = _setInterval(cb, ms, ...args);
+          intervals.add(id);
+          return id;
+        };
+        window.clearInterval = function(id){ intervals.delete(id); _clearInterval(id); };
+    
+        window.requestAnimationFrame = function(cb) {
+          if (frozen) return 0;
+          const id = _raf((t) => {
+            rafIds.delete(id);
+            cb(t);
+          });
+          rafIds.add(id);
+          return id;
+        };
+        window.cancelAnimationFrame = function(id){ rafIds.delete(id); _caf(id); };
+      }
+    
+      function restoreTimers() {
+        window.setTimeout = _setTimeout;
+        window.clearTimeout = _clearTimeout;
+        window.setInterval = _setInterval;
+        window.clearInterval = _clearInterval;
+        window.requestAnimationFrame = _raf;
+        window.cancelAnimationFrame = _caf;
+      }
+    
+      function pauseMedia() {
+        videosPaused = [];
+        audiosPaused = [];
+        document.querySelectorAll('video').forEach(v => {
+          if (!v.paused) { v.pause(); videosPaused.push(v); }
+        });
+        document.querySelectorAll('audio').forEach(a => {
+          if (!a.paused) { a.pause(); audiosPaused.push(a); }
+        });
+      }
+    
+      function resumeMedia() {
+        videosPaused.forEach(v => { try { v.play(); } catch(_){} });
+        audiosPaused.forEach(a => { try { a.play(); } catch(_){} });
+        videosPaused = [];
+        audiosPaused = [];
+      }
+    
+      function clearAllTimers() {
+        timers.forEach(id => _clearTimeout(id));
+        intervals.forEach(id => _clearInterval(id));
+        rafIds.forEach(id => _caf(id));
+        timers.clear(); intervals.clear(); rafIds.clear();
+      }
+    
+      function freeze() {
+        if (frozen) return;
+        frozen = true;
+        if (!document.getElementById('__freeze_css')) document.head.appendChild(style);
+        document.documentElement.classList.add('__frozen');
+    
+        pauseMedia();
+        clearAllTimers();
+        wrapTimers(); // so new timers/rAF get blocked
+      }
+    
+      function resume() {
+        if (!frozen) return;
+        frozen = false;
+        document.documentElement.classList.remove('__frozen');
+        restoreTimers();
+        resumeMedia();
+      }
+    
+      // "Hard" freeze: stop everything JS-y and keep visuals
+      function hardFreeze() {
+        freeze();
+        // Neuter common JS entry points
+        const noop = () => {};
+        ['fetch','WebSocket','Worker','postMessage','addEventListener','dispatchEvent']
+          .forEach(k => { try { if (window[k]) window[k] = noop; } catch(_){} });
+        // Disable requestIdleCallback if present
+        try { if ('requestIdleCallback' in window) window.requestIdleCallback = noop; } catch(_){}
+        // Remove all script tags
+        document.querySelectorAll('script').forEach(s => s.remove());
+      }
+    
+      // HTML snapshot with scripts stripped and a freeze CSS injected.
+      function snapshot() {
+        try {
+          const html = document.documentElement.outerHTML
+            .replace(/<script[\s\S]*?<\/script>/gi, '');
+          const injected = html.replace('</head>',
+            `<style>html,html *{animation-play-state:paused!important;transition:none!important}html{pointer-events:none!important;overflow:hidden!important}</style></head>`
+          );
+          parent?.postMessage({ type: 'SNAPSHOT', html: injected }, '*');
+        } catch (e) {
+          parent?.postMessage({ type: 'SNAPSHOT_ERROR', error: String(e) }, '*');
+        }
+      }
+
+      // Theme switching function
+      function setTheme(newTheme) {
+        // Remove all theme classes
+        document.documentElement.classList.remove("light", "dark");
+        // Add new theme
+        if (newTheme) {
+          document.documentElement.classList.add(newTheme);
+        }
+      }
+    
+      // Expose an API for same-document control (optional)
+      window.__pageFreezer = { freeze, resume, hardFreeze, snapshot, setTheme };
+    
+      // Respond to parent postMessage control
+      window.addEventListener('message', (ev) => {
+        const msg = ev?.data;
+        if (!msg || typeof msg !== 'object') return;
+        switch (msg.type) {
+          case 'FREEZE': freeze(); break;
+          case 'RESUME': resume(); break;
+          case 'HARD_FREEZE': hardFreeze(); break;
+          case 'SNAPSHOT': snapshot(); break;
+          case 'SET_THEME': setTheme(msg.theme); break;
+        }
+        
+        // Legacy support for direct theme property
+        if (msg.theme && !msg.type) {
+          setTheme(msg.theme);
+        }
+      }, { passive: true });
+    
+      // Initialize wrappers so we can track timers from the start
+      wrapTimers();
+    })();
+  </script>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
