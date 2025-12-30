@@ -1,0 +1,14 @@
+# Ignore frontend modules
+frontend/node_modules/
+frontend/dist/
+
+# Ignore backend modules
+backend/__pycache__/
+backend/venv/
+backend/.venv/
+backend/*.pyc
+
+# Ignore environment variables
+.env
+frontend/.env
+backend/.env

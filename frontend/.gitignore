@@ -1,9 +1,0 @@
-.env
-.env.local
-node_modules/
-dist/
-build/
-__pycache__/
-venv/
-.venv/
-*.pyc
