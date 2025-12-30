@@ -33,6 +33,36 @@ The pipeline converts Python functions into a numerical matrix. Below is an exam
 
 ---
 
+## 🚀 Architecture
+This project uses a split-deployment architecture for maximum performance and stability:
+* **Frontend:** React + Vite + Tailwind (Hosted on **Vercel**)
+* **Intelligence Engine:** Flask + Scikit-Learn + Watchdog (Hosted on **Render** via Docker)
+* **Model:** Random Forest Classifier analyzing Abstract Syntax Trees (AST).
+
+---
+
+## 🛠️ Tech Stack
+- **ML Logic:** Python, Scikit-Learn, AST (Abstract Syntax Trees)
+- **Backend:** Flask, Joblib, FPDF2 (Reporting)
+- **Frontend:** TypeScript, Framer Motion, Lucide Icons
+- **DevOps:** Docker, GitHub Actions, Render, Vercel
+
+---
+
+## 📂 Project Structure
+- `/middleware`: Contains `app.py` (The API server).
+- `/backend`: Contains `requirements.txt`, training data, and the serialized ML model.
+- `/frontend`: The Cyber Sentinel dashboard.
+- `watch_data.py`: Background process for automated model retraining.
+
+---
+
+## ⚙️ Deployment Instructions
+1. **Backend (Render):** Deploy using the root `Dockerfile`. Ensure the `PORT` environment variable is set to `5001`.
+2. **Frontend (Vercel):** Set `VITE_API_URL` to your Render service URL.
+
+---
+
 ## 🛠️ Tech Stack
 
 * **Language:** Python 3.13+
