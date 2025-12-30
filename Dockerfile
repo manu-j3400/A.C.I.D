@@ -21,5 +21,5 @@ COPY . .
 EXPOSE 5001
 
 # Start BOTH the Watcher and the Flask App
-# Note the path to app.py is now middleware/app.py
-CMD /bin/bash -c "python3 watchData.py & python3 middleware/app.py"
+# Must match your file name exactly (case-sensitive on Linux/Render)
+CMD python3 watchData.py & python3 middleware/app.py
