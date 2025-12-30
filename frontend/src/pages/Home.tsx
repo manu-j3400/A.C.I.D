@@ -53,27 +53,27 @@ export default function Home() {
         <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl w-full">
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
-              10M+
+              10k+
             </div>
             <div className="text-sm text-slate-400">Threats Analyzed</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
-              99.8%
+              97.9%
             </div>
             <div className="text-sm text-slate-400">Accuracy Rate</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
-              &lt;100ms
+              &lt;0.01s
             </div>
             <div className="text-sm text-slate-400">Scan Time</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
-              500K+
+              5+
             </div>
-            <div className="text-sm text-slate-400">Developers</div>
+            <div className="text-sm text-slate-400">Developers working on improving code quality</div>
           </div>
         </div>
       </section>
