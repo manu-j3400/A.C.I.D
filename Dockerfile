@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements from the middleware folder and install
 # This ensures we use the version in your actual backend directory
-COPY middleware/requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire project into the container
