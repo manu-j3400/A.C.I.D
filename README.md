@@ -11,17 +11,6 @@
 
 ---
 
-## 🏗️ Architecture
-
-The project is divided into four distinct phases:
-
-1. **Ingestion:** Scans directories, deduplicates files, and handles structural parsing.
-2. **Normalization:** Rewrites code into a generic format to focus on logic rather than naming conventions.
-3. **Featurization:** Extracts node counts to create a high-dimensional representation of the code.
-4. **Classification:** Utilizes a **Random Forest Classifier** to distinguish between benign logic and malicious injections.
-
----
-
 ## 📊 Data Visualization
 
 The pipeline converts Python functions into a numerical matrix. Below is an example of the "Structural DNA" extracted by the system:
