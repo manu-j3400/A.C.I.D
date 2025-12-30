@@ -47,8 +47,8 @@ This project uses a split-deployment architecture for maximum performance and st
 ---
 
 ## ⚙️ Deployment Instructions
-1. **Backend (Render):** Deploy using the root `Dockerfile`. Ensure the `PORT` environment variable is set to `5001`.
-2. **Frontend (Vercel):** Set `VITE_API_URL` to your Render service URL.
+1. **Backend (Render):** https://a-c-i-d-1.onrender.com
+2. **Frontend (Vercel):** https://codebasesentinel.vercel.app/
 
 ---
 
