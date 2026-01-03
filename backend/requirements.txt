@@ -6,3 +6,4 @@ fpdf2
 scikit-learn==1.8.0
 watchdog
 numpy<2.0.0
+gunicorn
