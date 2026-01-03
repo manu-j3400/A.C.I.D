@@ -21,5 +21,5 @@ COPY . .
 EXPOSE 5001
 
 # Start BOTH the Watcher and the Flask App
-# Must match your file name exactly (case-sensitive on Linux/Render)
-CMD python3 watchData.py & python3 middleware/app.py
+# This replaces the built-in Flask server with a professional one
+CMD gunicorn --bind 0.0.0.0:$PORT middleware.app:app & python3 watchData.py
