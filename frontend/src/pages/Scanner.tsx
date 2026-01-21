@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, ClipboardCheck, Sparkles } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+
 
 // --- TYPES ---
 interface AnalysisResult {
@@ -27,8 +27,8 @@ const TypewriterText = ({ text }: { text: string }) => {
 
   useEffect(() => {
     // 1. Reset text immediately when the 'text' prop changes
-    setDisplayedText(''); 
-    
+    setDisplayedText('');
+
     let currentIndex = 0;
     let isCancelled = false;
 
@@ -73,42 +73,42 @@ export default function Scanner() {
   }, [history]);
 
   const handleDownloadReport = async () => {
-        try {
-          // 1. Point to your 5001 backend
-          const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-          
-          const response = await fetch(`${baseUrl}/generate-report`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: code, // The code currently in your editor
-              verdict: result.status.toUpperCase(),
-              confidence: result.confidence,
-              risk_level: result.riskLevel
-            })
-          });
+    try {
+      // 1. Point to your 5001 backend
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-          if (!response.ok) throw new Error('Backend failed to generate PDF');
+      const response = await fetch(`${baseUrl}/generate-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code, // The code currently in your editor
+          verdict: result.status.toUpperCase(),
+          confidence: result.confidence,
+          risk_level: result.riskLevel
+        })
+      });
 
-          // 2. Browser trick to download the file
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Sentinel_Audit_${new Date().getTime()}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          
-        } catch (error) {
-          console.error("Report Download Error:", error);
-          alert("Could not generate report. Check if Python backend is running on Port 5001.");
-        }
-      };
+      if (!response.ok) throw new Error('Backend failed to generate PDF');
+
+      // 2. Browser trick to download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Sentinel_Audit_${new Date().getTime()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+    } catch (error) {
+      console.error("Report Download Error:", error);
+      alert("Could not generate report. Check if Python backend is running on Port 5001.");
+    }
+  };
 
 
   const analyzeCode = async () => {
-    if (code.length > 50000){
+    if (code.length > 50000) {
       setResult({
         status: 'error',
         message: 'Payload too large. Limit code to 50,000 characters.'
@@ -126,7 +126,7 @@ export default function Scanner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       });
-      
+
       const data = await response.json();
       const verdict = data.malicious ? 'malicious' : 'clean';
 
@@ -134,14 +134,14 @@ export default function Scanner() {
         id: Date.now().toString(),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         verdict,
-        riskLevel: data.risk_level, 
+        riskLevel: data.risk_level,
         codePreview: code.trim().substring(0, 35) + "...",
         fullCode: code
       };
 
       setHistory(prev => [newHistoryItem, ...prev].slice(0, 15));
-      setResult({ 
-        status: verdict, 
+      setResult({
+        status: verdict,
         message: data.reason,
         confidence: data.confidence,
         riskLevel: data.risk_level
@@ -160,9 +160,9 @@ export default function Scanner() {
   return (
     <div className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-[#020617] text-slate-200 py-12 px-6 overflow-x-hidden">
       <div className="max-w-[1600px] mx-auto">
-        
+
         {/* HERO SECTION */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-16 text-center space-y-4"
@@ -177,9 +177,9 @@ export default function Scanner() {
         </motion.div>
 
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* SIDEBAR: AUDIT LOGS */}
-          <motion.aside 
+          <motion.aside
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-3 h-[750px] sticky top-8"
@@ -191,11 +191,11 @@ export default function Scanner() {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                 <AnimatePresence mode="popLayout">
                   {history.length === 0 ? (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="h-full flex flex-col items-center justify-center opacity-20 px-6 text-center"
@@ -208,21 +208,20 @@ export default function Scanner() {
                     </motion.div>
                   ) : (
                     history.map((item) => (
-                      <motion.div 
+                      <motion.div
                         layout
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        key={item.id} 
+                        key={item.id}
                         onClick={() => setCode(item.fullCode)}
                         className="group p-4 bg-slate-950/40 border border-slate-800/50 rounded-2xl hover:border-purple-500/50 transition-all cursor-pointer hover:bg-slate-900/40"
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <span className={`text-[8px] font-bold px-2 py-0.5 rounded tracking-widest ${
-                            item.riskLevel === 'CRITICAL' ? 'bg-red-500 text-white' : 
+                          <span className={`text-[8px] font-bold px-2 py-0.5 rounded tracking-widest ${item.riskLevel === 'CRITICAL' ? 'bg-red-500 text-white' :
                             item.riskLevel === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
-                            'bg-green-500/20 text-green-400'
-                          }`}>
+                              'bg-green-500/20 text-green-400'
+                            }`}>
                             {item.riskLevel}
                           </span>
                           <span className="text-[9px] text-slate-600 font-mono">{item.timestamp}</span>
@@ -237,7 +236,7 @@ export default function Scanner() {
           </motion.aside>
 
           {/* CENTER: EDITOR */}
-          <motion.main 
+          <motion.main
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-5 space-y-6"
@@ -263,8 +262,8 @@ export default function Scanner() {
                 />
               </div>
             </div>
-            
-            <Button 
+
+            <Button
               size="lg"
               onClick={analyzeCode}
               disabled={!code.trim() || result.status === 'loading'}
@@ -275,18 +274,18 @@ export default function Scanner() {
           </motion.main>
 
           {/* RIGHT: REPORT */}
-          <motion.section 
+          <motion.section
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-4 h-[750px]"
           >
             <div className="bg-slate-900/40 border border-slate-800/60 rounded-[2.5rem] p-10 h-full flex flex-col backdrop-blur-3xl shadow-2xl relative overflow-hidden">
               <h3 className="text-[10px] font-black text-slate-500 tracking-[0.4em] uppercase mb-16">Security Verdict</h3>
-              
+
               <div className="flex-1 flex flex-col items-center justify-center">
                 <AnimatePresence mode="wait">
                   {result.status === 'waiting' && (
-                    <motion.div 
+                    <motion.div
                       key="waiting"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="text-center opacity-20"
@@ -297,7 +296,7 @@ export default function Scanner() {
                   )}
 
                   {result.status === 'loading' && (
-                    <motion.div 
+                    <motion.div
                       key="loading"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="text-center"
@@ -308,20 +307,18 @@ export default function Scanner() {
                   )}
 
                   {(result.status === 'malicious' || result.status === 'clean') && (
-                    <motion.div 
+                    <motion.div
                       key="result"
                       initial={{ opacity: 0, scale: 0.9, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       className="text-center w-full"
                     >
-                      <div className={`mx-auto mb-10 w-32 h-32 rounded-full flex items-center justify-center border-2 shadow-2xl transition-colors duration-1000 ${
-                        result.status === 'malicious' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/20' : 'bg-green-500/5 border-green-500/20 shadow-green-500/20'
-                      }`}>
+                      <div className={`mx-auto mb-10 w-32 h-32 rounded-full flex items-center justify-center border-2 shadow-2xl transition-colors duration-1000 ${result.status === 'malicious' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/20' : 'bg-green-500/5 border-green-500/20 shadow-green-500/20'
+                        }`}>
                         {result.status === 'malicious' ? <ShieldX className="w-16 h-16 text-red-500" /> : <ShieldCheck className="w-16 h-16 text-green-500" />}
                       </div>
-                      <div className={`inline-block px-6 py-1.5 rounded-full mb-8 text-[10px] font-black tracking-widest border ${
-                        result.status === 'malicious' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-green-500/10 border-green-500/20 text-green-400'
-                      }`}>
+                      <div className={`inline-block px-6 py-1.5 rounded-full mb-8 text-[10px] font-black tracking-widest border ${result.status === 'malicious' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-green-500/10 border-green-500/20 text-green-400'
+                        }`}>
                         {result.riskLevel} RISK
                       </div>
                       <h2 className="text-4xl font-black mb-6 tracking-tighter italic">
@@ -330,14 +327,13 @@ export default function Scanner() {
                       <p className="text-slate-400 text-sm leading-relaxed mb-12 font-mono italic px-4 border-l-2 border-slate-800 h-16 overflow-y-auto">
                         {result.message && <TypewriterText text={result.message} />}
                       </p>
-                      <Button 
-                        onClick={handleDownloadReport} 
-                        variant="outline" 
-                        className={`w-full py-8 border-slate-800 rounded-2xl font-bold transition-all uppercase tracking-widest text-xs ${
-                          result.status === 'malicious' 
-                          ? 'hover:bg-red-500 hover:text-white hover:border-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.3)]' 
+                      <Button
+                        onClick={handleDownloadReport}
+                        variant="outline"
+                        className={`w-full py-8 border-slate-800 rounded-2xl font-bold transition-all uppercase tracking-widest text-xs ${result.status === 'malicious'
+                          ? 'hover:bg-red-500 hover:text-white hover:border-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.3)]'
                           : 'hover:bg-white hover:text-black'
-                        }`}
+                          }`}
                       >
                         <Download className="w-4 h-4 mr-2" /> Export Audit Report
                       </Button>
