@@ -23,15 +23,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }}></div>
         
         {/* Scanning Line Effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/8 via-fuchsia-500/12 to-transparent animate-scan-line"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/8 via-cyan-500/12 to-transparent animate-scan-line"></div>
         
         {/* Glowing Orbs */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-500/25 rounded-full blur-[140px] animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-fuchsia-500/25 rounded-full blur-[140px] animate-pulse-slow-delayed"></div>
-        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[130px] animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/25 rounded-full blur-[140px] animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyan-500/25 rounded-full blur-[140px] animate-pulse-slow-delayed"></div>
+        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-sky-500/20 rounded-full blur-[130px] animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
         
         {/* Animated Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/10 via-transparent to-fuchsia-900/10 animate-gradient"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/10 via-transparent to-cyan-900/10 animate-gradient"></div>
         
         {/* Subtle Noise Texture */}
         <div className="absolute inset-0 opacity-[0.02] bg-noise"></div>
@@ -39,15 +39,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Navigation */}
       <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl">
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/60 rounded-2xl shadow-2xl shadow-purple-500/5">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/60 rounded-2xl shadow-2xl shadow-blue-500/5">
           <div className="px-6 py-4 flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="p-2 bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 rounded-lg group-hover:from-purple-500/30 group-hover:to-fuchsia-500/30 transition-all">
-                <Shield className="w-5 h-5 text-purple-400" />
+              <div className="p-2 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all">
+                <Shield className="w-5 h-5 text-blue-400" />
               </div>
-              <span className="font-bold text-lg bg-gradient-to-r from-purple-300 to-fuchsia-300 bg-clip-text text-transparent">
-                Sentinel
+              <span className="font-bold text-lg bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+                Kyber
               </span>
             </Link>
 
@@ -57,7 +57,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/features') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -79,7 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/scanner') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -90,7 +90,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/about') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -104,7 +104,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/scanner">
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400 text-white font-medium shadow-lg shadow-purple-500/25"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-medium shadow-lg shadow-blue-500/25"
                 >
                   <Activity className="w-4 h-4 mr-2" />
                   Try Scanner
@@ -128,7 +128,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -139,7 +139,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/features') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -150,7 +150,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/scanner') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -161,7 +161,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-all ${
                     isActive('/about') 
-                      ? 'bg-purple-500/20 text-white' 
+                      ? 'bg-blue-500/20 text-white' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -171,7 +171,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/scanner" onClick={() => setMobileMenuOpen(false)}>
                 <Button
                   size="sm"
-                  className="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400 text-white font-medium shadow-lg shadow-purple-500/25"
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-medium shadow-lg shadow-blue-500/25"
                 >
                   <Activity className="w-4 h-4 mr-2" />
                   Try Scanner
@@ -191,13 +191,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <footer className="relative z-10 py-8 px-4 border-t border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
-            © 2025 Cyber Sentinel • Built with Advanced AI & Neural Networks
+            © 2025 Kyber • Built with Advanced AI & Neural Networks
           </p>
           <a 
             href="https://github.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-purple-400 transition-colors"
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors"
           >
             <Github className="w-5 h-5" />
             View on GitHub

@@ -12,13 +12,7 @@ from io import BytesIO
 from fpdf import FPDF, XPos, YPos
 from datetime import datetime
 
-BUZZ_WORDS = {
-    'eval': 'Dynamic code execution (eval) is a high-risk pattern.',
-    'exec': 'Direct string execution (exec) detected.',
-    'os.system': 'Shell command execution through os.system.',
-    'subprocess.Popen': 'Direct process spawning detected.',
-    'base64.b64decode': 'Possible encoded payload obfuscation.'
-}
+BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
 
 # to make normalizer_AST file accessable 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,6 +40,29 @@ except ImportError as e:
         def visit(self, tree): return tree
     normalizer = DummyNormalizer()
     print("⚠️ Using Dummy Normalizer (Analysis will be less accurate)")
+
+# Multi-language support
+try:
+    from language_detector import detect_language
+    from treesitter_parser import get_node_counts, get_supported_languages
+    MULTI_LANG_ENABLED = True
+    print(f"✅ Multi-language support enabled: {get_supported_languages()}")
+except ImportError as e:
+    MULTI_LANG_ENABLED = False
+    print(f"⚠️ Multi-language support disabled: {e}")
+
+# Vulnerability database
+try:
+    from vulnerability_db import VULNERABILITY_PATTERNS
+    BUZZ_WORDS = {pattern: info[0] for pattern, info in VULNERABILITY_PATTERNS.items()}
+    # Also create a severity lookup
+    SEVERITY_LOOKUP = {pattern: info[1] for pattern, info in VULNERABILITY_PATTERNS.items()}
+    CWE_LOOKUP = {pattern: info[2] for pattern, info in VULNERABILITY_PATTERNS.items()}
+    print(f"✅ Vulnerability database loaded: {len(VULNERABILITY_PATTERNS)} patterns")
+except ImportError as e:
+    print(f"⚠️ Vulnerability database not loaded: {e}")
+    SEVERITY_LOOKUP = {}
+    CWE_LOOKUP = {}
 
 
 app = Flask(__name__)
@@ -83,8 +100,49 @@ def load_model_if_updated():
 
 # Processing Engine
 def structuralDNAExtraction(rawCode):
+    """
+    Extract structural features from code using AST analysis.
+    Supports multiple languages via tree-sitter.
+    """
+    detected_language = 'python'
+    confidence = 0.0
+    
+    # Try multi-language detection first
+    if MULTI_LANG_ENABLED:
+        try:
+            detected_language, confidence = detect_language(rawCode)
+            print(f"🔍 Detected language: {detected_language} (confidence: {confidence:.2f})")
+        except Exception as e:
+            print(f"Language detection failed: {e}")
+            detected_language = 'python'
+    
+    # Use tree-sitter for all languages (more consistent)
+    if MULTI_LANG_ENABLED:
+        try:
+            counts = get_node_counts(rawCode, detected_language)
+            
+            if not counts:
+                return "SYNTAX_ERROR"
+            
+            # Create DataFrame with node counts
+            df = pd.DataFrame([counts])
+            
+            # Align with model features (fill missing with 0)
+            df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
+            
+            # Add any extra columns from detection that model doesn't know about
+            for col in df.columns:
+                if col not in df_aligned.columns:
+                    df_aligned[col] = df[col]
+            
+            return df_aligned, detected_language
+            
+        except Exception as e:
+            print(f"Tree-sitter parsing failed for {detected_language}: {e}")
+            # Fall back to Python AST if tree-sitter fails
+    
+    # Fallback: Original Python-only AST parsing
     try:
-
         tree = ast.parse(rawCode)
         normalizedTree = normalizer.visit(tree)
 
@@ -95,16 +153,14 @@ def structuralDNAExtraction(rawCode):
         df = pd.DataFrame([counts])
         df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
 
-        return df_aligned
-    
+        return df_aligned, 'python'
     
     except SyntaxError:
-        return "SYNTAX_ERROR"
-    
+        return "SYNTAX_ERROR", detected_language
     
     except Exception as e:
         print(f"Error processing code: {e}")
-        return None
+        return None, detected_language
     
 
 @app.route('/analyze', methods=['POST'])
@@ -125,25 +181,39 @@ def analyze():
     triggerKeywords = [k for k in BUZZ_WORDS if k in codeInput]
 
     # 2. TRANSFORM CODE INTO NUMBERS
-    featuresDf = structuralDNAExtraction(codeInput)
+    result = structuralDNAExtraction(codeInput)
+    
+    # Handle tuple return (dataframe, language)
+    if isinstance(result, tuple):
+        featuresDf, detected_language = result
+    else:
+        featuresDf = result
+        detected_language = 'python'
 
     # 3. ERROR HANDLING
     if isinstance(featuresDf, str) and featuresDf == "SYNTAX_ERROR":
         return jsonify({
             'malicious': False,
             'risk_level': 'INVALID',
-            'reason': "Syntax Error: This code cannot be executed as written"
+            'reason': f"Syntax Error: This {detected_language} code cannot be parsed",
+            'language': detected_language
         }), 200
         
     if featuresDf is None:
-        return jsonify({'status': 'error', 'message': 'Analysis failed.'}), 500
+        return jsonify({'status': 'error', 'message': 'Analysis failed.', 'language': detected_language}), 500
     
     load_model_if_updated()
 
     # 4. AI VERDICT
-    probability = model.predict_proba(featuresDf)[0]
-    maliciousProb = probability[1]
-    confidence = round(max(probability) * 100, 1)
+    try:
+        probability = model.predict_proba(featuresDf)[0]
+        maliciousProb = probability[1]
+        confidence = round(max(probability) * 100, 1)
+    except Exception as e:
+        # Model may not support new language features - use keyword detection only
+        print(f"Model prediction failed: {e}")
+        maliciousProb = 0.5 if triggerKeywords else 0.1
+        confidence = 50.0
 
     # 5. RISK HIERARCHY LOGIC
     # Priority 1: Immediate Keyword Match
@@ -176,10 +246,12 @@ def analyze():
         'malicious': verdict,
         'confidence': confidence,
         'risk_level': riskLabel,
-        'reason': message, 
+        'reason': message,
+        'language': detected_language,
         'metadata': {
             'nodes_scanned': len(featuresDf.columns),
-            'engine': 'Sentinel-AI v2.1 (RF-AST-Hybrid)',
+            'engine': 'ACID v3.0 (Multi-Language)',
+            'supported_languages': ['python', 'java', 'javascript', 'typescript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'php'],
             'process_time': 'Real-time'
         }
     })

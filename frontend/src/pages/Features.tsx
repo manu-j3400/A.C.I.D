@@ -6,7 +6,7 @@ export default function Features() {
     <div className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-fuchsia-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">
             Advanced Security Features
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
@@ -16,10 +16,10 @@ export default function Features() {
         
         {/* Main Features */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 group">
+          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-purple-500/15 to-violet-500/15 rounded-lg w-fit group-hover:from-purple-500/25 group-hover:to-violet-500/25 transition-all">
-                <Dna className="w-10 h-10 text-purple-400" />
+              <div className="mb-4 p-3 bg-gradient-to-br from-blue-500/15 to-sky-500/15 rounded-lg w-fit group-hover:from-blue-500/25 group-hover:to-sky-500/25 transition-all">
+                <Dna className="w-10 h-10 text-blue-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
                 Deep Analysis
@@ -30,10 +30,10 @@ export default function Features() {
             </CardHeader>
           </Card>
 
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-fuchsia-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-fuchsia-500/20 group">
+          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-fuchsia-500/15 to-pink-500/15 rounded-lg w-fit group-hover:from-fuchsia-500/25 group-hover:to-pink-500/25 transition-all">
-                <ShieldCheck className="w-10 h-10 text-fuchsia-400" />
+              <div className="mb-4 p-3 bg-gradient-to-br from-cyan-500/15 to-teal-500/15 rounded-lg w-fit group-hover:from-cyan-500/25 group-hover:to-teal-500/25 transition-all">
+                <ShieldCheck className="w-10 h-10 text-cyan-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
                 Real-time Protection
@@ -44,10 +44,10 @@ export default function Features() {
             </CardHeader>
           </Card>
 
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-violet-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/20 group">
+          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-sky-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-sky-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-violet-500/15 to-purple-500/15 rounded-lg w-fit group-hover:from-violet-500/25 group-hover:to-purple-500/25 transition-all">
-                <Zap className="w-10 h-10 text-violet-400" />
+              <div className="mb-4 p-3 bg-gradient-to-br from-sky-500/15 to-blue-500/15 rounded-lg w-fit group-hover:from-sky-500/25 group-hover:to-blue-500/25 transition-all">
+                <Zap className="w-10 h-10 text-sky-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
                 Lightning Fast
@@ -65,11 +65,11 @@ export default function Features() {
             Complete Security Suite
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-purple-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-blue-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Lock className="w-6 h-6 text-purple-400" />
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Lock className="w-6 h-6 text-blue-400" />
                   </div>
                   <CardTitle className="text-lg text-white">End-to-End Encryption</CardTitle>
                 </div>
@@ -79,11 +79,11 @@ export default function Features() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-fuchsia-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-cyan-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-fuchsia-500/10 rounded-lg">
-                    <Eye className="w-6 h-6 text-fuchsia-400" />
+                  <div className="p-2 bg-cyan-500/10 rounded-lg">
+                    <Eye className="w-6 h-6 text-cyan-400" />
                   </div>
                   <CardTitle className="text-lg text-white">Behavioral Analysis</CardTitle>
                 </div>
@@ -93,11 +93,11 @@ export default function Features() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-violet-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-sky-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-violet-500/10 rounded-lg">
-                    <Cpu className="w-6 h-6 text-violet-400" />
+                  <div className="p-2 bg-sky-500/10 rounded-lg">
+                    <Cpu className="w-6 h-6 text-sky-400" />
                   </div>
                   <CardTitle className="text-lg text-white">Machine Learning</CardTitle>
                 </div>
@@ -107,11 +107,11 @@ export default function Features() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-purple-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-blue-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Database className="w-6 h-6 text-purple-400" />
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Database className="w-6 h-6 text-blue-400" />
                   </div>
                   <CardTitle className="text-lg text-white">Threat Intelligence</CardTitle>
                 </div>
@@ -121,11 +121,11 @@ export default function Features() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-fuchsia-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-cyan-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-fuchsia-500/10 rounded-lg">
-                    <Globe className="w-6 h-6 text-fuchsia-400" />
+                  <div className="p-2 bg-cyan-500/10 rounded-lg">
+                    <Globe className="w-6 h-6 text-cyan-400" />
                   </div>
                   <CardTitle className="text-lg text-white">Multi-Language Support</CardTitle>
                 </div>
@@ -135,11 +135,11 @@ export default function Features() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-violet-500/30 transition-all duration-300">
+            <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800 hover:border-sky-500/30 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-violet-500/10 rounded-lg">
-                    <Fingerprint className="w-6 h-6 text-violet-400" />
+                  <div className="p-2 bg-sky-500/10 rounded-lg">
+                    <Fingerprint className="w-6 h-6 text-sky-400" />
                   </div>
                   <CardTitle className="text-lg text-white">Signature Detection</CardTitle>
                 </div>
@@ -152,27 +152,27 @@ export default function Features() {
         </div>
 
         {/* Comparison Section */}
-        <div className="bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/20 rounded-xl p-8">
+        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-8">
           <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white">
-            Why Choose Cyber Sentinel?
+            Why Choose Kyber?
           </h2>
           <div className="grid md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
                 3x
               </div>
               <p className="text-slate-300 font-medium mb-1">Faster Detection</p>
               <p className="text-slate-500 text-sm">Than traditional antivirus</p>
             </div>
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
                 50%
               </div>
               <p className="text-slate-300 font-medium mb-1">Lower False Positives</p>
               <p className="text-slate-500 text-sm">More accurate predictions</p>
             </div>
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
                 100%
               </div>
               <p className="text-slate-300 font-medium mb-1">Open Source</p>

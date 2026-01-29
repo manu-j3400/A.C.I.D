@@ -64,12 +64,12 @@ export default function Scanner() {
 
   // Persistence & Initialization
   useEffect(() => {
-    const saved = localStorage.getItem('sentinel_audit_v2');
+    const saved = localStorage.getItem('kyber_audit_v2');
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('sentinel_audit_v2', JSON.stringify(history));
+    localStorage.setItem('kyber_audit_v2', JSON.stringify(history));
   }, [history]);
 
   const handleDownloadReport = async () => {
@@ -95,7 +95,7 @@ export default function Scanner() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Sentinel_Audit_${new Date().getTime()}.pdf`;
+      link.download = `Kyber_Audit_${new Date().getTime()}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -167,13 +167,13 @@ export default function Scanner() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-16 text-center space-y-4"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-4">
             <Sparkles className="w-3 h-3" /> AI-Powered Security
           </div>
           <h1 className="text-7xl font-black tracking-tighter bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent">
-            CYBER SENTINEL
+            KYBER ENGINE
           </h1>
-          <p className="text-slate-500 font-mono text-xs tracking-[0.3em] uppercase">Deep Structural AST Analysis Engine</p>
+          <p className="text-slate-500 font-mono text-xs tracking-[0.3em] uppercase">Multi-Protocol Security Scanner</p>
         </motion.div>
 
         <div className="grid lg:grid-cols-12 gap-8 items-start">
@@ -215,7 +215,7 @@ export default function Scanner() {
                         exit={{ opacity: 0, scale: 0.9 }}
                         key={item.id}
                         onClick={() => setCode(item.fullCode)}
-                        className="group p-4 bg-slate-950/40 border border-slate-800/50 rounded-2xl hover:border-purple-500/50 transition-all cursor-pointer hover:bg-slate-900/40"
+                        className="group p-4 bg-slate-950/40 border border-slate-800/50 rounded-2xl hover:border-blue-500/50 transition-all cursor-pointer hover:bg-slate-900/40"
                       >
                         <div className="flex justify-between items-center mb-2">
                           <span className={`text-[8px] font-bold px-2 py-0.5 rounded tracking-widest ${item.riskLevel === 'CRITICAL' ? 'bg-red-500 text-white' :
@@ -267,7 +267,7 @@ export default function Scanner() {
               size="lg"
               onClick={analyzeCode}
               disabled={!code.trim() || result.status === 'loading'}
-              className="w-full py-10 rounded-[2rem] bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:shadow-[0_0_40px_-5px_rgba(168,85,247,0.4)] transition-all text-xl font-black italic tracking-tight"
+              className="w-full py-10 rounded-[2rem] bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-[0_0_40px_-5px_rgba(168,85,247,0.4)] transition-all text-xl font-black italic tracking-tight"
             >
               {result.status === 'loading' ? 'SCANNING DNA...' : 'INITIALIZE VULNERABILITY SCAN'}
             </Button>
@@ -301,8 +301,8 @@ export default function Scanner() {
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="text-center"
                     >
-                      <div className="w-20 h-20 rounded-full border-2 border-slate-800 border-t-purple-500 animate-spin mx-auto mb-8 shadow-2xl" />
-                      <p className="text-purple-400 text-[10px] font-black tracking-widest animate-pulse">AST_PARSING_INITIATED</p>
+                      <div className="w-20 h-20 rounded-full border-2 border-slate-800 border-t-blue-500 animate-spin mx-auto mb-8 shadow-2xl" />
+                      <p className="text-blue-400 text-[10px] font-black tracking-widest animate-pulse">AST_PARSING_INITIATED</p>
                     </motion.div>
                   )}
 
