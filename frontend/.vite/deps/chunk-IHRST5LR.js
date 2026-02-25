@@ -1,13 +1,13 @@
 import {
   require_react
-} from "./chunk-OELA7GPI.js";
+} from "./chunk-32E4H3EV.js";
 import {
   __commonJS
 } from "./chunk-G3PMV62Z.js";
 
-// node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react-jsx-runtime.development.js
+// node_modules/react/cjs/react-jsx-runtime.development.js
 var require_react_jsx_runtime_development = __commonJS({
-  "node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+  "node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
     "use strict";
     if (true) {
       (function() {
@@ -898,9 +898,9 @@ var require_react_jsx_runtime_development = __commonJS({
   }
 });
 
-// node_modules/.pnpm/react@18.3.1/node_modules/react/jsx-runtime.js
+// node_modules/react/jsx-runtime.js
 var require_jsx_runtime = __commonJS({
-  "node_modules/.pnpm/react@18.3.1/node_modules/react/jsx-runtime.js"(exports, module) {
+  "node_modules/react/jsx-runtime.js"(exports, module) {
     if (false) {
       module.exports = null;
     } else {
@@ -925,4 +925,4 @@ react/cjs/react-jsx-runtime.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
-//# sourceMappingURL=chunk-LSYY3YJA.js.map
+//# sourceMappingURL=chunk-IHRST5LR.js.map

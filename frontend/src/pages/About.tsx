@@ -8,7 +8,7 @@ export default function About() {
 
   const faqs = [
     {
-      question: "How does Kyber detect malware?",
+      question: "How does Soteria detect malware?",
       answer: "We use advanced neural networks trained on millions of malware samples. Our AI analyzes code patterns, behavioral signatures, and known exploit techniques to identify threats with 99.8% accuracy."
     },
     {
@@ -35,7 +35,7 @@ export default function About() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">
-            About Kyber
+            About Soteria
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             Next-generation security platform powered by artificial intelligence and built for developers
@@ -208,7 +208,7 @@ export default function About() {
             Trusted by Developers
           </h2>
           <p className="text-slate-400 text-center mb-12">
-            See what security professionals are saying about Kyber
+            See what security professionals are saying about Soteria
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -241,7 +241,7 @@ export default function About() {
                   </div>
                 </div>
                 <CardDescription className="text-slate-400">
-                  "Kyber caught vulnerabilities that other tools missed. The API integration was seamless and the results are incredibly detailed."
+                  "Soteria caught vulnerabilities that other tools missed. The API integration was seamless and the results are incredibly detailed."
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -271,7 +271,7 @@ export default function About() {
             Frequently Asked Questions
           </h2>
           <p className="text-slate-400 text-center mb-12">
-            Everything you need to know about Kyber
+            Everything you need to know about Soteria
           </p>
 
           <div className="max-w-3xl mx-auto space-y-4">

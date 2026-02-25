@@ -13,7 +13,7 @@ export default function Features() {
             Enterprise-grade protection powered by cutting-edge AI and machine learning algorithms
           </p>
         </div>
-        
+
         {/* Main Features */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 group">
@@ -154,7 +154,7 @@ export default function Features() {
         {/* Comparison Section */}
         <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-8">
           <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white">
-            Why Choose Kyber?
+            Why Choose Soteria?
           </h2>
           <div className="grid md:grid-cols-3 gap-6 text-center">
             <div>

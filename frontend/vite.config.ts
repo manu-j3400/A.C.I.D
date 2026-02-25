@@ -23,16 +23,23 @@ export default defineConfig({
     //     tsconfigPath: path.resolve(__dirname, "./tsconfig.json"),
     //   },
     // }),
-    viteSingleFile(),
+    process.env.NODE_ENV === 'production' ? viteSingleFile() : null,
   ],
-  // server: {
-  //   hmr: {
-  //     overlay: true,
-  //   },
-  //   watch: {
-  //     ignored: ["**/*.tsbuildinfo"],
-  //   },
-  // },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+    hmr: {
+      overlay: true,
+    },
+    watch: {
+      ignored: ["**/*.tsbuildinfo"],
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

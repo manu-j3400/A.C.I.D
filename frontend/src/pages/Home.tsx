@@ -17,7 +17,7 @@ export default function Home() {
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-center mb-6 bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent animate-gradient-x">
-          KYBER
+          SOTERIA
         </h1>
 
         <p className="text-xl md:text-2xl text-center mb-4 bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent font-semibold">
@@ -26,7 +26,7 @@ export default function Home() {
 
         <p className="text-base md:text-lg text-center mb-12 text-slate-400 max-w-2xl">
           The next generation of code security. Leveraging advanced neural networks to detect threats in real-time,
-          Kyber protects millions of developers worldwide with enterprise-grade AI technology.
+          Soteria protects millions of developers worldwide with enterprise-grade AI technology.
         </p>
 
         <div className="flex gap-4 flex-wrap justify-center">
@@ -78,12 +78,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What is Kyber Section */}
+      {/* What is Soteria Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-              What is Kyber?
+              What is Soteria?
             </h2>
             <p className="text-slate-400 text-lg max-w-3xl mx-auto">
               A revolutionary platform that combines artificial intelligence, machine learning, and advanced pattern recognition
@@ -101,7 +101,7 @@ export default function Home() {
                   <CardTitle className="text-2xl text-white">Built for Security</CardTitle>
                 </div>
                 <CardDescription className="text-slate-400 leading-relaxed text-base">
-                  Every line of code is a potential vulnerability. Kyber was designed from the ground up to protect developers,
+                  Every line of code is a potential vulnerability. Soteria was designed from the ground up to protect developers,
                   teams, and enterprises from evolving threats. Our AI doesn't just detect known malware—it predicts and prevents
                   zero-day attacks before they happen.
                 </CardDescription>
@@ -132,14 +132,16 @@ export default function Home() {
                 <Shield className="w-12 h-12 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Why "Kyber"?</h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Why "Soteria"?</h3>
                 <p className="text-blue-300">The Guardian of Your Code</p>
               </div>
             </div>
             <p className="text-slate-300 text-lg leading-relaxed mb-6">
-              A <span className="text-blue-400 font-semibold">kyber</span> stands watch, vigilant and unwavering.
+              A <span className="text-blue-400 font-semibold">soteria</span> stands watch, vigilant and unwavering.
+              <br />
+              Soteria embodies this philosophy—an AI-powered watchdog that monitors, analyzes, and protects your
               In the digital realm, where threats lurk in every line of code, you need a guardian that never sleeps.
-              Kyber embodies this philosophy—an AI-powered watchdog that monitors, analyzes, and protects your
+              Soteria embodies this philosophy—an AI-powered watchdog that monitors, analyzes, and protects your
               applications 24/7.
             </p>
             <div className="grid md:grid-cols-3 gap-6">
@@ -165,7 +167,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-              Why Developers Trust Kyber
+              Why Developers Trust Soteria
             </h2>
             <p className="text-slate-400 text-lg">
               Joining 500,000+ developers and teams worldwide

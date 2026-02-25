@@ -1,0 +1,21 @@
+✅ Normalizer loaded successfully!
+✅ Multi-language support enabled: ['python', 'java', 'javascript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'typescript', 'php']
+✅ Vulnerability database loaded: 198 patterns
+🔄 ACID MIDDLEWARE INITIALIZATION
+✅ Model loaded successfully!
+✅ Scan history database initialized
+✅ Users database initialized
+Backend running at port 500
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.31.105.6:5001
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [25/Feb/2026 13:24:21] "POST /github-scan HTTP/1.1" 200 -
+127.0.0.1 - - [25/Feb/2026 13:27:04] "GET /security-score HTTP/1.1" 200 -
+127.0.0.1 - - [25/Feb/2026 13:27:04] "GET /security-score HTTP/1.1" 200 -
+127.0.0.1 - - [25/Feb/2026 13:28:25] "POST /github-scan HTTP/1.1" 200 -
+127.0.0.1 - - [25/Feb/2026 13:29:57] "OPTIONS /github-scan HTTP/1.1" 200 -
+127.0.0.1 - - [25/Feb/2026 13:30:00] "POST /github-scan HTTP/1.1" 200 -

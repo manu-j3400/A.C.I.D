@@ -1,0 +1,41 @@
+✅ Normalizer loaded successfully!
+✅ Multi-language support enabled: ['python', 'java', 'javascript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'typescript', 'php']
+✅ Vulnerability database loaded: 198 patterns
+🔄 ACID MIDDLEWARE INITIALIZATION
+✅ Model loaded successfully!
+✅ Scan history database initialized
+✅ Users database initialized
+Backend running at port 500
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.31.105.6:5001
+[33mPress CTRL+C to quit[0m
+[2026-02-25 13:22:55,579] ERROR in app: Exception on /github-scan [POST]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/manujawahar/workspace/ACID/middleware/app.py", line 1307, in github_scan
+    result, status = process_files_batch(files_data) if isinstance(process_files_batch(files_data), tuple) else (process_files_batch(files_data), 200)
+                                                                   ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/manujawahar/workspace/ACID/middleware/app.py", line 1052, in process_files_batch
+    result = process_files_batch(files)
+  File "/Users/manujawahar/workspace/ACID/middleware/app.py", line 1052, in process_files_batch
+    result = process_files_batch(files)
+  File "/Users/manujawahar/workspace/ACID/middleware/app.py", line 1052, in process_files_batch
+    result = process_files_batch(files)
+  [Previous line repeated 981 more times]
+RecursionError: maximum recursion depth exceeded
+127.0.0.1 - - [25/Feb/2026 13:22:55] "[35m[1mPOST /github-scan HTTP/1.1[0m" 500 -

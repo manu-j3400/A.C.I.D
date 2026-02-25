@@ -1,54 +1,21 @@
 import {
+  composeRefs
+} from "./chunk-OQO3ENED.js";
+import {
   require_jsx_runtime
-} from "./chunk-LSYY3YJA.js";
+} from "./chunk-IHRST5LR.js";
 import {
   require_react
-} from "./chunk-OELA7GPI.js";
+} from "./chunk-32E4H3EV.js";
 import {
   __toESM
 } from "./chunk-G3PMV62Z.js";
 
-// node_modules/.pnpm/@radix-ui+react-slot@1.2.4_@types+react@19.2.7_react@18.3.1/node_modules/@radix-ui/react-slot/dist/index.mjs
-var React2 = __toESM(require_react(), 1);
-
-// node_modules/.pnpm/@radix-ui+react-compose-refs@1.1.2_@types+react@19.2.7_react@18.3.1/node_modules/@radix-ui/react-compose-refs/dist/index.mjs
+// node_modules/@radix-ui/react-slot/dist/index.mjs
 var React = __toESM(require_react(), 1);
-function setRef(ref, value) {
-  if (typeof ref === "function") {
-    return ref(value);
-  } else if (ref !== null && ref !== void 0) {
-    ref.current = value;
-  }
-}
-function composeRefs(...refs) {
-  return (node) => {
-    let hasCleanup = false;
-    const cleanups = refs.map((ref) => {
-      const cleanup = setRef(ref, node);
-      if (!hasCleanup && typeof cleanup == "function") {
-        hasCleanup = true;
-      }
-      return cleanup;
-    });
-    if (hasCleanup) {
-      return () => {
-        for (let i = 0; i < cleanups.length; i++) {
-          const cleanup = cleanups[i];
-          if (typeof cleanup == "function") {
-            cleanup();
-          } else {
-            setRef(refs[i], null);
-          }
-        }
-      };
-    }
-  };
-}
-
-// node_modules/.pnpm/@radix-ui+react-slot@1.2.4_@types+react@19.2.7_react@18.3.1/node_modules/@radix-ui/react-slot/dist/index.mjs
 var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
 var REACT_LAZY_TYPE = Symbol.for("react.lazy");
-var use = React2[" use ".trim().toString()];
+var use = React[" use ".trim().toString()];
 function isPromiseLike(value) {
   return typeof value === "object" && value !== null && "then" in value;
 }
@@ -57,24 +24,24 @@ function isLazyComponent(element) {
 }
 function createSlot(ownerName) {
   const SlotClone = createSlotClone(ownerName);
-  const Slot2 = React2.forwardRef((props, forwardedRef) => {
+  const Slot2 = React.forwardRef((props, forwardedRef) => {
     let { children, ...slotProps } = props;
     if (isLazyComponent(children) && typeof use === "function") {
       children = use(children._payload);
     }
-    const childrenArray = React2.Children.toArray(children);
+    const childrenArray = React.Children.toArray(children);
     const slottable = childrenArray.find(isSlottable);
     if (slottable) {
       const newElement = slottable.props.children;
       const newChildren = childrenArray.map((child) => {
         if (child === slottable) {
-          if (React2.Children.count(newElement) > 1) return React2.Children.only(null);
-          return React2.isValidElement(newElement) ? newElement.props.children : null;
+          if (React.Children.count(newElement) > 1) return React.Children.only(null);
+          return React.isValidElement(newElement) ? newElement.props.children : null;
         } else {
           return child;
         }
       });
-      return (0, import_jsx_runtime.jsx)(SlotClone, { ...slotProps, ref: forwardedRef, children: React2.isValidElement(newElement) ? React2.cloneElement(newElement, void 0, newChildren) : null });
+      return (0, import_jsx_runtime.jsx)(SlotClone, { ...slotProps, ref: forwardedRef, children: React.isValidElement(newElement) ? React.cloneElement(newElement, void 0, newChildren) : null });
     }
     return (0, import_jsx_runtime.jsx)(SlotClone, { ...slotProps, ref: forwardedRef, children });
   });
@@ -83,20 +50,20 @@ function createSlot(ownerName) {
 }
 var Slot = createSlot("Slot");
 function createSlotClone(ownerName) {
-  const SlotClone = React2.forwardRef((props, forwardedRef) => {
+  const SlotClone = React.forwardRef((props, forwardedRef) => {
     let { children, ...slotProps } = props;
     if (isLazyComponent(children) && typeof use === "function") {
       children = use(children._payload);
     }
-    if (React2.isValidElement(children)) {
+    if (React.isValidElement(children)) {
       const childrenRef = getElementRef(children);
       const props2 = mergeProps(slotProps, children.props);
-      if (children.type !== React2.Fragment) {
+      if (children.type !== React.Fragment) {
         props2.ref = forwardedRef ? composeRefs(forwardedRef, childrenRef) : childrenRef;
       }
-      return React2.cloneElement(children, props2);
+      return React.cloneElement(children, props2);
     }
-    return React2.Children.count(children) > 1 ? React2.Children.only(null) : null;
+    return React.Children.count(children) > 1 ? React.Children.only(null) : null;
   });
   SlotClone.displayName = `${ownerName}.SlotClone`;
   return SlotClone;
@@ -112,7 +79,7 @@ function createSlottable(ownerName) {
 }
 var Slottable = createSlottable("Slottable");
 function isSlottable(child) {
-  return React2.isValidElement(child) && typeof child.type === "function" && "__radixId" in child.type && child.type.__radixId === SLOTTABLE_IDENTIFIER;
+  return React.isValidElement(child) && typeof child.type === "function" && "__radixId" in child.type && child.type.__radixId === SLOTTABLE_IDENTIFIER;
 }
 function mergeProps(slotProps, childProps) {
   const overrideProps = { ...childProps };
