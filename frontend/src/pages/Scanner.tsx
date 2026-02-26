@@ -5,6 +5,7 @@ import CodeEditor from '@/components/CodeEditor';
 import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, Sparkles, Globe, Cpu, Brain, Zap, CheckCircle2, Copy, ArrowRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
+import { API_BASE_URL } from '@/lib/api';
 import { Flame } from 'lucide-react';
 
 // --- TYPES ---
@@ -105,7 +106,7 @@ export default function Scanner() {
   const handleDownloadReport = async () => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${baseUrl}/generate-report`, {
+      const response = await fetch(`/generate-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,7 +152,7 @@ export default function Scanner() {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     try {
-      const response = await fetch(`${baseUrl}/analyze`, {
+      const response = await fetch(`/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, roast_mode: roastMode })
@@ -199,7 +200,7 @@ export default function Scanner() {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     try {
-      const response = await fetch(`${baseUrl}/deep-scan`, {
+      const response = await fetch(`/deep-scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

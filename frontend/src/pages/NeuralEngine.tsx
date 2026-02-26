@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Brain, Activity, Database, Play, Cpu, Server, Lock, HardDrive, Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TrainingTerminal from '@/components/TrainingTerminal';
+import { API_BASE_URL } from '@/lib/api';
 
 interface ModelStats {
     status: string;
@@ -38,7 +39,7 @@ export default function NeuralEngine() {
         setStatsLoading(true);
         try {
             const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-            const res = await fetch(`${baseUrl}/model-stats`);
+            const res = await fetch(`${API_BASE_URL}/model-stats`);
             const data = await res.json();
             setModelStats(data);
         } catch (e) {
@@ -55,7 +56,7 @@ export default function NeuralEngine() {
 
         try {
             const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${baseUrl}/train-stream`, { method: 'POST' });
+            const response = await fetch(`${API_BASE_URL}/train-stream`, { method: 'POST' });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
