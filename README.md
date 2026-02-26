@@ -1,8 +1,8 @@
-## A.C.I.D (Adversarial Code Injection Detector) 🛡️
+## Soteria
 
-**ACID** is a machine learning-powered security pipeline designed to detect malicious code injections and backdoors by analyzing the "Structural DNA" of Python functions. Instead of relying on easily bypassable keyword searches, ACID uses **Abstract Syntax Trees (AST)** to identify dangerous behavioral patterns.
+A machine learning-powered security pipeline designed to detect malicious code injections and backdoors by analyzing the "Structural DNA" of Python functions. Instead of relying on easily bypassable keyword searches, ACID uses **Abstract Syntax Trees (AST)** to identify dangerous behavioral patterns.
 
-## 🚀 Key Features
+## Key Features
 
 * **Structural Normalization:** Uses a custom `AST.NodeTransformer` to anonymize variable names and constants, making the detector resistant to simple renaming obfuscation.
 * **Function-Level Granularity:** Automatically splits large source files into individual functions for precise, needle-in-a-haystack detection.
@@ -11,7 +11,7 @@
 
 ---
 
-## 📊 Data Visualization
+## Data Visualization
 
 The pipeline converts Python functions into a numerical matrix. Below is an example of the "Structural DNA" extracted by the system:
 
@@ -22,7 +22,7 @@ The pipeline converts Python functions into a numerical matrix. Below is an exam
 
 ---
 
-## 🚀 Architecture
+## Architecture
 This project uses a split-deployment architecture for maximum performance and stability:
 * **Frontend:** React + Vite + Tailwind (Hosted on **Vercel**)
 * **Intelligence Engine:** Flask + Scikit-Learn + Watchdog (Hosted on **Render** via Docker)
@@ -30,7 +30,7 @@ This project uses a split-deployment architecture for maximum performance and st
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 - **ML Logic:** Python, Scikit-Learn, AST (Abstract Syntax Trees)
 - **Backend:** Flask, Joblib, FPDF2 (Reporting)
 - **Frontend:** TypeScript, Framer Motion, Lucide Icons
@@ -38,7 +38,7 @@ This project uses a split-deployment architecture for maximum performance and st
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 - `/middleware`: Contains `app.py` (The API server).
 - `/backend`: Contains `requirements.txt`, training data, and the serialized ML model.
 - `/frontend`: The Cyber Sentinel dashboard.
@@ -46,13 +46,13 @@ This project uses a split-deployment architecture for maximum performance and st
 
 ---
 
-## ⚙️ Deployment Instructions
+## Deployment Instructions
 1. **Backend (Render):** https://a-c-i-d-1.onrender.com
 2. **Frontend (Vercel):** https://codebasesentinel.vercel.app/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * **Language:** Python 3.13+
 * **Analysis:** `ast` (Standard Library)
