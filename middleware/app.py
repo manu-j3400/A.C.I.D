@@ -71,9 +71,10 @@ except ImportError as e:
 
 
 app = Flask(__name__)
-# allows all routes to be cross origin (cross connection between 2 different origins; fronted and backend)
-# Replace your current CORS line with this:
-CORS(app, resources={r"/*": {'origins': "*"}})
+# Secure CORS configuration
+allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
+CORS(app, resources={r"/*": {'origins': allowed_origins}})
 
 MODELPATH = ROOT / 'backend'/ 'ML_master' / 'acidModel.pkl'
 lastModelTime = 0
@@ -872,17 +873,9 @@ def model_stats():
     return jsonify(stats)
 
 
-@app.route('/train-stream', methods=['POST', 'OPTIONS'])
+@app.route('/train-stream', methods=['POST'])
 def train_stream():
     """Run training pipeline and stream output via SSE."""
-    # Handle CORS preflight
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        return resp
-
     def generate():
         pipeline_path = str(ROOT / 'backend' / 'train_full_pipeline.py')
         try:
@@ -914,23 +907,14 @@ def train_stream():
         yield "data: [STREAM_END]\n\n"
 
     response = app.response_class(generate(), mimetype='text/event-stream')
-    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'
     return response
 
 
-@app.route('/deep-scan', methods=['POST', 'OPTIONS'])
+@app.route('/deep-scan', methods=['POST'])
 def deep_scan():
     """LLM-powered deep scan that explains vulnerabilities and suggests fixes."""
-    # Handle CORS preflight
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        return resp
-
     import requests as req
     import json as json_mod
 
@@ -1019,22 +1003,14 @@ Provide your security analysis with vulnerability explanations and a fixed versi
         yield "data: [STREAM_END]\n\n"
 
     response = app.response_class(generate(), mimetype='text/event-stream')
-    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['X-Accel-Buffering'] = 'no'
     return response
 
 
-@app.route('/batch-scan', methods=['POST', 'OPTIONS'])
+@app.route('/batch-scan', methods=['POST'])
 def batch_scan():
     """Scan multiple files at once."""
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        return resp
-
     data = request.get_json()
     files = data.get('files', [])
     
@@ -1199,15 +1175,8 @@ import requests
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "Ov23li9feGBY4uoDs8du")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "9c0306ede0acbe7d882d2afd37eb20f37255858a")
 
-@app.route('/github/token', methods=['POST', 'OPTIONS'])
+@app.route('/github/token', methods=['POST'])
 def github_token():
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        return resp
-        
     data = request.get_json()
     code = data.get('code')
     if not code:
@@ -1224,15 +1193,8 @@ def github_token():
     )
     return jsonify(resp.json()), resp.status_code
 
-@app.route('/github/repos', methods=['GET', 'OPTIONS'])
+@app.route('/github/repos', methods=['GET'])
 def github_repos():
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Authorization'
-        resp.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        return resp
-        
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return jsonify({'error': 'No token provided'}), 401
@@ -1245,16 +1207,9 @@ def github_repos():
     return jsonify(resp.json()), resp.status_code
 
 
-@app.route('/github-scan', methods=['POST', 'OPTIONS'])
+@app.route('/github-scan', methods=['POST'])
 def github_scan():
     """Clone a GitHub repository and scan it."""
-    if request.method == 'OPTIONS':
-        resp = app.make_default_options_response()
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        return resp
-
     data = request.get_json()
     repo_url = data.get('repo_url')
     access_token = data.get('access_token')
