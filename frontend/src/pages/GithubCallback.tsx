@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 export default function GithubCallback() {
     const [searchParams] = useSearchParams();
@@ -16,7 +17,7 @@ export default function GithubCallback() {
 
         const exchangeToken = async () => {
             try {
-                const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const baseUrl = API_BASE_URL;
                 const res = await fetch(`${baseUrl}/github/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

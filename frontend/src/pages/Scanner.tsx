@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
 import { Flame } from 'lucide-react';
 
+import { API_BASE_URL } from '../lib/api';
 // --- TYPES ---
 interface AnalysisResult {
   status: 'waiting' | 'loading' | 'malicious' | 'clean' | 'error';
@@ -104,7 +105,7 @@ export default function Scanner() {
 
   const handleDownloadReport = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const baseUrl = API_BASE_URL;
       const response = await fetch(`${baseUrl}/generate-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -148,7 +149,7 @@ export default function Scanner() {
     llmOutputRef.current = '';
     setResult({ status: 'loading' });
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const baseUrl = API_BASE_URL;
 
     try {
       const response = await fetch(`${baseUrl}/analyze`, {
@@ -196,7 +197,7 @@ export default function Scanner() {
     setActiveTab('analysis');
     llmOutputRef.current = '';
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const baseUrl = API_BASE_URL;
 
     try {
       const response = await fetch(`${baseUrl}/deep-scan`, {
