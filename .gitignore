@@ -11,4 +11,4 @@ backend/*.pyc
 # Ignore environment variables
 .env
 frontend/.env
-backend/.env
+backend/.envfrontend/.vite/
