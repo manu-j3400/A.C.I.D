@@ -116,8 +116,12 @@ init_scan_db()
 # --- USER AUTHENTICATION DATABASE ---
 import bcrypt
 import jwt as pyjwt
+import secrets
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'acid-secret-key-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    print("⚠️ WARNING: JWT_SECRET environment variable not set. Generating a random temporary secret. Sessions will not persist across restarts.")
+    JWT_SECRET = secrets.token_hex(32)
 
 def init_users_db():
     """Initialize SQLite users table."""
@@ -1172,11 +1176,17 @@ def process_files_batch(files):
 
 import requests
 
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "Ov23li9feGBY4uoDs8du")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "9c0306ede0acbe7d882d2afd37eb20f37255858a")
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
+
+if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+    print("⚠️ WARNING: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET not set. GitHub OAuth login will be disabled.")
 
 @app.route('/github/token', methods=['POST'])
 def github_token():
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        return jsonify({'error': 'GitHub OAuth login is not configured.'}), 501
+
     data = request.get_json()
     code = data.get('code')
     if not code:
