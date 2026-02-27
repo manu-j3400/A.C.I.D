@@ -1,0 +1,9 @@
+Port 5173 is in use, trying another one...
+
+  VITE v6.4.1  ready in 358 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose
+[BABEL] Note: The code generator has deoptimised the styling of /app/frontend/.vite/deps/chunk-XHU36PYF.js?v=7447da4a as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of /app/frontend/.vite/deps/lucide-react.js?v=7447da4a as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of /app/frontend/.vite/deps/react-force-graph-2d.js?v=7447da4a as it exceeds the max of 500KB.

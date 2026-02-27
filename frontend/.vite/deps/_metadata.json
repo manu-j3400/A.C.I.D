@@ -1,110 +1,107 @@
 {
-  "hash": "231f1469",
-  "configHash": "87cd98ee",
-  "lockfileHash": "06c7f4d2",
-  "browserHash": "41e70d54",
+  "hash": "19988da1",
+  "configHash": "74fcf1df",
+  "lockfileHash": "a7458a9d",
+  "browserHash": "7447da4a",
   "optimized": {
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "b536188f",
+      "fileHash": "fcdf1162",
       "needsInterop": true
     },
     "react-dom": {
       "src": "../../node_modules/react-dom/index.js",
       "file": "react-dom.js",
-      "fileHash": "5e52a374",
+      "fileHash": "4ac07b82",
       "needsInterop": true
     },
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "210df6d4",
+      "fileHash": "4e16a4c5",
       "needsInterop": true
     },
     "react/jsx-runtime": {
       "src": "../../node_modules/react/jsx-runtime.js",
       "file": "react_jsx-runtime.js",
-      "fileHash": "e633a0c8",
+      "fileHash": "49164027",
       "needsInterop": true
     },
     "@monaco-editor/react": {
       "src": "../../node_modules/@monaco-editor/react/dist/index.mjs",
       "file": "@monaco-editor_react.js",
-      "fileHash": "42cd243e",
+      "fileHash": "fdd21029",
       "needsInterop": false
     },
     "@radix-ui/react-slot": {
       "src": "../../node_modules/@radix-ui/react-slot/dist/index.mjs",
       "file": "@radix-ui_react-slot.js",
-      "fileHash": "535a7bdc",
+      "fileHash": "3c80c90b",
       "needsInterop": false
     },
     "@radix-ui/react-switch": {
       "src": "../../node_modules/@radix-ui/react-switch/dist/index.mjs",
       "file": "@radix-ui_react-switch.js",
-      "fileHash": "e881369f",
+      "fileHash": "d93f3d35",
       "needsInterop": false
     },
     "@supabase/supabase-js": {
       "src": "../../node_modules/@supabase/supabase-js/dist/index.mjs",
       "file": "@supabase_supabase-js.js",
-      "fileHash": "e4a5f8c5",
+      "fileHash": "360e4dd2",
       "needsInterop": false
     },
     "class-variance-authority": {
       "src": "../../node_modules/class-variance-authority/dist/index.mjs",
       "file": "class-variance-authority.js",
-      "fileHash": "fe532896",
+      "fileHash": "c0d6865b",
       "needsInterop": false
     },
     "clsx": {
       "src": "../../node_modules/clsx/dist/clsx.mjs",
       "file": "clsx.js",
-      "fileHash": "457fc0e3",
+      "fileHash": "bfe5e18a",
       "needsInterop": false
     },
     "framer-motion": {
       "src": "../../node_modules/framer-motion/dist/es/index.mjs",
       "file": "framer-motion.js",
-      "fileHash": "a4b70e5a",
+      "fileHash": "0522e433",
       "needsInterop": false
     },
     "lucide-react": {
       "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
       "file": "lucide-react.js",
-      "fileHash": "7532c204",
+      "fileHash": "53dba9e5",
       "needsInterop": false
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "4f9d5643",
+      "fileHash": "68f04197",
       "needsInterop": true
     },
     "react-force-graph-2d": {
       "src": "../../node_modules/react-force-graph-2d/dist/react-force-graph-2d.mjs",
       "file": "react-force-graph-2d.js",
-      "fileHash": "595fa458",
+      "fileHash": "8fdaac9c",
       "needsInterop": false
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.mjs",
       "file": "react-router-dom.js",
-      "fileHash": "dcd3073a",
+      "fileHash": "afe0b110",
       "needsInterop": false
     },
     "tailwind-merge": {
       "src": "../../node_modules/tailwind-merge/dist/bundle-mjs.mjs",
       "file": "tailwind-merge.js",
-      "fileHash": "4853f9de",
+      "fileHash": "751a8329",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-KDVGFZWC": {
-      "file": "chunk-KDVGFZWC.js"
-    },
     "chunk-XHU36PYF": {
       "file": "chunk-XHU36PYF.js"
     },
@@ -116,6 +113,9 @@
     },
     "chunk-32E4H3EV": {
       "file": "chunk-32E4H3EV.js"
+    },
+    "chunk-KDVGFZWC": {
+      "file": "chunk-KDVGFZWC.js"
     },
     "chunk-G3PMV62Z": {
       "file": "chunk-G3PMV62Z.js"
