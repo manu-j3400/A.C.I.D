@@ -8,6 +8,7 @@ import { useGame } from '@/context/GameContext';
 import { Flame } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
+import { API_BASE_URL } from '../lib/api';
 // --- TYPES ---
 interface AnalysisResult {
   status: 'waiting' | 'loading' | 'malicious' | 'clean' | 'error';
@@ -105,6 +106,8 @@ export default function Scanner() {
 
   const handleDownloadReport = async () => {
     try {
+      const baseUrl = API_BASE_URL;
+      const response = await fetch(`${baseUrl}/generate-report`, {
 
       const response = await fetch(`${API_BASE_URL}/generate-report`, {
         method: 'POST',
@@ -149,6 +152,7 @@ export default function Scanner() {
     llmOutputRef.current = '';
     setResult({ status: 'loading' });
 
+    const baseUrl = API_BASE_URL;
 
 
     try {
@@ -197,6 +201,7 @@ export default function Scanner() {
     setActiveTab('analysis');
     llmOutputRef.current = '';
 
+    const baseUrl = API_BASE_URL;
 
 
     try {
