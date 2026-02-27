@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function GithubCallback() {
     const [searchParams] = useSearchParams();
@@ -19,6 +20,8 @@ export default function GithubCallback() {
             try {
                 const baseUrl = API_BASE_URL;
                 const res = await fetch(`${baseUrl}/github/token`, {
+
+                const res = await fetch(`${API_BASE_URL}/github/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code })

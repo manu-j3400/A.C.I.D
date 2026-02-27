@@ -48,6 +48,8 @@ export default function BatchScanner() {
             try {
                 const baseUrl = API_BASE_URL;
                 const res = await fetch(`${baseUrl}/github/repos`, {
+
+                const res = await fetch(`${API_BASE_URL}/github/repos`, {
                     headers: { 'Authorization': `Bearer ${githubToken}` }
                 });
                 if (res.ok) {
@@ -139,6 +141,8 @@ export default function BatchScanner() {
         try {
             const baseUrl = API_BASE_URL;
             const res = await fetch(`${baseUrl}/batch-scan`, {
+
+            const res = await fetch(`${API_BASE_URL}/batch-scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -166,6 +170,8 @@ export default function BatchScanner() {
         try {
             const baseUrl = API_BASE_URL;
             const res = await fetch(`${baseUrl}/github-scan`, {
+
+            const res = await fetch(`${API_BASE_URL}/github-scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ repo_url: repoUrl, access_token: githubToken })

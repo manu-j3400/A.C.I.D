@@ -4,6 +4,7 @@ import { Brain, Activity, Database, Play, Cpu, Server, Lock, HardDrive, Clock, C
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '../lib/api';
 import TrainingTerminal from '@/components/TrainingTerminal';
+import { API_BASE_URL } from '@/lib/api';
 
 interface ModelStats {
     status: string;
@@ -40,6 +41,8 @@ export default function NeuralEngine() {
         try {
             const baseUrl = API_BASE_URL;
             const res = await fetch(`${baseUrl}/model-stats`);
+
+            const res = await fetch(`${API_BASE_URL}/model-stats`);
             const data = await res.json();
             setModelStats(data);
         } catch (e) {
@@ -57,6 +60,8 @@ export default function NeuralEngine() {
         try {
             const baseUrl = API_BASE_URL;
             const response = await fetch(`${baseUrl}/train-stream`, { method: 'POST' });
+
+            const response = await fetch(`${API_BASE_URL}/train-stream`, { method: 'POST' });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
