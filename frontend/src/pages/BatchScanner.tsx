@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 import { API_BASE_URL } from '../lib/api';
 interface BatchFileItem {

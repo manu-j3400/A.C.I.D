@@ -6,6 +6,7 @@ import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, 
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
 import { Flame } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 import { API_BASE_URL } from '@/lib/api';
 
 import { API_BASE_URL } from '../lib/api';
