@@ -9,8 +9,6 @@ from joblib import dump
 from pathlib import Path
 
 
-# load the numeric features csv
-# data_path = "/User/manujawahar/workspace/ACID/CSV_master/numericFeatures.csv"
 
 def modelTrainer(data_path = str(Path(__file__).parent.parent / "CSV_master" / "numericFeatures.csv")):
     df = pd.read_csv(data_path)

@@ -1,23 +1,35 @@
+import numpy as np
 from PIL import Image
 
 def process_logo(input_path, output_path):
     print(f"Processing {input_path} -> {output_path}")
+
     img = Image.open(input_path).convert("RGBA")
-    data = img.getdata()
 
-    new_data = []
-    for item in data:
-        # Check if the pixel is close to white (allow some tolerance for anti-aliasing)
-        if item[0] > 200 and item[1] > 200 and item[2] > 200:
-            new_data.append((255, 255, 255, 0))  # Transparent
-        else:
-            # Change non-white pixels to white, preserving alpha
-            new_data.append((255, 255, 255, item[3])) # White with original alpha
-            # Alternatively, if we want to change black/dark to white and preserve opacity:
-            # new_data.append((255, 255, 255, 255)) 
+    # Convert to numpy array for faster processing
+    data = np.array(img)
 
-    img.putdata(new_data)
-    img.save(output_path, "PNG")
+    # Extract RGB channels
+    r, g, b = data[:, :, 0], data[:, :, 1], data[:, :, 2]
+
+    # Identify "white-ish" pixels: R > 200 AND G > 200 AND B > 200
+    white_mask = (r > 200) & (g > 200) & (b > 200)
+
+    # Apply changes
+
+    # 1. Set white-ish pixels to Transparent (255, 255, 255, 0)
+    data[white_mask] = [255, 255, 255, 0]
+
+    # 2. For non-white pixels, set RGB to White (255, 255, 255) and preserve Alpha
+    non_white_mask = ~white_mask
+
+    # We want to set R, G, B to 255 for these pixels.
+    # Slicing the last dimension (channels)
+    data[non_white_mask, 0:3] = [255, 255, 255]
+
+    # Create image from modified array
+    result_img = Image.fromarray(data)
+    result_img.save(output_path, "PNG")
     print(f"Saved to {output_path}")
 
 try:
