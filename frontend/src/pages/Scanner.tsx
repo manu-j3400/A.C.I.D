@@ -6,6 +6,7 @@ import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, 
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
 import { Flame } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 // --- TYPES ---
 interface AnalysisResult {
@@ -104,8 +105,7 @@ export default function Scanner() {
 
   const handleDownloadReport = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${baseUrl}/generate-report`, {
+      const response = await fetch(`${API_BASE_URL}/generate-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,10 +148,8 @@ export default function Scanner() {
     llmOutputRef.current = '';
     setResult({ status: 'loading' });
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
     try {
-      const response = await fetch(`${baseUrl}/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, roast_mode: roastMode })
@@ -196,10 +194,8 @@ export default function Scanner() {
     setActiveTab('analysis');
     llmOutputRef.current = '';
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
     try {
-      const response = await fetch(`${baseUrl}/deep-scan`, {
+      const response = await fetch(`${API_BASE_URL}/deep-scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
