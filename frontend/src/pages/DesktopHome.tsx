@@ -159,6 +159,9 @@ export default function DesktopHome() {
 
     useEffect(() => {
         fetchAnalytics();
+        // If backend is slow (cold start), stop loading after 5s and show empty state
+        const timeout = setTimeout(() => setLoading(false), 5000);
+        return () => clearTimeout(timeout);
     }, []);
 
     const fetchAnalytics = async () => {
@@ -233,8 +236,18 @@ export default function DesktopHome() {
             {/* ANALYTICS ROW */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-64 rounded-2xl bg-neutral-950 border border-white/[0.06] animate-pulse" />
+                    {[
+                        { icon: Shield, label: 'Security Score', desc: 'Analyzing your security posture...' },
+                        { icon: TrendingUp, label: 'Scan Trends', desc: 'Loading scan history...' },
+                        { icon: Globe, label: 'Language Breakdown', desc: 'Detecting languages...' },
+                    ].map(({ icon: Icon, label, desc }, i) => (
+                        <div key={i} className="h-64 rounded-2xl bg-neutral-950 border border-white/[0.06] flex flex-col items-center justify-center text-center p-6">
+                            <div className="w-12 h-12 rounded-full border border-dashed border-neutral-800 flex items-center justify-center mb-3 animate-pulse">
+                                <Icon className="w-6 h-6 text-neutral-700" />
+                            </div>
+                            <p className="text-xs font-bold text-neutral-600 uppercase tracking-widest mb-1">{label}</p>
+                            <p className="text-[11px] text-neutral-700">{desc}</p>
+                        </div>
                     ))}
                 </div>
             ) : scoreData && scoreData.total_scans > 0 ? (
