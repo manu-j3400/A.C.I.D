@@ -6,10 +6,8 @@ import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, 
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
 import { Flame } from 'lucide-react';
-import { API_BASE_URL } from '../lib/api';
 import { API_BASE_URL } from '@/lib/api';
 
-import { API_BASE_URL } from '../lib/api';
 // --- TYPES ---
 interface AnalysisResult {
   status: 'waiting' | 'loading' | 'malicious' | 'clean' | 'error';
@@ -107,9 +105,6 @@ export default function Scanner() {
 
   const handleDownloadReport = async () => {
     try {
-      const baseUrl = API_BASE_URL;
-      const response = await fetch(`${baseUrl}/generate-report`, {
-
       const response = await fetch(`${API_BASE_URL}/generate-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -2,8 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github } from 'lucide-react';
 import { API_BASE_URL } from '../lib/api';
-
-import { API_BASE_URL } from '../lib/api';
 interface BatchFileItem {
     filename: string;
     code: string;
@@ -47,9 +45,6 @@ export default function BatchScanner() {
         const fetchRepos = async () => {
             setIsFetchingRepos(true);
             try {
-                const baseUrl = API_BASE_URL;
-                const res = await fetch(`${baseUrl}/github/repos`, {
-
                 const res = await fetch(`${API_BASE_URL}/github/repos`, {
                     headers: { 'Authorization': `Bearer ${githubToken}` }
                 });
@@ -140,9 +135,6 @@ export default function BatchScanner() {
         setSummary(null);
 
         try {
-            const baseUrl = API_BASE_URL;
-            const res = await fetch(`${baseUrl}/batch-scan`, {
-
             const res = await fetch(`${API_BASE_URL}/batch-scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -169,9 +161,6 @@ export default function BatchScanner() {
         setSummary(null);
 
         try {
-            const baseUrl = API_BASE_URL;
-            const res = await fetch(`${baseUrl}/github-scan`, {
-
             const res = await fetch(`${API_BASE_URL}/github-scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
