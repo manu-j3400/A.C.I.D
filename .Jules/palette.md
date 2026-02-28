@@ -18,3 +18,7 @@
 `**Action:** [How to apply next time]`
 
 ---
+
+## 2026-02-28 - Missing ARIA Labels on Utility Icon Buttons
+**Learning:** Found a recurring pattern where small utility icon buttons (like "clear history" trash cans or "close/remove" X icons) are missing `aria-label` attributes. While visually obvious, these are completely inaccessible to screen readers without labels.
+**Action:** Always verify that utility and close buttons, which are often just an icon component, have descriptive `aria-label` attributes.
