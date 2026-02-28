@@ -66,7 +66,8 @@ export default function BatchScanner() {
 
     const handleGithubConnect = () => {
         const clientId = 'Ov23li9feGBY4uoDs8du';
-        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo`;
+        const redirectUri = encodeURIComponent(window.location.origin);
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${redirectUri}`;
     };
 
     const readFile = (file: File): Promise<BatchFileItem> => {
