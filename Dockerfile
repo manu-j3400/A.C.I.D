@@ -1,25 +1,27 @@
-# Use a Python 3.11 base image
+# ─── Soteria Backend Dockerfile ───
+# Python 3.11 slim image for a lean production container
 FROM python:3.11-slim
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Install system dependencies (needed for certain ML and PDF libraries)
+# Install system dependencies needed for ML and PDF libraries
 RUN apt-get update && apt-get install -y \
     build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from the middleware folder and install
-# This ensures we use the version in your actual backend directory
-COPY backend/requirements.txt .
+# Copy requirements first for better layer caching
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire project into the container
 COPY . .
 
-# Expose the port your Flask app uses
+# Expose the default Flask port (overridable by $PORT for cloud platforms)
 EXPOSE 5001
 
-# Start BOTH the Watcher and the Flask App
-# This replaces the built-in Flask server with a professional one
-CMD gunicorn --bind 0.0.0.0:$PORT middleware.app:app & python3 watchData.py
+# Start the Flask app via gunicorn.
+# $PORT is automatically set by cloud platforms (Render, Railway, Heroku).
+# Falls back to 5001 for local Docker usage.
+CMD gunicorn --bind 0.0.0.0:${PORT:-5001} --workers 2 --timeout 120 middleware.app:app

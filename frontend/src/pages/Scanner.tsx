@@ -427,7 +427,7 @@ export default function Scanner() {
                     size="lg"
                     onClick={startDeepScan}
                     disabled={deepScanStatus === 'scanning'}
-                    className="w-full py-6 rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-600 hover:from-purple-500 hover:via-violet-500 hover:to-fuchsia-500 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.4)] transition-all text-sm font-bold tracking-wide"
+                    className="w-full py-6 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 hover:shadow-[0_0_30px_-5px_rgba(234,88,12,0.4)] transition-all text-sm font-bold tracking-wide"
                   >
                     {deepScanStatus === 'scanning' ? (
                       <span className="flex items-center gap-2">

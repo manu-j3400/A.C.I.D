@@ -27,6 +27,14 @@ const features = [
 ];
 
 export default function LandingPage() {
+    const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+        e.preventDefault();
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-black text-white overflow-x-hidden">
 
@@ -39,9 +47,9 @@ export default function LandingPage() {
                     </Link>
 
                     <div className="hidden md:flex items-center gap-8">
-                        <a href="#features" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Features</a>
-                        <a href="#how-it-works" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">How It Works</a>
-                        <a href="#about" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">About</a>
+                        <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Features</a>
+                        <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">How It Works</a>
+                        <a href="#about" onClick={(e) => scrollToSection(e, 'about')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">About</a>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -94,7 +102,7 @@ export default function LandingPage() {
                                         Start Free <ArrowRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
-                                <a href="#how-it-works">
+                                <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')}>
                                     <Button size="lg" variant="outline" className="font-semibold text-base h-12 px-8 border-blue-500/15 text-neutral-400 hover:text-blue-300 hover:bg-blue-500/5 hover:border-blue-500/30 rounded-xl">
                                         Learn More
                                     </Button>

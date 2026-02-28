@@ -1,14 +1,26 @@
 # Ignore frontend modules
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # Ignore backend modules
 backend/__pycache__/
 backend/venv/
 backend/.venv/
 backend/*.pyc
+__pycache__/
+*.pyc
 
 # Ignore environment variables
 .env
 frontend/.env
 backend/.env
+.vercel
+.env*.local
+
+# OS / IDE junk
+.DS_Store
+*.log
+
+# Local databases
+*.db

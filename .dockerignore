@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Node modules (frontend build happens separately)
+frontend/node_modules/
+frontend/dist/
+
+# Git
+.git/
+.gitignore
+
+# Dev/local files
+.env.local
+.env
+*.log
+
+# macOS
+.DS_Store
+
+# Model training artifacts (large files, not needed at runtime)
+*.csv
+*.pkl
+watchData.py
+train.py
+process_logos.py
+LOGO/
