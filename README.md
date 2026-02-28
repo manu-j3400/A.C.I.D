@@ -1,12 +1,12 @@
-## Soteria
+# Soteria
 
-A machine learning-powered security pipeline designed to detect malicious code injections and backdoors by analyzing the "Structural DNA" of Python functions. Instead of relying on easily bypassable keyword searches, ACID uses **Abstract Syntax Trees (AST)** to identify dangerous behavioral patterns.
+A machine learning-powered security pipeline designed to detect malicious code injections and backdoors by analyzing the "Structural DNA" of Python functions. Instead of relying on easily bypassable keyword searches, Soteria uses **Abstract Syntax Trees (AST)** to identify dangerous behavioral patterns.
 
 ## Key Features
 
-* **Structural Normalization:** Uses a custom `AST.NodeTransformer` to anonymize variable names and constants, making the detector resistant to simple renaming obfuscation.
-* **Function-Level Granularity:** Automatically splits large source files into individual functions for precise, needle-in-a-haystack detection.
-* **Hardened Pipeline:** Integrated SHA-256 hashing to ensure dataset purity and prevent duplicate bias during training.
+* **Structural Normalization:** Utilizes a custom `AST.NodeTransformer` to anonymize variable names and constants, rendering the detector resistant to simple renaming obfuscation.
+* **Function-Level Granularity:** Automatically divides large source files into individual functions for precise, targeted detection.
+* **Hardened Pipeline:** Integrates SHA-256 hashing to ensure dataset purity and prevent duplicate bias during training.
 * **Vectorization Engine:** Transforms raw Python logic into a numerical feature matrix based on AST node distribution (e.g., `Call`, `Expr`, `BinOp`, `Attribute`).
 
 ---
@@ -23,32 +23,12 @@ The pipeline converts Python functions into a numerical matrix. Below is an exam
 ---
 
 ## Architecture
-This project uses a split-deployment architecture for maximum performance and stability:
-* **Frontend:** React + Vite + Tailwind (Hosted on **Vercel**)
-* **Intelligence Engine:** Flask + Scikit-Learn + Watchdog (Hosted on **Render** via Docker)
-* **Model:** Random Forest Classifier analyzing Abstract Syntax Trees (AST).
 
----
+This project utilizes a split-deployment architecture for maximum performance and stability:
 
-## Tech Stack
-- **ML Logic:** Python, Scikit-Learn, AST (Abstract Syntax Trees)
-- **Backend:** Flask, Joblib, FPDF2 (Reporting)
-- **Frontend:** TypeScript, Framer Motion, Lucide Icons
-- **DevOps:** Docker, GitHub Actions, Render, Vercel
-
----
-
-## Project Structure
-- `/middleware`: Contains `app.py` (The API server).
-- `/backend`: Contains `requirements.txt`, training data, and the serialized ML model.
-- `/frontend`: The Cyber Sentinel dashboard.
-- `watch_data.py`: Background process for automated model retraining.
-
----
-
-## Deployment Instructions
-1. **Backend (Render):** https://a-c-i-d-1.onrender.com
-2. **Frontend (Vercel):** https://codebasesentinel.vercel.app/
+* **Frontend:** React, Vite, and Tailwind CSS (Hosted on Vercel)
+* **Intelligence Engine:** Flask, Scikit-Learn, and Watchdog (Hosted on Render via Docker)
+* **Model:** Random Forest Classifier analyzing Abstract Syntax Trees (AST)
 
 ---
 
@@ -56,6 +36,24 @@ This project uses a split-deployment architecture for maximum performance and st
 
 * **Language:** Python 3.13+
 * **Analysis:** `ast` (Standard Library)
-* **Data Science:** `pandas`, `scikit-learn`
-* **Serialization:** `joblib`
+* **Data Science & ML Logic:** `pandas`, `scikit-learn`, `joblib`
+* **Backend:** Flask, FPDF2 (Reporting)
+* **Frontend:** TypeScript, React, Vite, Tailwind CSS, Framer Motion, Lucide Icons
 * **Security:** `hashlib` (SHA-256)
+* **DevOps:** Docker, GitHub Actions, Render, Vercel
+
+---
+
+## Project Structure
+
+* `/middleware`: Contains `app.py` (The API server).
+* `/backend`: Contains `requirements.txt`, training data, and the serialized ML model.
+* `/frontend`: The Cyber Sentinel dashboard.
+* `watch_data.py`: Background process for automated model retraining.
+
+---
+
+## Deployment Instructions
+
+1. **Backend (Render):** https://a-c-i-d-1.onrender.com
+2. **Frontend (Vercel):** https://codebasesentinel.vercel.app/
