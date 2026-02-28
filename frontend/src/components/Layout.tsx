@@ -1,14 +1,22 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Shield, Activity, Menu, X, Github, Brain, Home, Info, Zap, FolderOpen } from 'lucide-react';
+import { Shield, Activity, Menu, X, Github, Brain, Home, Info, Zap, FolderOpen, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isAdminAuthenticated } = useAdmin();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -68,7 +76,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         </div>
 
-        <div className="p-6 border-t border-white/[0.06]">
+        <div className="p-6 border-t border-white/[0.06] space-y-3">
+          {user && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-900/50 border border-white/[0.06]">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+                <p className="text-[10px] text-neutral-500 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Sign Out"
+                className="p-2 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="p-4 rounded-2xl bg-neutral-950 border border-white/[0.06]">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -100,6 +123,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="h-px bg-white/[0.06] my-4"></div>
           <NavItem to="/dashboard" icon={Home} label="Home" />
           <NavItem to="/features" icon={Zap} label="Features" />
+          {user && (
+            <>
+              <div className="h-px bg-white/[0.06] my-4"></div>
+              <button
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+              >
+                <LogOut className="w-5 h-5" />
+                Sign Out
+              </button>
+            </>
+          )}
         </div>
       )}
 
