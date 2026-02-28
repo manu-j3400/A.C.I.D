@@ -1,1 +1,0 @@
-export { usePathname } from "./router";

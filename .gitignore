@@ -2,6 +2,7 @@
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.vercel/
 
 # Ignore backend modules
 backend/__pycache__/
@@ -13,10 +14,9 @@ __pycache__/
 
 # Ignore environment variables
 .env
+.env*.local
 frontend/.env
 backend/.env
-.vercel
-.env*.local
 
 # OS / IDE junk
 .DS_Store
@@ -24,3 +24,14 @@ backend/.env
 
 # Local databases
 *.db
+
+# Test artifacts
+middleware/test_*.json
+middleware/test_*.py
+middleware/test_*.pdf
+
+# Build artifacts
+frontend/vite.config.d.ts
+frontend/pnpm-lock.yaml
+.vercel/
+LOGO/

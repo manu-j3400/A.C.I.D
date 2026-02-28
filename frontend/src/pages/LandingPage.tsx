@@ -85,7 +85,7 @@ export default function LandingPage() {
                             </div>
 
                             <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.92] mb-6">
-                                Write Secure Code
+                                Security Over Show
                                 <br />
                                 <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
                                     From Day One.
