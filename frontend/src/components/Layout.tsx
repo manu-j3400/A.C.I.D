@@ -85,7 +85,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <img src="/soteria-logo.png" alt="Soteria" className="w-7 h-7 rounded-lg object-cover" />
           <span className="font-bold text-lg">SOTERIA</span>
         </Link>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-neutral-500">
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 text-neutral-500"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+        >
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
       </div>

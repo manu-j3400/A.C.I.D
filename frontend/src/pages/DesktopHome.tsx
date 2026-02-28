@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Activity, Brain, Shield, Globe, Clock, Zap, AlertTriangle, ShieldCheck, ScanSearch, TrendingUp, BarChart3, FileCode2 } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
 import { useAdmin } from '@/context/AdminContext';
-import { API_BASE_URL } from '../lib/api';
 import { API_BASE_URL } from '@/lib/api';
 
 interface SecurityScoreData {
@@ -164,8 +163,6 @@ export default function DesktopHome() {
 
     const fetchAnalytics = async () => {
         try {
-            const baseUrl = API_BASE_URL;
-            const res = await fetch(`${baseUrl}/security-score`);
             // Base URL handled by API constant
             const res = await fetch(`${API_BASE_URL}/security-score`);
             const data = await res.json();
