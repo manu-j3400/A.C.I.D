@@ -120,7 +120,7 @@ importers:
         specifier: ^8.6.0
         version: 8.6.0(react@18.3.1)
       framer-motion:
-        specifier: 12.9.2
+        specifier: ^12.9.2
         version: 12.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       input-otp:
         specifier: ^1.4.2

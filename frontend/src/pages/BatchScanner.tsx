@@ -321,7 +321,7 @@ export default function BatchScanner() {
                                     <span className="text-sm text-neutral-300 font-mono">{file.filename}</span>
                                     <span className="text-[10px] text-neutral-600">{(file.size / 1024).toFixed(1)} KB</span>
                                 </div>
-                                <button onClick={() => removeFile(file.filename)} className="p-1 text-neutral-700 hover:text-red-400 transition-colors">
+                                <button aria-label="Remove file" onClick={() => removeFile(file.filename)} className="p-1 text-neutral-700 hover:text-red-400 transition-colors">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>

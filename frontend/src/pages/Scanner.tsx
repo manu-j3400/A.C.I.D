@@ -324,7 +324,7 @@ export default function Scanner() {
               <div className="flex items-center justify-between mb-4 px-1">
                 <h3 className="text-[9px] font-black text-slate-600 tracking-[0.15em] uppercase">History</h3>
                 {history.length > 0 && (
-                  <button onClick={() => setHistory([])} className="p-1.5 hover:bg-red-500/10 rounded-lg text-slate-700 hover:text-red-400 transition-all">
+                  <button aria-label="Clear history" onClick={() => setHistory([])} className="p-1.5 hover:bg-red-500/10 rounded-lg text-slate-700 hover:text-red-400 transition-all">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 )}
