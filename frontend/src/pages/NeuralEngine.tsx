@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Activity, Database, Play, Cpu, Server, Lock, HardDrive, Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { API_BASE_URL } from '../lib/api';
 import TrainingTerminal from '@/components/TrainingTerminal';
-import { API_BASE_URL } from '../lib/api';
 import { API_BASE_URL } from '@/lib/api';
 
 interface ModelStats {
@@ -40,9 +38,6 @@ export default function NeuralEngine() {
     const fetchModelStats = async () => {
         setStatsLoading(true);
         try {
-            const baseUrl = API_BASE_URL;
-            const res = await fetch(`${baseUrl}/model-stats`);
-
             const res = await fetch(`${API_BASE_URL}/model-stats`);
             const data = await res.json();
             setModelStats(data);
@@ -59,10 +54,6 @@ export default function NeuralEngine() {
         setLogs(['\x1b[33m[INIT] Connecting to training pipeline...\x1b[0m']);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/train-stream`, { method: 'POST' });
-            const baseUrl = API_BASE_URL;
-            const response = await fetch(`${baseUrl}/train-stream`, { method: 'POST' });
-
             const response = await fetch(`${API_BASE_URL}/train-stream`, { method: 'POST' });
 
             if (!response.ok) {

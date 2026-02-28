@@ -322,7 +322,7 @@ export default function KnowledgeGraph() {
                                         </span>
                                     )}
                                 </div>
-                                <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white transition-colors">
+                                <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white transition-colors" aria-label="Close details" title="Close details">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
