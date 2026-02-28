@@ -8,6 +8,8 @@ A machine learning-powered security pipeline designed to detect malicious code i
 * **Function-Level Granularity:** Automatically divides large source files into individual functions for precise, targeted detection.
 * **Hardened Pipeline:** Integrates SHA-256 hashing to ensure dataset purity and prevent duplicate bias during training.
 * **Vectorization Engine:** Transforms raw Python logic into a numerical feature matrix based on AST node distribution (e.g., `Call`, `Expr`, `BinOp`, `Attribute`).
+* **Automated Reporting:** Generates comprehensive PDF security reports outlining identified risks and confidence scores.
+* **Continuous Learning:** Background processes automatically retrain the model as new data is introduced to the pipeline.
 
 ---
 
@@ -48,7 +50,7 @@ This project utilizes a split-deployment architecture for maximum performance an
 
 * `/middleware`: Contains `app.py` (The API server).
 * `/backend`: Contains `requirements.txt`, training data, and the serialized ML model.
-* `/frontend`: The Cyber Sentinel dashboard.
+* `/frontend`: The web dashboard.
 * `watch_data.py`: Background process for automated model retraining.
 
 ---
