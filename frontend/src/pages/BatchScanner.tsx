@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github } from 'lucide-react';
+import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github, ChevronDown } from 'lucide-react';
 import { API_BASE_URL } from '../lib/api';
 interface BatchFileItem {
     filename: string;
@@ -39,6 +39,7 @@ export default function BatchScanner() {
     const [repos, setRepos] = useState<any[]>([]);
     const [isFetchingRepos, setIsFetchingRepos] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
     useEffect(() => {
         if (!githubToken) return;
@@ -394,41 +395,114 @@ export default function BatchScanner() {
                                 </thead>
                                 <tbody className="divide-y divide-white/[0.04]">
                                     {results.map((r, i) => (
-                                        <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-5 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <FileCode2 className="w-3.5 h-3.5 text-neutral-600" />
-                                                    <span className="text-sm text-neutral-300 font-mono">{r.filename}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider">
-                                                    {r.language}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${riskColors[r.risk_level] || riskColors.INVALID}`}>
-                                                    {r.risk_level}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-3 text-sm text-neutral-300 font-mono">{r.confidence}%</td>
-                                            <td className="px-5 py-3">
-                                                {r.status === 'malicious' ? (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                                                        <span className="text-xs text-red-400 font-bold">Threat</span>
+                                        <React.Fragment key={i}>
+                                            <tr
+                                                onClick={() => setExpandedRow(expandedRow === i ? null : i)}
+                                                className="hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                                            >
+                                                <td className="px-5 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <ChevronDown className={`w-3.5 h-3.5 text-neutral-600 transition-transform duration-200 ${expandedRow === i ? 'rotate-180' : ''}`} />
+                                                        <FileCode2 className="w-3.5 h-3.5 text-neutral-600" />
+                                                        <span className="text-sm text-neutral-300 font-mono">{r.filename}</span>
                                                     </div>
-                                                ) : r.status === 'clean' ? (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
-                                                        <span className="text-xs text-green-400 font-bold">Clean</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-neutral-500">Error</span>
+                                                </td>
+                                                <td className="px-5 py-3">
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider">
+                                                        {r.language}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-3">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${riskColors[r.risk_level] || riskColors.INVALID}`}>
+                                                        {r.risk_level}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-3 text-sm text-neutral-300 font-mono">{r.confidence}%</td>
+                                                <td className="px-5 py-3">
+                                                    {r.status === 'malicious' ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                                                            <span className="text-xs text-red-400 font-bold">Threat</span>
+                                                        </div>
+                                                    ) : r.status === 'clean' ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+                                                            <span className="text-xs text-green-400 font-bold">Clean</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-neutral-500">Error</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-5 py-3 text-xs text-neutral-500 max-w-[200px] truncate">{r.message}</td>
+                                            </tr>
+                                            <AnimatePresence>
+                                                {expandedRow === i && (
+                                                    <tr>
+                                                        <td colSpan={6} className="p-0">
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="overflow-hidden"
+                                                            >
+                                                                <div className="px-6 py-5 bg-white/[0.02] border-t border-white/[0.04]">
+                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                        {/* Analysis Details */}
+                                                                        <div className="md:col-span-2 space-y-3">
+                                                                            <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Analysis Details</h4>
+                                                                            <p className="text-sm text-neutral-300 leading-relaxed">{r.message}</p>
+                                                                            {r.status === 'malicious' && (
+                                                                                <div className="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+                                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                                                                                        <span className="text-xs font-bold text-red-400">Action Required</span>
+                                                                                    </div>
+                                                                                    <p className="text-xs text-neutral-400">Review and address the identified vulnerability. Consider refactoring the flagged code patterns.</p>
+                                                                                </div>
+                                                                            )}
+                                                                            {r.status === 'clean' && (
+                                                                                <div className="mt-3 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                                        <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+                                                                                        <span className="text-xs font-bold text-green-400">No Issues Found</span>
+                                                                                    </div>
+                                                                                    <p className="text-xs text-neutral-400">This file passed all security checks with standard safety profile.</p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        {/* File Metadata */}
+                                                                        <div className="space-y-3">
+                                                                            <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">File Info</h4>
+                                                                            <div className="space-y-2">
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-xs text-neutral-600">Language</span>
+                                                                                    <span className="text-xs text-neutral-300 font-mono">{r.language}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-xs text-neutral-600">Confidence</span>
+                                                                                    <span className="text-xs text-neutral-300 font-mono">{r.confidence}%</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-xs text-neutral-600">Risk Level</span>
+                                                                                    <span className={`text-xs font-bold ${r.risk_level === 'CRITICAL' ? 'text-red-400' : r.risk_level === 'HIGH' ? 'text-orange-400' : r.risk_level === 'MEDIUM' ? 'text-yellow-400' : 'text-green-400'}`}>{r.risk_level}</span>
+                                                                                </div>
+                                                                                {r.nodes_scanned && (
+                                                                                    <div className="flex justify-between">
+                                                                                        <span className="text-xs text-neutral-600">Nodes Scanned</span>
+                                                                                        <span className="text-xs text-neutral-300 font-mono">{r.nodes_scanned}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        </td>
+                                                    </tr>
                                                 )}
-                                            </td>
-                                            <td className="px-5 py-3 text-xs text-neutral-500 max-w-[200px] truncate">{r.message}</td>
-                                        </tr>
+                                            </AnimatePresence>
+                                        </React.Fragment>
                                     ))}
                                 </tbody>
                             </table>
