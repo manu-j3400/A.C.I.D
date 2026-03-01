@@ -16,6 +16,8 @@ from datetime import datetime
 import subprocess
 import threading
 import re
+import time
+from functools import wraps
 
 BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
 
@@ -75,6 +77,47 @@ app = Flask(__name__)
 allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
 CORS(app, resources={r"/*": {'origins': allowed_origins}})
+
+# --- RATE LIMITER ---
+RATE_LIMITS = {}
+RATE_LIMIT_LOCK = threading.Lock()
+
+def rate_limit(max_requests=20, window_seconds=60):
+    """
+    Simple in-memory sliding window rate limiter per IP address.
+    Protects against API spam and credit burn.
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if ip:
+                ip = ip.split(',')[0].strip()
+            else:
+                ip = 'unknown'
+            
+            now = time.time()
+            with RATE_LIMIT_LOCK:
+                if ip not in RATE_LIMITS:
+                    RATE_LIMITS[ip] = []
+                
+                # Remove timestamps older than window_seconds
+                RATE_LIMITS[ip] = [t for t in RATE_LIMITS[ip] if now - t < window_seconds]
+                
+                if len(RATE_LIMITS[ip]) >= max_requests:
+                    return jsonify({
+                        'error': 'Rate limit exceeded. Please wait a minute before scanning again.',
+                        'malicious': False,
+                        'confidence': 0,
+                        'risk_level': 'UNKNOWN',
+                        'vulnerabilities': []
+                    }), 429
+                
+                RATE_LIMITS[ip].append(now)
+                
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 MODELPATH = ROOT / 'backend'/ 'ML_master' / 'acidModel.pkl'
 lastModelTime = 0
@@ -406,6 +449,7 @@ def structuralDNAExtraction(rawCode):
     
 
 @app.route('/analyze', methods=['POST'])
+@rate_limit(max_requests=20, window_seconds=60)
 def analyze():
     data = request.get_json()
     codeInput = data.get('code', '')
@@ -1029,6 +1073,7 @@ Provide your security analysis with vulnerability explanations and a fixed versi
 
 
 @app.route('/batch-scan', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=60)  # slightly stricter for batch scans
 def batch_scan():
     """Scan multiple files at once."""
     data = request.get_json()
