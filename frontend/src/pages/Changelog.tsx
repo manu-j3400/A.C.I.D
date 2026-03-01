@@ -28,33 +28,32 @@ const RELEASES: Release[] = [
     {
         version: 'v1.1.0',
         date: 'February 28, 2026',
-        title: 'Gemini 2.5 Pro & Enterprise Security',
+        title: 'Generative AI Pipeline & API Hardening',
         icon: Brain,
         iconColor: 'text-blue-400',
         badge: 'Latest',
-        description: 'A massive architectural shift moving the AI Explainer engine from local models to Google Gemini 2.5 Pro, accompanied by comprehensive backend security hardening.',
+        description: 'Completed a major architectural overhaul by migrating the secondary AI Explainer engine from a local LLM environment to Google Gemini 2.5 Pro, accompanied by comprehensive backend security hardening at the network level.',
         features: [
-            'Migrated AI Analysis from Llama 3.1 to Gemini 2.5 Pro for significantly deeper structural code understanding.',
-            'Implemented real-time Server-Sent Events (SSE) streaming for instantaneous AI vulnerability explanations.',
-            'Added strict sliding-window rate limiters to prevent API credit spam (20 req/min for analysis, 5 req/min for auth).',
-            'Injected Helmet-equivalent HTTP Security Headers (X-Frame-Options, HSTS, X-Content-Type-Options) to protect against XSS and sniffing.',
-            'Comprehensive codebase cleanup: wiped Next.js legacy shims and unused training logs from the root repository.'
+            'Migrated AI Analysis pipeline to Gemini 2.5 Pro REST API for significantly deeper structural code understanding and reduced OOM pressure.',
+            'Implemented custom Server-Sent Events (SSE) streaming parser to handle continuous JSON chunks for zero-latency AI vulnerability explanations.',
+            'Engineered strict sliding-window rate limiters utilizing an in-memory thread-safe dictionary (20 req/min/IP for analysis, 5 req/min/IP for auth).',
+            'Injected Helmet-equivalent HTTP Security Headers (X-Frame-Options, HSTS, X-Content-Type-Options) via a Flask `after_request` proxy.',
+            'Conducted SQL Injection (SQLi) audit: verified all SQLite3 database queries utilize parameterized ? bindings to prevent malicious payload execution.'
         ]
     },
     {
         version: 'v1.0.0',
-        date: 'Initial Launch',
-        title: 'Soteria Platform Premiere',
+        date: 'Initial Release',
+        title: 'Core Architecture Deployment',
         icon: Rocket,
         iconColor: 'text-purple-400',
         badge: 'Stable',
-        description: 'The global premiere of Soteria. A hybrid machine-learning and generative AI platform designed to catch Zero-Day vulnerabilities in enterprise codebases.',
+        description: 'Initial deployment of the Soteria hybrid classification architecture. Integrates a custom machine-learning model with syntax analysis to detect vulnerabilities in Abstract Syntax Trees (ASTs) before runtime.',
         features: [
-            'Deployed Custom Random Forest ML Model (`acidModel`) trained on Python/JS malware datasets for sub-millisecond AST detection.',
-            'Launched the Real-Time Developer Dashboard featuring interactive vulnerability metrics and historical scan trends.',
-            'Released the Batch Repository Scanner with integrated GitHub OAuth to analyze entire repositories symmetrically.',
-            'Rolled out the Neural Engine Admin Lab for direct dataset and model retraining.',
-            'Established secure JWT role-based authentication separating Developer and Admin environments.'
+            'Trained and deployed a custom Random Forest ML Model (`acidModel.pkl`) on extensive datasets of Python/JS malicious syntax for sub-millisecond threat detection.',
+            'Established the primary feature extraction pipeline to parse Raw Code into ASTs, calculating cyclomatic complexity, entropy, and dangerous function frequencies.',
+            'Engineered a scalable SQLite3 schema with thread-safe `check_same_thread=False` locking to handle asynchronous batch scan insertions from GitHub webhooks.',
+            'Implemented secure, stateless authentication using Bcrypt and PyJWT, utilizing HS256 signatures to separate Standard and Administrator privileges.'
         ]
     }
 ];
@@ -94,7 +93,7 @@ export default function Changelog() {
                     <div className="flex items-center gap-3">
                         <Link to="/login">
                             <Button variant="ghost" className="text-sm text-neutral-400 hover:text-white font-medium h-9 px-4 hidden sm:flex">
-                                Dashboard
+                                Sign In
                             </Button>
                         </Link>
                         <Link to="/signup">
