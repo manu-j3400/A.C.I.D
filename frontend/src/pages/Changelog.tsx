@@ -88,10 +88,11 @@ export default function Changelog() {
                         <Link to="/home#features" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Features</Link>
                         <Link to="/home#how-it-works" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">How It Works</Link>
                         <Link to="/changelog" className="text-sm text-blue-400 font-medium">Dev Changes</Link>
+                        <Link to="/home#about" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">About</Link>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Link to="/dashboard">
+                        <Link to="/login">
                             <Button variant="ghost" className="text-sm text-neutral-400 hover:text-white font-medium h-9 px-4 hidden sm:flex">
                                 Dashboard
                             </Button>
