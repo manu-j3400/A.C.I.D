@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Shield, Activity, Menu, X, Github, Brain, Home, Info, Zap, FolderOpen, LogOut } from 'lucide-react';
+import { Shield, Activity, Menu, X, Github, Brain, Home, Info, Zap, FolderOpen, LogOut, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../context/AuthContext';
@@ -71,6 +71,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <p className="px-4 text-[10px] font-black text-neutral-700 uppercase tracking-widest mb-2">Resources</p>
             <NavItem to="/dashboard" icon={Home} label="Overview" />
             <NavItem to="/features" icon={Zap} label="Features" />
+            <NavItem to="/changelog" icon={FileText} label="Changelog" />
             <NavItem to="/about" icon={Info} label="About" />
           </div>
 
@@ -123,6 +124,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="h-px bg-white/[0.06] my-4"></div>
           <NavItem to="/dashboard" icon={Home} label="Home" />
           <NavItem to="/features" icon={Zap} label="Features" />
+          <NavItem to="/changelog" icon={FileText} label="Changelog" />
           {user && (
             <>
               <div className="h-px bg-white/[0.06] my-4"></div>

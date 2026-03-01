@@ -10,6 +10,7 @@ import BatchScanner from './pages/BatchScanner';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import LandingPage from './pages/LandingPage';
+import Changelog from './pages/Changelog';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import GithubCallback from './pages/GithubCallback';
@@ -53,6 +54,7 @@ function App() {
                 {/* PUBLIC ROUTES */}
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/home" element={<LandingPage />} />
+                <Route path="/changelog" element={<Changelog />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
 
