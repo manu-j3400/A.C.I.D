@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Flame, Sparkles, Code2, Trophy, BookOpen, ArrowRight, Brain, Terminal, Shield, Eye } from 'lucide-react';
+import { Flame, Sparkles, Code2, Trophy, BookOpen, ArrowRight, Brain, Terminal, Shield, Eye, GraduationCap, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const features = [
@@ -160,6 +160,54 @@ export default function LandingPage() {
                         whileInView={{ opacity: 0.5 }}
                         viewport={{ once: true }}
                     />
+                </div>
+            </section>
+
+            {/* ─── UNIQUE VALUE PROPOSITION ─── */}
+            <section id="why" className="py-24 px-6 border-b border-white/[0.04] bg-neutral-950/30">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-3">Why Soteria?</p>
+                        <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                            Built for your{' '}
+                            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">specific stage.</span>
+                        </h2>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {[
+                            {
+                                icon: <GraduationCap className="w-6 h-6" />,
+                                title: "For Students & Hackers",
+                                desc: "Stop pushing API keys to public repos or writing SQL injections in your final projects. Learn secure coding habits in real-time before you even graduate."
+                            },
+                            {
+                                icon: <Code2 className="w-6 h-6" />,
+                                title: "For Junior Developers",
+                                desc: "Stop staring at cryptic security warnings. Soteria's AI mentor explains vulnerabilities in plain English—like having a Senior Security Engineer sitting right next to you."
+                            },
+                            {
+                                icon: <Rocket className="w-6 h-6" />,
+                                title: "For Indie Builders & Startups",
+                                desc: "Scanning your MVP before launch shouldn't cost $1,000/month. Ensure your fast-moving projects aren't a massive liability to your early users."
+                            }
+                        ].map((uvp, i) => (
+                            <motion.div
+                                key={uvp.title}
+                                initial={{ opacity: 0, y: 15 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className="p-8 rounded-3xl border border-white/[0.06] bg-black hover:border-blue-500/20 hover:bg-white/[0.02] transition-colors group"
+                            >
+                                <div className="w-12 h-12 mb-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
+                                    {uvp.icon}
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{uvp.title}</h3>
+                                <p className="text-sm text-neutral-400 leading-relaxed">{uvp.desc}</p>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </section>
 
