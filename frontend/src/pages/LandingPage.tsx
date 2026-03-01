@@ -195,9 +195,8 @@ export default function LandingPage() {
                             <motion.div
                                 key={uvp.title}
                                 initial={{ opacity: 0, y: 15 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: i * 0.1 }}
                                 className="p-8 rounded-3xl border border-white/[0.06] bg-black hover:border-blue-500/20 hover:bg-white/[0.02] transition-colors group"
                             >
                                 <div className="w-12 h-12 mb-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
