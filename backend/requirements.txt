@@ -8,4 +8,6 @@ watchdog
 numpy<2.0.0
 gunicorn
 gitpython
-pyinstaller
+bcrypt
+PyJWT
+requests
