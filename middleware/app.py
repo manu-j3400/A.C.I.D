@@ -1011,24 +1011,20 @@ Provide your security analysis with vulnerability explanations and a fixed versi
 
     def generate():
         try:
-            # Stream from API
-            api_key = os.environ.get('GROQ_API_KEY')
+            # Stream from Gemini API
+            api_key = os.environ.get('GEMINI_API_KEY')
             if not api_key:
-                yield f'data: {{"type": "error", "content": "AI API key not configured on server."}}\n\n'
+                yield f'data: {{"type": "error", "content": "Gemini API key not configured on server."}}\n\n'
                 yield "data: [STREAM_END]\n\n"
                 return
             
-            resp = req.post('https://api.groq.com/openai/v1/chat/completions', headers={
-                "Authorization": f"Bearer {api_key}",
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:streamGenerateContent?key={api_key}&alt=sse"
+            resp = req.post(url, headers={
                 "Content-Type": "application/json"
             }, json={
-                "model": "llama-3.1-8b-instant",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "stream": True,
-                "temperature": 0.2
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+                "generationConfig": {"temperature": 0.2}
             }, stream=True, timeout=15)
 
             if resp.status_code != 200:
@@ -1042,23 +1038,24 @@ Provide your security analysis with vulnerability explanations and a fixed versi
                     line_str = line.decode('utf-8')
                     if line_str.startswith('data: '):
                         data_str = line_str[6:]
-                        if data_str.strip() == '[DONE]':
-                            yield f"data: {{\"type\": \"done\"}}\n\n"
-                            break
+                        if not data_str.strip():
+                            continue
                         try:
                             chunk = json_mod.loads(data_str)
-                            if 'choices' in chunk and len(chunk['choices']) > 0:
-                                delta = chunk['choices'][0].get('delta', {})
-                                token = delta.get('content', '')
-                                if token:
-                                    # Escape for SSE JSON payload
-                                    safe_token = json_mod.dumps(token)[1:-1]
-                                    yield f"data: {{\"type\": \"token\", \"content\": \"{safe_token}\"}}\n\n"
+                            if 'candidates' in chunk and len(chunk['candidates']) > 0:
+                                candidate = chunk['candidates'][0]
+                                if 'content' in candidate and 'parts' in candidate['content']:
+                                    parts = candidate['content']['parts']
+                                    if len(parts) > 0 and 'text' in parts[0]:
+                                        token = parts[0]['text']
+                                        if token:
+                                            safe_token = json_mod.dumps(token)[1:-1]
+                                            yield f"data: {{\"type\": \"token\", \"content\": \"{safe_token}\"}}\n\n"
                         except Exception:
                             continue
 
         except req.exceptions.ConnectionError:
-            yield f'data: {{"type": "error", "content": "Its coming soon...."}}\n\n'
+            yield f'data: {{"type": "error", "content": "Gemini API is temporarily unavailable. The standard security analysis above still applies."}}\n\n'
         except req.exceptions.Timeout:
             yield f'data: {{"type": "error", "content": "AI analysis timed out. Please try again in a moment."}}\n\n'
         except Exception as e:
