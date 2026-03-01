@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import DesktopHome from './pages/DesktopHome';
 import Features from './pages/Features';
@@ -51,7 +51,8 @@ function App() {
             <Router>
               <Routes>
                 {/* PUBLIC ROUTES */}
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<Navigate to="/home" replace />} />
+                <Route path="/home" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
 

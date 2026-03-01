@@ -933,7 +933,7 @@ def deep_scan():
     reason = scan_result.get('reason', 'No initial analysis available')
     language = scan_result.get('language', 'unknown')
 
-    system_prompt = """You are Kyber, an expert security code auditor. You analyze code for vulnerabilities and provide fixes.
+    system_prompt = """You are Soteria, an expert security code auditor. You analyze code for vulnerabilities and provide fixes.
 
 RULES:
 1. Be concise but thorough
@@ -998,11 +998,11 @@ Provide your security analysis with vulnerability explanations and a fixed versi
                         continue
 
         except req.exceptions.ConnectionError:
-            yield f'data: {{"type": "error", "content": "Ollama is not running. Start it with: ollama serve"}}\n\n'
+            yield f'data: {{"type": "error", "content": "AI deep scan is temporarily unavailable. The standard security analysis above still applies."}}\n\n'
         except req.exceptions.Timeout:
-            yield f'data: {{"type": "error", "content": "Ollama timed out. Make sure a model is loaded: ollama run mistral"}}\n\n'
+            yield f'data: {{"type": "error", "content": "AI analysis timed out. Please try again in a moment."}}\n\n'
         except Exception as e:
-            yield f'data: {{"type": "error", "content": "Deep scan failed: {str(e)}"}}\n\n'
+            yield f'data: {{"type": "error", "content": "AI analysis encountered an error. The standard scan results above are still valid."}}\n\n'
 
         yield "data: [STREAM_END]\n\n"
 
