@@ -78,6 +78,15 @@ allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,h
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
 CORS(app, resources={r"/*": {'origins': allowed_origins}})
 
+@app.after_request
+def add_security_headers(response):
+    """Add critical HTTP security headers (Helmet equivalent) to all responses."""
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    # Prevents browser from caching sensitive API responses
+    response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 # --- RATE LIMITER ---
 RATE_LIMITS = {}
 RATE_LIMIT_LOCK = threading.Lock()
@@ -221,6 +230,7 @@ def decode_token(token):
 # ══════════════════════════════════════
 
 @app.route('/api/auth/signup', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=300)  # 5 signups per 5 minutes per IP
 def auth_signup():
     data = request.get_json()
     name = data.get('name', '').strip()
@@ -256,6 +266,7 @@ def auth_signup():
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=300) # 10 login attempts per 5 minutes
 def auth_login():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
@@ -321,6 +332,7 @@ def auth_me():
 
 
 @app.route('/api/auth/admin/login', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=300) # 5 admin login attempts per 5 minutes
 def auth_admin_login():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
