@@ -36,10 +36,12 @@ export default function LandingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white overflow-x-hidden">
+        <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden selection:bg-blue-500/30">
+            {/* Subtle Grid Background */}
+            <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
             {/* ─── NAVBAR ─── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-blue-500/10">
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050505]/60 backdrop-blur-2xl border-b border-white/[0.05] shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
                 <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
                     <Link to="/" className="flex items-center gap-3">
                         <img src="/soteria-logo.png" alt="Soteria" className="h-9 w-9 rounded-lg object-cover" />
@@ -60,7 +62,7 @@ export default function LandingPage() {
                             </Button>
                         </Link>
                         <Link to="/signup">
-                            <Button className="text-sm font-semibold h-9 px-5 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 rounded-lg shadow-lg shadow-blue-600/20">
+                            <Button className="text-sm font-semibold h-9 px-5 bg-white text-black hover:bg-neutral-200 rounded-full shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] transition-all">
                                 Get Started
                             </Button>
                         </Link>
@@ -69,42 +71,46 @@ export default function LandingPage() {
             </nav>
 
             {/* ─── HERO ─── */}
-            <section className="relative pt-36 pb-28 px-6">
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/8 rounded-full blur-[150px] pointer-events-none" />
-                <div className="absolute top-60 right-10 w-[250px] h-[250px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+            <section className="relative pt-40 pb-32 px-6">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/15 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
+                <div className="absolute top-40 right-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[150px] mix-blend-screen pointer-events-none" />
 
                 <div className="max-w-7xl mx-auto relative">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         {/* Left: Copy */}
                         <motion.div
-                            initial={{ opacity: 0, x: -25 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.7 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                         >
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 text-blue-400 text-xs font-semibold mb-8">
-                                <Sparkles className="w-3 h-3" /> Preventing you from another Clawdbot incident
-                            </div>
+                            <motion.div
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-8 shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] backdrop-blur-md"
+                                animate={{ y: [0, -4, 0] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                            >
+                                <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Preventing you from another Clawdbot incident
+                            </motion.div>
 
-                            <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.92] mb-6">
-                                Security Over Show
+                            <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-6">
+                                Security Over Show.
                                 <br />
-                                <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-cyan-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">
                                     From Day One.
                                 </span>
                             </h1>
 
-                            <p className="text-lg text-neutral-500 max-w-lg mb-10 leading-relaxed">
+                            <p className="text-lg text-neutral-400 max-w-lg mb-10 leading-relaxed font-medium">
                                 Soteria is an AI-powered code security platform that helps students identify vulnerabilities, understand why they matter, and build better habits — before bad ones start.
                             </p>
 
                             <div className="flex items-center gap-4 flex-wrap">
                                 <Link to="/signup">
-                                    <Button size="lg" className="font-semibold text-base h-12 px-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 rounded-xl gap-2 shadow-lg shadow-blue-600/25">
+                                    <Button size="lg" className="font-semibold text-base h-12 px-8 bg-white text-black hover:bg-neutral-200 rounded-full gap-2 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300">
                                         Start Free <ArrowRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
                                 <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')}>
-                                    <Button size="lg" variant="outline" className="font-semibold text-base h-12 px-8 border-blue-500/15 text-neutral-400 hover:text-blue-300 hover:bg-blue-500/5 hover:border-blue-500/30 rounded-xl">
+                                    <Button size="lg" variant="outline" className="font-semibold text-base h-12 px-8 border-white/10 text-neutral-300 hover:text-white hover:bg-white/5 rounded-full hover:scale-105 active:scale-95 transition-all duration-300">
                                         Learn More
                                     </Button>
                                 </a>
@@ -113,34 +119,35 @@ export default function LandingPage() {
 
                         {/* Right: Code Preview Card */}
                         <motion.div
-                            initial={{ opacity: 0, x: 25 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.7, delay: 0.2 }}
-                            className="hidden lg:block"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                            className="hidden lg:block relative group"
                         >
-                            <div className="rounded-2xl border border-blue-500/10 bg-neutral-950 overflow-hidden shadow-2xl shadow-blue-900/10">
-                                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-neutral-900/80">
-                                    <div className="w-3 h-3 rounded-full bg-neutral-700" />
-                                    <div className="w-3 h-3 rounded-full bg-neutral-700" />
-                                    <div className="w-3 h-3 rounded-full bg-neutral-700" />
-                                    <span className="ml-2 text-xs text-neutral-600 font-mono">login.py</span>
+                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition duration-500 group-hover:duration-200" />
+                            <div className="relative rounded-2xl border border-white/[0.08] bg-[#0A0A0A] overflow-hidden shadow-2xl ring-1 ring-white/5">
+                                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-[#111]">
+                                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                                    <span className="ml-2 text-xs text-neutral-500 font-mono tracking-wide">login.py</span>
                                 </div>
-                                <div className="p-5 font-mono text-sm leading-7">
-                                    <div><span className="text-blue-400">query</span> <span className="text-neutral-600">=</span> <span className="text-red-400">f"SELECT * FROM users WHERE id = </span><span className="text-yellow-300">&#123;user_input&#125;</span><span className="text-red-400">"</span></div>
-                                    <div className="text-neutral-700">{"# ..."}</div>
-                                    <div><span className="text-blue-400">cursor</span><span className="text-neutral-500">.execute(</span><span className="text-blue-400">query</span><span className="text-neutral-500">)</span></div>
+                                <div className="p-6 font-mono text-[13px] leading-8">
+                                    <div><span className="text-blue-400">query</span> <span className="text-neutral-500">=</span> <span className="text-emerald-400">f"SELECT * FROM users WHERE id = </span><span className="text-yellow-300">&#123;user_input&#125;</span><span className="text-emerald-400">"</span></div>
+                                    <div className="text-neutral-600">{"# ..."}</div>
+                                    <div><span className="text-blue-400">cursor</span><span className="text-neutral-500">.execute(</span><span className="text-blue-200">query</span><span className="text-neutral-500">)</span></div>
                                 </div>
-                                <div className="mx-4 mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Shield className="w-4 h-4 text-red-400" />
-                                        <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Vulnerability Found</span>
+                                <div className="mx-4 mb-4 p-5 rounded-xl bg-red-500/[0.03] border border-red-500/10 backdrop-blur-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Shield className="w-4 h-4 text-red-500" />
+                                        <span className="text-xs font-bold text-red-500 tracking-[0.1em] uppercase">Vulnerability Found</span>
                                     </div>
-                                    <p className="text-sm text-neutral-300 leading-relaxed">
-                                        <strong className="text-white">SQL Injection</strong> — Using f-strings to build SQL queries allows attackers to manipulate your database. Use parameterized queries instead.
+                                    <p className="text-sm text-neutral-400 leading-relaxed">
+                                        <strong className="text-neutral-200 mr-1">SQL Injection</strong> — Using f-strings to build SQL queries allows attackers to manipulate your database. Use parameterized queries instead.
                                     </p>
-                                    <div className="flex items-center gap-2 mt-3">
-                                        <span className="text-xs px-2 py-0.5 rounded bg-red-500/10 text-red-300 font-medium border border-red-500/10">Critical</span>
-                                        <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-neutral-400 font-medium border border-white/5">+10 XP</span>
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <span className="text-xs px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 font-semibold border border-red-500/20 shadow-[0_0_10px_-2px_rgba(239,68,68,0.2)]">Critical</span>
+                                        <span className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-300 font-medium border border-white/10">+10 XP</span>
                                     </div>
                                 </div>
                             </div>
@@ -150,14 +157,16 @@ export default function LandingPage() {
             </section>
 
             {/* ─── LOGO BANNER ─── */}
-            <section className="border-y border-white/[0.04] py-16 px-6">
-                <div className="max-w-xl mx-auto flex justify-center">
+            <section className="relative border-y border-white/[0.04] py-16 px-6 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-cyan-900/5 blur-3xl pointer-events-none" />
+                <div className="max-w-xl mx-auto flex justify-center relative">
                     <motion.img
                         src="/soteria-logo.png"
                         alt="Soteria AI"
-                        className="h-24 md:h-32 object-contain opacity-50"
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 0.5 }}
+                        className="h-24 md:h-32 object-contain opacity-40 mix-blend-screen drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 0.4, scale: 1 }}
+                        transition={{ duration: 1 }}
                         viewport={{ once: true }}
                     />
                 </div>
@@ -197,13 +206,13 @@ export default function LandingPage() {
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                                className="p-8 rounded-3xl border border-white/[0.06] bg-black hover:border-blue-500/20 hover:bg-white/[0.02] transition-colors group"
+                                className="p-8 rounded-[2rem] border border-white/[0.04] bg-[#0A0A0A] hover:bg-[#111] hover:border-white/10 hover:-translate-y-1 shadow-2xl shadow-black transition-all duration-300 group ring-1 ring-white/5 hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.15)]"
                             >
-                                <div className="w-12 h-12 mb-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
+                                <div className="w-14 h-14 mb-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-white/[0.05] flex items-center justify-center text-blue-400 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
                                     {uvp.icon}
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{uvp.title}</h3>
-                                <p className="text-sm text-neutral-400 leading-relaxed">{uvp.desc}</p>
+                                <h3 className="text-xl font-bold text-neutral-100 mb-4 tracking-tight">{uvp.title}</h3>
+                                <p className="text-[15px] text-neutral-400 leading-relaxed font-medium">{uvp.desc}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -211,32 +220,33 @@ export default function LandingPage() {
             </section>
 
             {/* ─── FEATURES ─── */}
-            <section id="features" className="py-28 px-6">
-                <div className="max-w-5xl mx-auto">
-                    <div className="text-center mb-16">
-                        <p className="text-xs font-bold text-neutral-500 uppercase tracking-[0.2em] mb-3">Features</p>
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+            <section id="features" className="relative py-32 px-6">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-900/5 rounded-full blur-[150px] pointer-events-none" />
+                <div className="max-w-5xl mx-auto relative">
+                    <div className="text-center mb-20">
+                        <p className="text-sm font-bold text-blue-500 uppercase tracking-[0.2em] mb-4">Core Platform</p>
+                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
                             Security education,{' '}
-                            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">reimagined.</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">reimagined.</span>
                         </h2>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-5">
+                    <div className="grid md:grid-cols-2 gap-6">
                         {features.map((feature, i) => (
                             <motion.div
                                 key={feature.title}
-                                initial={{ opacity: 0, y: 12 }}
+                                initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ delay: i * 0.08 }}
-                                className="flex gap-5 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-blue-500/[0.03] hover:border-blue-500/15 transition-colors group"
+                                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                                className="flex gap-6 p-8 rounded-[2rem] border border-white/[0.04] bg-[#0A0A0A] hover:bg-[#111] hover:border-white/10 transition-all duration-300 group hover:-translate-y-1 ring-1 ring-white/5 shadow-2xl shadow-black hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.1)]"
                             >
-                                <div className="w-11 h-11 shrink-0 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/10 transition-colors">
+                                <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-blue-500/10 to-transparent border border-white/[0.05] flex items-center justify-center text-blue-400 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
                                     {feature.icon}
                                 </div>
-                                <div>
-                                    <h3 className="text-base font-bold text-white mb-1.5">{feature.title}</h3>
-                                    <p className="text-sm text-neutral-500 leading-relaxed">{feature.description}</p>
+                                <div className="pt-2">
+                                    <h3 className="text-lg font-bold text-neutral-100 mb-2 tracking-tight">{feature.title}</h3>
+                                    <p className="text-[15px] text-neutral-400 leading-relaxed font-medium">{feature.description}</p>
                                 </div>
                             </motion.div>
                         ))}
@@ -245,33 +255,42 @@ export default function LandingPage() {
             </section>
 
             {/* ─── HOW IT WORKS ─── */}
-            <section id="how-it-works" className="py-28 px-6 border-t border-white/[0.04]">
-                <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-16">
-                        <p className="text-xs font-bold text-neutral-500 uppercase tracking-[0.2em] mb-3">How It Works</p>
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+            <section id="how-it-works" className="relative py-32 px-6 border-t border-white/[0.04] bg-[#020202]">
+                <div className="max-w-5xl mx-auto">
+                    <div className="text-center mb-24">
+                        <p className="text-sm font-bold text-blue-500 uppercase tracking-[0.2em] mb-4">How It Works</p>
+                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
                             Scan. Learn.{' '}
-                            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Level Up.</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">Level Up.</span>
                         </h2>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="relative grid md:grid-cols-3 gap-8 md:gap-12">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-[40px] left-20 right-20 h-px bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0" />
+
                         {[
-                            { icon: <Terminal className="w-5 h-5" />, num: '01', title: 'Paste Code', desc: 'Drop any code snippet into the scanner — Python, JavaScript, SQL, and more.' },
-                            { icon: <BookOpen className="w-5 h-5" />, num: '02', title: 'Understand', desc: 'Get plain-English explanations of every vulnerability and how to fix it.' },
-                            { icon: <Trophy className="w-5 h-5" />, num: '03', title: 'Level Up', desc: 'Earn XP, climb the ranks, and build real security intuition over time.' },
+                            { icon: <Terminal className="w-6 h-6" />, num: '01', title: 'Paste Code', desc: 'Drop any code snippet into the scanner — Python, JavaScript, SQL, and more.' },
+                            { icon: <BookOpen className="w-6 h-6" />, num: '02', title: 'Understand', desc: 'Get plain-English explanations of every vulnerability and how to fix it.' },
+                            { icon: <Trophy className="w-6 h-6" />, num: '03', title: 'Level Up', desc: 'Earn XP, climb the ranks, and build real security intuition over time.' },
                         ].map((step, i) => (
                             <motion.div
                                 key={step.num}
-                                initial={{ opacity: 0, y: 18 }}
-                                whileInView={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                whileInView={{ opacity: 1, scale: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ delay: i * 0.12 }}
-                                className="text-center p-8 rounded-2xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/15 transition-colors"
+                                transition={{ duration: 0.7, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+                                className="relative text-center group"
                             >
-                                <div className="text-4xl font-black text-blue-500/30 mb-4">{step.num}</div>
-                                <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
-                                <p className="text-sm text-neutral-500 leading-relaxed">{step.desc}</p>
+                                <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-[#0A0A0A] border border-white/10 flex items-center justify-center relative z-10 shadow-2xl ring-1 ring-white/5 group-hover:border-blue-500/30 group-hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)] transition-all duration-500">
+                                    <div className="absolute inset-2 rounded-full border border-white/5 group-hover:border-blue-500/20 transition-all duration-500" />
+                                    <span className="text-blue-400 group-hover:scale-110 transition-transform duration-500">{step.icon}</span>
+                                    <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center backdrop-blur-md">
+                                        <span className="text-[10px] font-black text-blue-300">{step.num}</span>
+                                    </div>
+                                </div>
+                                <h3 className="text-2xl font-bold text-neutral-100 mb-3 tracking-tight">{step.title}</h3>
+                                <p className="text-[15px] text-neutral-400 leading-relaxed font-medium">{step.desc}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -279,19 +298,23 @@ export default function LandingPage() {
             </section>
 
             {/* ─── BOTTOM CTA ─── */}
-            <section className="py-28 px-6">
+            <section className="relative py-32 px-6 overflow-hidden">
+                <div className="absolute inset-0 top-1/2 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050505] to-[#050505] pointer-events-none" />
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 40 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="max-w-3xl mx-auto text-center rounded-3xl border border-blue-500/10 bg-gradient-to-b from-blue-950/30 to-black p-14"
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative max-w-4xl mx-auto text-center rounded-[3rem] border border-white/[0.08] bg-[#0A0A0A] p-16 shadow-[0_0_100px_-20px_rgba(59,130,246,0.15)] ring-1 ring-white/5 overflow-hidden group"
                 >
-                    <img src="/soteria-logo.png" alt="Soteria" className="w-16 h-16 mx-auto mb-6 opacity-30 rounded-xl" />
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4">Ready to write safer code?</h2>
-                    <p className="text-neutral-500 mb-8 max-w-md mx-auto">Join the next generation of developers who learn security from the start. Free to use.</p>
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+                    <img src="/soteria-logo.png" alt="Soteria" className="w-20 h-20 mx-auto mb-10 opacity-40 rounded-2xl shadow-2xl drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] grayscale" />
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6 text-white">Ready to write safer code?</h2>
+                    <p className="text-lg text-neutral-400 mb-10 max-w-lg mx-auto font-medium">Join the next generation of developers who learn security from the start. Free to use.</p>
                     <Link to="/signup">
-                        <Button size="lg" className="font-semibold text-base h-12 px-10 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 rounded-xl gap-2 shadow-lg shadow-blue-600/25">
-                            Create Free Account <ArrowRight className="w-4 h-4" />
+                        <Button size="lg" className="font-semibold text-base h-14 px-12 bg-white text-black hover:bg-neutral-200 rounded-full gap-3 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300">
+                            Create Free Account <ArrowRight className="w-5 h-5" />
                         </Button>
                     </Link>
                 </motion.div>
