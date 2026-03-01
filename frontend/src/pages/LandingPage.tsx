@@ -36,12 +36,10 @@ export default function LandingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden selection:bg-blue-500/30">
-            {/* Subtle Grid Background */}
-            <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-blue-600 selection:text-white">
 
             {/* ─── NAVBAR ─── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050505]/60 backdrop-blur-2xl border-b border-white/[0.05] shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-neutral-800">
                 <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
                     <Link to="/" className="flex items-center gap-3">
                         <img src="/soteria-logo.png" alt="Soteria" className="h-9 w-9 rounded-lg object-cover" />
@@ -62,7 +60,7 @@ export default function LandingPage() {
                             </Button>
                         </Link>
                         <Link to="/signup">
-                            <Button className="text-sm font-semibold h-9 px-5 bg-white text-black hover:bg-neutral-200 rounded-full shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] transition-all">
+                            <Button className="text-sm font-semibold h-9 px-5 bg-white text-black hover:bg-neutral-200 rounded-md transition-all">
                                 Get Started
                             </Button>
                         </Link>
@@ -72,9 +70,6 @@ export default function LandingPage() {
 
             {/* ─── HERO ─── */}
             <section className="relative pt-40 pb-32 px-6">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/15 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
-                <div className="absolute top-40 right-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[150px] mix-blend-screen pointer-events-none" />
-
                 <div className="max-w-7xl mx-auto relative">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         {/* Left: Copy */}
@@ -84,17 +79,17 @@ export default function LandingPage() {
                             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                         >
                             <motion.div
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-8 shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] backdrop-blur-md"
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-300 text-xs font-semibold mb-8"
                                 animate={{ y: [0, -4, 0] }}
                                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                             >
-                                <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Preventing you from another Clawdbot incident
+                                <Sparkles className="w-3.5 h-3.5 text-blue-500" /> Preventing you from another Clawdbot incident
                             </motion.div>
 
-                            <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-6">
+                            <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-white">
                                 Security Over Show.
                                 <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-cyan-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                                <span className="text-blue-500">
                                     From Day One.
                                 </span>
                             </h1>
@@ -105,12 +100,12 @@ export default function LandingPage() {
 
                             <div className="flex items-center gap-4 flex-wrap">
                                 <Link to="/signup">
-                                    <Button size="lg" className="font-semibold text-base h-12 px-8 bg-white text-black hover:bg-neutral-200 rounded-full gap-2 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300">
+                                    <Button size="lg" className="font-semibold text-base h-12 px-8 bg-blue-600 text-white hover:bg-blue-700 rounded-md gap-2 transition-all duration-200">
                                         Start Free <ArrowRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
                                 <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')}>
-                                    <Button size="lg" variant="outline" className="font-semibold text-base h-12 px-8 border-white/10 text-neutral-300 hover:text-white hover:bg-white/5 rounded-full hover:scale-105 active:scale-95 transition-all duration-300">
+                                    <Button size="lg" variant="outline" className="font-semibold text-base h-12 px-8 border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-md transition-all duration-200">
                                         Learn More
                                     </Button>
                                 </a>
@@ -122,22 +117,21 @@ export default function LandingPage() {
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                            className="hidden lg:block relative group"
+                            className="hidden lg:block relative"
                         >
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition duration-500 group-hover:duration-200" />
-                            <div className="relative rounded-2xl border border-white/[0.08] bg-[#0A0A0A] overflow-hidden shadow-2xl ring-1 ring-white/5">
-                                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-[#111]">
-                                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                            <div className="relative rounded-lg border border-neutral-800 bg-[#0A0A0A] overflow-hidden">
+                                <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-800 bg-[#111]">
+                                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                    <div className="w-3 h-3 rounded-full bg-green-500" />
                                     <span className="ml-2 text-xs text-neutral-500 font-mono tracking-wide">login.py</span>
                                 </div>
                                 <div className="p-6 font-mono text-[13px] leading-8">
-                                    <div><span className="text-blue-400">query</span> <span className="text-neutral-500">=</span> <span className="text-emerald-400">f"SELECT * FROM users WHERE id = </span><span className="text-yellow-300">&#123;user_input&#125;</span><span className="text-emerald-400">"</span></div>
+                                    <div><span className="text-blue-500">query</span> <span className="text-neutral-500">=</span> <span className="text-emerald-500">f"SELECT * FROM users WHERE id = </span><span className="text-yellow-500">&#123;user_input&#125;</span><span className="text-emerald-500">"</span></div>
                                     <div className="text-neutral-600">{"# ..."}</div>
-                                    <div><span className="text-blue-400">cursor</span><span className="text-neutral-500">.execute(</span><span className="text-blue-200">query</span><span className="text-neutral-500">)</span></div>
+                                    <div><span className="text-blue-500">cursor</span><span className="text-neutral-500">.execute(</span><span className="text-blue-500">query</span><span className="text-neutral-500">)</span></div>
                                 </div>
-                                <div className="mx-4 mb-4 p-5 rounded-xl bg-red-500/[0.03] border border-red-500/10 backdrop-blur-sm">
+                                <div className="mx-4 mb-4 p-5 rounded-lg bg-neutral-900 border border-neutral-800">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Shield className="w-4 h-4 text-red-500" />
                                         <span className="text-xs font-bold text-red-500 tracking-[0.1em] uppercase">Vulnerability Found</span>
@@ -146,18 +140,18 @@ export default function LandingPage() {
                                         <strong className="text-neutral-200 mr-1">SQL Injection</strong> — Using f-strings to build SQL queries allows attackers to manipulate your database. Use parameterized queries instead.
                                     </p>
                                     <div className="flex items-center gap-2 mt-4">
-                                        <span className="text-xs px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 font-semibold border border-red-500/20 shadow-[0_0_10px_-2px_rgba(239,68,68,0.2)]">Critical</span>
-                                        <span className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-300 font-medium border border-white/10">+10 XP</span>
+                                        <span className="text-xs px-2.5 py-1 rounded-md bg-red-950 text-red-400 font-semibold border border-red-900">Critical</span>
+                                        <span className="text-xs px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-300 font-medium border border-neutral-700">+10 XP</span>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ─── LOGO BANNER ─── */}
-            <section className="relative border-y border-white/[0.04] py-16 px-6 overflow-hidden">
+            < section className="relative border-y border-white/[0.04] py-16 px-6 overflow-hidden" >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-cyan-900/5 blur-3xl pointer-events-none" />
                 <div className="max-w-xl mx-auto flex justify-center relative">
                     <motion.img
@@ -170,10 +164,10 @@ export default function LandingPage() {
                         viewport={{ once: true }}
                     />
                 </div>
-            </section>
+            </section >
 
             {/* ─── UNIQUE VALUE PROPOSITION ─── */}
-            <section id="why" className="py-24 px-6 border-b border-white/[0.04] bg-neutral-950/30">
+            < section id="why" className="py-24 px-6 border-b border-white/[0.04] bg-neutral-950/30" >
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-3">Why Soteria?</p>
@@ -217,10 +211,10 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ─── FEATURES ─── */}
-            <section id="features" className="relative py-32 px-6">
+            < section id="features" className="relative py-32 px-6" >
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-900/5 rounded-full blur-[150px] pointer-events-none" />
                 <div className="max-w-5xl mx-auto relative">
                     <div className="text-center mb-20">
@@ -252,10 +246,10 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ─── HOW IT WORKS ─── */}
-            <section id="how-it-works" className="relative py-32 px-6 border-t border-white/[0.04] bg-[#020202]">
+            < section id="how-it-works" className="relative py-32 px-6 border-t border-white/[0.04] bg-[#020202]" >
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-24">
                         <p className="text-sm font-bold text-blue-500 uppercase tracking-[0.2em] mb-4">How It Works</p>
@@ -295,10 +289,10 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ─── BOTTOM CTA ─── */}
-            <section className="relative py-32 px-6 overflow-hidden">
+            < section className="relative py-32 px-6 overflow-hidden" >
                 <div className="absolute inset-0 top-1/2 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050505] to-[#050505] pointer-events-none" />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 40 }}
@@ -318,19 +312,19 @@ export default function LandingPage() {
                         </Button>
                     </Link>
                 </motion.div>
-            </section>
+            </section >
 
             {/* ─── FOOTER ─── */}
-            <footer id="about" className="border-t border-white/[0.04] py-10 px-6">
+            < footer id="about" className="border-t border-white/[0.04] py-10 px-6" >
                 <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2.5">
                         <img src="/soteria-logo.png" alt="Soteria" className="w-6 h-6 rounded object-cover" />
                         <span className="text-sm font-bold">SOTERIA</span>
                         <span className="text-xs text-neutral-700 ml-1">&copy; 2026</span>
                     </div>
-                    <p className="text-xs text-neutral-700">AI-powered security education for students and educators.</p>
+                    <p className="text-xs text-neutral-700">Security education for students by students.</p>
                 </div>
-            </footer>
-        </div>
+            </footer >
+        </div >
     );
 }
