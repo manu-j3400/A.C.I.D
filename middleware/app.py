@@ -459,6 +459,21 @@ def structuralDNAExtraction(rawCode):
         print(f"Error processing code: {e}")
         return None, detected_language
     
+def strip_comments(code_str):
+    """
+    Remove comments and multi-line strings from code before keyword scanning.
+    Prevents AI explanations (e.g., // Removed exec()) from triggering false positives.
+    """
+    # Remove single-line comments (Python # and JS/Java //)
+    code_str = re.sub(r'//.*', '', code_str)
+    code_str = re.sub(r'#.*', '', code_str)
+    # Remove block comments (JS/Java /* */)
+    code_str = re.sub(r'/\*.*?\*/', '', code_str, flags=re.DOTALL)
+    # Remove Python multi-line strings (often used as comments)
+    code_str = re.sub(r'\"\"\"(.*?)\"\"\"', '', code_str, flags=re.DOTALL)
+    code_str = re.sub(r"\'\'\'(.*?)\'\'\'", '', code_str, flags=re.DOTALL)
+    return code_str
+
 
 @app.route('/analyze', methods=['POST'])
 @rate_limit(max_requests=20, window_seconds=60)
@@ -475,10 +490,13 @@ def analyze():
     if not codeInput:
         return jsonify({'status': 'error', 'message': 'No code provided'}), 400
     
-    # 1. KEYWORD SAFETY NET
-    triggerKeywords = [k for k in BUZZ_WORDS if k in codeInput]
+    # Strip comments to prevent AI explanations from triggering false positives
+    clean_code = strip_comments(codeInput)
 
-    # 2. TRANSFORM CODE INTO NUMBERS
+    # 1. KEYWORD SAFETY NET (on uncommented code)
+    triggerKeywords = [k for k in BUZZ_WORDS if k in clean_code]
+
+    # 2. TRANSFORM CODE INTO NUMBERS (Original code is passed to AST parser)
     result = structuralDNAExtraction(codeInput)
     
     # Handle tuple return (dataframe, language)
