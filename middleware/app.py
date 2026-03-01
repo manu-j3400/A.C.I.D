@@ -967,38 +967,54 @@ Provide your security analysis with vulnerability explanations and a fixed versi
 
     def generate():
         try:
-            # Stream from Ollama
-            resp = req.post('http://localhost:11434/api/generate', json={
-                "model": "mistral",
-                "prompt": user_prompt,
-                "system": system_prompt,
-                "stream": True
-            }, stream=True, timeout=10)
+            # Stream from API
+            api_key = os.environ.get('GROQ_API_KEY')
+            if not api_key:
+                yield f'data: {{"type": "error", "content": "AI API key not configured on server."}}\n\n'
+                yield "data: [STREAM_END]\n\n"
+                return
+            
+            resp = req.post('https://api.groq.com/openai/v1/chat/completions', headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }, json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "stream": True,
+                "temperature": 0.2
+            }, stream=True, timeout=15)
 
             if resp.status_code != 200:
-                yield f"data: {{\"type\": \"error\", \"content\": \"Ollama returned status {resp.status_code}\"}}\n\n"
+                err_content = resp.text.replace('\n', ' ').replace('"', "'")
+                yield f"data: {{\"type\": \"error\", \"content\": \"AI API error: {resp.status_code} {err_content}\"}}\n\n"
                 yield "data: [STREAM_END]\n\n"
                 return
 
             for line in resp.iter_lines():
                 if line:
-                    try:
-                        chunk = json_mod.loads(line)
-                        token = chunk.get('response', '')
-                        done = chunk.get('done', False)
-
-                        if token:
-                            # Escape for SSE (newlines break the protocol)
-                            safe_token = token.replace('\n', '\\n').replace('\r', '')
-                            yield f"data: {{\"type\": \"token\", \"content\": \"{safe_token}\"}}\n\n"
-
-                        if done:
+                    line_str = line.decode('utf-8')
+                    if line_str.startswith('data: '):
+                        data_str = line_str[6:]
+                        if data_str.strip() == '[DONE]':
                             yield f"data: {{\"type\": \"done\"}}\n\n"
-                    except Exception:
-                        continue
+                            break
+                        try:
+                            chunk = json_mod.loads(data_str)
+                            if 'choices' in chunk and len(chunk['choices']) > 0:
+                                delta = chunk['choices'][0].get('delta', {})
+                                token = delta.get('content', '')
+                                if token:
+                                    # Escape for SSE JSON payload
+                                    safe_token = json_mod.dumps(token)[1:-1]
+                                    yield f"data: {{\"type\": \"token\", \"content\": \"{safe_token}\"}}\n\n"
+                        except Exception:
+                            continue
 
         except req.exceptions.ConnectionError:
-            yield f'data: {{"type": "error", "content": "AI deep scan is temporarily unavailable. The standard security analysis above still applies."}}\n\n'
+            yield f'data: {{"type": "error", "content": "Its coming soon...."}}\n\n'
         except req.exceptions.Timeout:
             yield f'data: {{"type": "error", "content": "AI analysis timed out. Please try again in a moment."}}\n\n'
         except Exception as e:
