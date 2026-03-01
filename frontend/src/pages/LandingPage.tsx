@@ -49,7 +49,7 @@ export default function LandingPage() {
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Features</a>
                         <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">How It Works</a>
-                        <Link to="/changelog" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Dev Changes</Link>
+                        <Link to="/changelog" className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">Lifecycle</Link>
                         <a href="#about" onClick={(e) => scrollToSection(e, 'about')} className="text-sm text-neutral-500 hover:text-blue-300 transition-colors">About</a>
                     </div>
 
