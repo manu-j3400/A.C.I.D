@@ -20,20 +20,7 @@ import { GameProvider } from './context/GameContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
-import { useEffect } from 'react';
-
-function GithubOAuthInterceptor({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const code = queryParams.get('code');
-    if (code && !window.location.hash.includes('/auth/github/callback')) {
-      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-      window.history.replaceState({ path: newUrl }, '', newUrl);
-      window.location.hash = `#/auth/github/callback?code=${code}`;
-    }
-  }, []);
-  return <>{children}</>;
-}
+import { Analytics } from '@vercel/analytics/react';
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -45,7 +32,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <GithubOAuthInterceptor>
+    <>
       <AuthProvider>
         <AdminProvider>
           <GameProvider>
@@ -136,7 +123,8 @@ function App() {
           </GameProvider>
         </AdminProvider>
       </AuthProvider>
-    </GithubOAuthInterceptor>
+      <Analytics />
+    </>
   );
 }
 
