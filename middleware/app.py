@@ -192,13 +192,24 @@ def init_users_db():
     # Seed default admin if none exists
     c.execute('SELECT id FROM users WHERE is_admin = 1')
     if not c.fetchone():
-        pw_hash = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        is_random = False
+        if not admin_password:
+            admin_password = secrets.token_urlsafe(16)
+            is_random = True
+
+        pw_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         c.execute(
             'INSERT INTO users (name, email, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?, ?)',
             ('Admin', 'admin@acid.dev', pw_hash, 1, datetime.now().isoformat())
         )
         conn.commit()
-        print("✅ Default admin seeded (admin@acid.dev / admin123)")
+
+        if is_random:
+            print(f"⚠️ WARNING: ADMIN_PASSWORD environment variable not set. Generating a random secure password.")
+            print(f"✅ Default admin seeded (admin@acid.dev / {admin_password})")
+        else:
+            print("✅ Default admin seeded (admin@acid.dev / [hidden])")
     
     conn.close()
     print("✅ Users database initialized")
