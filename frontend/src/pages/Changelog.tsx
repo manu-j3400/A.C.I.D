@@ -28,17 +28,17 @@ const RELEASES: Release[] = [
     {
         version: 'v1.2.0',
         date: 'March 2, 2026',
-        title: 'Launch Day Polish & Full User Isolation',
+        title: 'Full UI Overhaul & User Isolation',
         icon: Zap,
         iconColor: 'text-yellow-400',
         badge: 'New',
         description: 'Complete UI overhaul inspired by Neo-Brutalism and PostHog, plus critical fixes for user data isolation before our Product Hunt launch.',
         features: [
-            'Redesigned Landing Page with high-contrast, Neo-Brutalist aesthetics (heavy shadows, vibrant accents, dark mode code blocks).',
+            'Redesigned the landing page.',
             'Upgraded the Hero Section with a live, interactive Monaco Editor demo that dynamically scores code snippets in real-time.',
             'Fixed a major backend data leakage issue: Scans are now correctly isolated per `user_id` using strictly enforced pyJWT verification middleware.',
-            'Removed "Mentor/Roast" features to streamline the core gamified learning UI.',
-            'Resolved Vercel and React-Router deployment errors by migrating to standard dependencies and removing Next.js shims.'
+            'Removed some features to streamline the core gamified learning UI.',
+            'Resolved deployment errors by migrating to standard dependencies and removing Next.js shims.'
         ]
     },
     {
