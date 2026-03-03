@@ -17,6 +17,8 @@ import subprocess
 import threading
 import re
 import time
+import hmac
+import uuid
 from functools import wraps
 
 BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
@@ -92,6 +94,11 @@ def add_security_headers(response):
 RATE_LIMITS = {}
 RATE_LIMIT_LOCK = threading.Lock()
 
+# --- AUTOMATION WEBHOOK STATE ---
+AUTOMATION_RUNS = {}
+AUTOMATION_LOCK = threading.Lock()
+AUTOMATION_TTL_SECONDS = 60 * 60 * 24  # 24h idempotency window
+
 def rate_limit(max_requests=20, window_seconds=60):
     """
     Simple in-memory sliding window rate limiter per IP address.
@@ -128,6 +135,48 @@ def rate_limit(max_requests=20, window_seconds=60):
             return f(*args, **kwargs)
         return wrapped
     return decorator
+
+def _truncate_text(value, limit=8000):
+    """Keep webhook responses bounded for Make and logs."""
+    if not isinstance(value, str):
+        value = str(value or "")
+    if len(value) <= limit:
+        return value, False
+    return value[:limit] + "\n...[truncated]...", True
+
+def _cleanup_automation_runs(now_ts):
+    """Drop expired idempotency entries."""
+    expired = [k for k, v in AUTOMATION_RUNS.items() if now_ts - v.get('created_at', 0) > AUTOMATION_TTL_SECONDS]
+    for key in expired:
+        AUTOMATION_RUNS.pop(key, None)
+
+def _extract_instruction(payload):
+    """
+    Convert structured request payload to a compact instruction string
+    that auto_improver.py can consume via argv.
+    """
+    if not isinstance(payload, dict):
+        return None
+
+    explicit = payload.get('instruction')
+    if isinstance(explicit, str) and explicit.strip():
+        return explicit.strip()[:2000]
+
+    task_type = payload.get('task_type', 'incremental_improvement')
+    llm_strategy = payload.get('llm_strategy', {})
+    scope = payload.get('scope', {})
+    quality_gates = payload.get('quality_gates', {})
+    metadata = payload.get('metadata', {})
+
+    # Keep instruction deterministic and concise.
+    return (
+        f"Task: {task_type}. "
+        f"LLM strategy: {llm_strategy}. "
+        f"Scope: {scope}. "
+        f"Quality gates: {quality_gates}. "
+        f"Metadata: {metadata}. "
+        "Generate isolated improvements only, prioritize AI/ML reliability, and keep outputs safe for draft PR review."
+    )[:2000]
 
 MODELPATH = ROOT / 'backend'/ 'ML_master' / 'acidModel.pkl'
 lastModelTime = 0
@@ -1194,6 +1243,175 @@ def batch_scan():
     if isinstance(result, tuple):
         return jsonify(result[0]), result[1]
     return jsonify(result), 200
+
+@app.route('/automation/run-improver', methods=['POST'])
+@rate_limit(max_requests=6, window_seconds=60)
+def run_improver():
+    """
+    Secure webhook endpoint for Make to trigger auto_improver.py.
+    Guardrails:
+    - shared-secret auth
+    - idempotency key replay protection
+    - bounded timeout
+    - structured JSON response
+    """
+    configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
+    provided_secret = request.headers.get('X-Automation-Secret', '')
+    if not configured_secret:
+        return jsonify({
+            'status': 'error',
+            'error_code': 'automation_secret_not_configured',
+            'message': 'MAKE_WEBHOOK_SECRET is not configured on the server.'
+        }), 503
+
+    if not provided_secret or not hmac.compare_digest(provided_secret, configured_secret):
+        return jsonify({
+            'status': 'error',
+            'error_code': 'unauthorized',
+            'message': 'Invalid automation secret.'
+        }), 401
+
+    idempotency_key = (request.headers.get('Idempotency-Key') or '').strip()
+    if not idempotency_key:
+        return jsonify({
+            'status': 'error',
+            'error_code': 'missing_idempotency_key',
+            'message': 'Idempotency-Key header is required.'
+        }), 400
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({
+            'status': 'error',
+            'error_code': 'invalid_json',
+            'message': 'Request body must be valid JSON object.'
+        }), 400
+
+    mode = payload.get('mode')
+    if mode != 'draft_only':
+        return jsonify({
+            'status': 'error',
+            'error_code': 'invalid_mode',
+            'message': "Only mode='draft_only' is allowed."
+        }), 400
+
+    now_ts = time.time()
+    run_id = str(uuid.uuid4())
+    with AUTOMATION_LOCK:
+        _cleanup_automation_runs(now_ts)
+        existing = AUTOMATION_RUNS.get(idempotency_key)
+        if existing:
+            if existing.get('status') == 'running':
+                return jsonify({
+                    'run_id': existing.get('run_id'),
+                    'status': 'duplicate_in_progress',
+                    'idempotency_key': idempotency_key,
+                    'message': 'A run with this idempotency key is already in progress.'
+                }), 202
+            cached = dict(existing.get('response', {}))
+            cached['duplicate'] = True
+            cached['idempotency_key'] = idempotency_key
+            return jsonify(cached), 200
+
+        AUTOMATION_RUNS[idempotency_key] = {
+            'run_id': run_id,
+            'status': 'running',
+            'created_at': now_ts
+        }
+
+    scope = payload.get('scope', {})
+    requested_timeout = scope.get('max_runtime_seconds', 1200) if isinstance(scope, dict) else 1200
+    try:
+        requested_timeout = int(requested_timeout)
+    except Exception:
+        requested_timeout = 1200
+    timeout_seconds = max(60, min(requested_timeout, 1800))
+
+    script_path = ROOT / 'auto_improver.py'
+    if not script_path.exists():
+        response_payload = {
+            'run_id': run_id,
+            'status': 'error',
+            'error_code': 'script_not_found',
+            'message': 'auto_improver.py not found on server.',
+            'idempotency_key': idempotency_key
+        }
+        with AUTOMATION_LOCK:
+            AUTOMATION_RUNS[idempotency_key] = {
+                'run_id': run_id,
+                'status': 'completed',
+                'created_at': now_ts,
+                'response': response_payload
+            }
+        return jsonify(response_payload), 500
+
+    instruction = _extract_instruction(payload)
+    cmd = [sys.executable, str(script_path)]
+    if instruction:
+        cmd.append(instruction)
+
+    try:
+        started = time.time()
+        proc = subprocess.run(
+            cmd,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds
+        )
+        elapsed_ms = int((time.time() - started) * 1000)
+        stdout_text, stdout_truncated = _truncate_text(proc.stdout)
+        stderr_text, stderr_truncated = _truncate_text(proc.stderr)
+        status = 'success' if proc.returncode == 0 else 'error'
+        response_payload = {
+            'run_id': run_id,
+            'status': status,
+            'idempotency_key': idempotency_key,
+            'mode': mode,
+            'timeout_seconds': timeout_seconds,
+            'elapsed_ms': elapsed_ms,
+            'exit_code': proc.returncode,
+            'stdout': stdout_text,
+            'stderr': stderr_text,
+            'stdout_truncated': stdout_truncated,
+            'stderr_truncated': stderr_truncated
+        }
+        http_status = 200 if status == 'success' else 500
+    except subprocess.TimeoutExpired as e:
+        out, out_truncated = _truncate_text(e.stdout or "")
+        err, err_truncated = _truncate_text(e.stderr or "")
+        response_payload = {
+            'run_id': run_id,
+            'status': 'error',
+            'error_code': 'timeout',
+            'message': f'auto_improver.py exceeded timeout ({timeout_seconds}s).',
+            'idempotency_key': idempotency_key,
+            'timeout_seconds': timeout_seconds,
+            'stdout': out,
+            'stderr': err,
+            'stdout_truncated': out_truncated,
+            'stderr_truncated': err_truncated
+        }
+        http_status = 504
+    except Exception as e:
+        response_payload = {
+            'run_id': run_id,
+            'status': 'error',
+            'error_code': 'runner_exception',
+            'message': str(e),
+            'idempotency_key': idempotency_key
+        }
+        http_status = 500
+
+    with AUTOMATION_LOCK:
+        AUTOMATION_RUNS[idempotency_key] = {
+            'run_id': run_id,
+            'status': 'completed',
+            'created_at': now_ts,
+            'response': response_payload
+        }
+
+    return jsonify(response_payload), http_status
 
 import tempfile
 import subprocess
