@@ -1351,10 +1351,12 @@ def run_improver():
     return jsonify(response_payload), http_status
 
 
-def _require_automation_secret():
+def _require_automation_secret(allow_query_param=False):
     """Shared auth check for automation endpoints. Returns error tuple or None."""
     configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
     provided_secret = request.headers.get('X-Automation-Secret', '')
+    if allow_query_param and not provided_secret:
+        provided_secret = request.args.get('secret', '')
     if not configured_secret:
         return jsonify({
             'status': 'error',
@@ -1377,7 +1379,7 @@ def render_deploy_webhook():
     Reactive Healing Loop entry point.
     Render POSTs here on deploy failure. Circuit breaker prevents loops.
     """
-    auth_error = _require_automation_secret()
+    auth_error = _require_automation_secret(allow_query_param=True)
     if auth_error:
         return auth_error
 
