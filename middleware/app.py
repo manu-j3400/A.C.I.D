@@ -178,6 +178,26 @@ def _extract_instruction(payload):
         "Generate isolated improvements only, prioritize AI/ML reliability, and keep outputs safe for draft PR review."
     )[:2000]
 
+def _require_json_body():
+    """Ensure request body is a JSON object."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return None, (jsonify({'error': 'Request body must be a valid JSON object'}), 400)
+    return data, None
+
+def _clean_text(value, max_len=None, lower=False):
+    """Basic sanitization for user-provided text fields."""
+    if value is None:
+        value = ""
+    if not isinstance(value, str):
+        value = str(value)
+    value = value.replace('\x00', '').strip()
+    if lower:
+        value = value.lower()
+    if max_len is not None:
+        value = value[:max_len]
+    return value
+
 MODELPATH = ROOT / 'backend'/ 'ML_master' / 'acidModel.pkl'
 lastModelTime = 0
 model = None
@@ -317,13 +337,17 @@ def token_required(optional=False):
 @app.route('/api/auth/signup', methods=['POST'])
 @rate_limit(max_requests=5, window_seconds=300)  # 5 signups per 5 minutes per IP
 def auth_signup():
-    data = request.get_json()
-    name = data.get('name', '').strip()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    data, error = _require_json_body()
+    if error:
+        return error
+    name = _clean_text(data.get('name'), max_len=120)
+    email = _clean_text(data.get('email'), max_len=255, lower=True)
+    password = _clean_text(data.get('password'), max_len=256)
 
     if not name or not email or not password:
         return jsonify({'error': 'Name, email, and password are required'}), 400
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'error': 'A valid email is required'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
 
@@ -353,9 +377,11 @@ def auth_signup():
 @app.route('/api/auth/login', methods=['POST'])
 @rate_limit(max_requests=10, window_seconds=300) # 10 login attempts per 5 minutes
 def auth_login():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    data, error = _require_json_body()
+    if error:
+        return error
+    email = _clean_text(data.get('email'), max_len=255, lower=True)
+    password = _clean_text(data.get('password'), max_len=256)
 
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -419,9 +445,11 @@ def auth_me():
 @app.route('/api/auth/admin/login', methods=['POST'])
 @rate_limit(max_requests=5, window_seconds=300) # 5 admin login attempts per 5 minutes
 def auth_admin_login():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    data, error = _require_json_body()
+    if error:
+        return error
+    email = _clean_text(data.get('email'), max_len=255, lower=True)
+    password = _clean_text(data.get('password'), max_len=256)
 
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -572,7 +600,9 @@ def strip_comments(code_str):
 @rate_limit(max_requests=20, window_seconds=60)
 @token_required(optional=True)
 def analyze(current_user):
-    data = request.get_json()
+    data, error = _require_json_body()
+    if error:
+        return error
     codeInput = data.get('code', '')
 
     if not isinstance(codeInput, str):
@@ -732,14 +762,16 @@ def analyze(current_user):
 
 @app.route('/generate-report', methods=['POST']) 
 def generateReport():
-    data = request.get_json()
+    data, error = _require_json_body()
+    if error:
+        return error
     snippet = data.get('code', '')
     verdict = data.get('verdict', 'UNKNOWN')
     confidence = data.get('confidence', 0)
     risk_level = data.get('risk_level', verdict)
-    reason = data.get('reason', '')
-    language = data.get('language', 'Unknown')
-    deep_scan = data.get('deep_scan', '')
+    reason = _clean_text(data.get('reason'), max_len=1000)
+    language = _clean_text(data.get('language', 'Unknown'), max_len=50)
+    deep_scan = _clean_text(data.get('deep_scan'), max_len=30000)
     nodes_scanned = data.get('nodes_scanned', 0)
 
     pdf = FPDF()
@@ -1123,7 +1155,9 @@ def deep_scan():
     import requests as req
     import json as json_mod
 
-    data = request.get_json()
+    data, error = _require_json_body()
+    if error:
+        return error
     code = data.get('code', '')
     scan_result = data.get('scan_result', {})
 
@@ -1236,7 +1270,9 @@ Provide your security analysis with vulnerability explanations and a fixed versi
 @rate_limit(max_requests=10, window_seconds=60)  # slightly stricter for batch scans
 def batch_scan():
     """Scan multiple files at once."""
-    data = request.get_json()
+    data, error = _require_json_body()
+    if error:
+        return error
     files = data.get('files', [])
     
     result = process_files_batch(files)
@@ -1624,8 +1660,10 @@ def github_token():
     if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
         return jsonify({'error': 'GitHub OAuth login is not configured.'}), 501
 
-    data = request.get_json()
-    code = data.get('code')
+    data, error = _require_json_body()
+    if error:
+        return error
+    code = _clean_text(data.get('code'), max_len=2048)
     if not code:
         return jsonify({'error': 'No code provided'}), 400
         
@@ -1657,9 +1695,11 @@ def github_repos():
 @app.route('/github-scan', methods=['POST'])
 def github_scan():
     """Clone a GitHub repository and scan it."""
-    data = request.get_json()
-    repo_url = data.get('repo_url')
-    access_token = data.get('access_token')
+    data, error = _require_json_body()
+    if error:
+        return error
+    repo_url = _clean_text(data.get('repo_url'), max_len=2048)
+    access_token = _clean_text(data.get('access_token'), max_len=4096)
     
     if not repo_url or not repo_url.startswith('https://github.com/'):
         return jsonify({'error': 'Invalid or missing GitHub URL'}), 400
