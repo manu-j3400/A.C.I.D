@@ -1248,12 +1248,9 @@ def batch_scan():
 @rate_limit(max_requests=6, window_seconds=60)
 def run_improver():
     """
-    Secure webhook endpoint for Make to trigger auto_improver.py.
-    Guardrails:
-    - shared-secret auth
-    - idempotency key replay protection
-    - bounded timeout
-    - structured JSON response
+    Secure webhook endpoint for Make to enqueue improvement tasks.
+    Cursor reads and executes the queue — no LLM calls here.
+    Guardrails: shared-secret auth, idempotency, structured response.
     """
     configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
     provided_secret = request.headers.get('X-Automation-Secret', '')
@@ -1296,108 +1293,49 @@ def run_improver():
         }), 400
 
     now_ts = time.time()
-    run_id = str(uuid.uuid4())
     with AUTOMATION_LOCK:
         _cleanup_automation_runs(now_ts)
         existing = AUTOMATION_RUNS.get(idempotency_key)
         if existing:
-            if existing.get('status') == 'running':
-                return jsonify({
-                    'run_id': existing.get('run_id'),
-                    'status': 'duplicate_in_progress',
-                    'idempotency_key': idempotency_key,
-                    'message': 'A run with this idempotency key is already in progress.'
-                }), 202
             cached = dict(existing.get('response', {}))
             cached['duplicate'] = True
             cached['idempotency_key'] = idempotency_key
             return jsonify(cached), 200
 
-        AUTOMATION_RUNS[idempotency_key] = {
-            'run_id': run_id,
-            'status': 'running',
-            'created_at': now_ts
-        }
-
-    scope = payload.get('scope', {})
-    requested_timeout = scope.get('max_runtime_seconds', 1200) if isinstance(scope, dict) else 1200
     try:
-        requested_timeout = int(requested_timeout)
-    except Exception:
-        requested_timeout = 1200
-    timeout_seconds = max(60, min(requested_timeout, 1800))
+        sys.path.insert(0, str(ROOT))
+        from auto_improver import add_task, queue_summary
 
-    script_path = ROOT / 'auto_improver.py'
-    if not script_path.exists():
-        response_payload = {
-            'run_id': run_id,
-            'status': 'error',
-            'error_code': 'script_not_found',
-            'message': 'auto_improver.py not found on server.',
-            'idempotency_key': idempotency_key
-        }
-        with AUTOMATION_LOCK:
-            AUTOMATION_RUNS[idempotency_key] = {
-                'run_id': run_id,
-                'status': 'completed',
-                'created_at': now_ts,
-                'response': response_payload
-            }
-        return jsonify(response_payload), 500
-
-    instruction = _extract_instruction(payload)
-    cmd = [sys.executable, str(script_path)]
-    if instruction:
-        cmd.append(instruction)
-
-    try:
-        started = time.time()
-        proc = subprocess.run(
-            cmd,
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds
+        task = add_task(
+            task_type=payload.get('task_type', 'incremental_improvement'),
+            scope=payload.get('scope'),
+            quality_gates=payload.get('quality_gates'),
+            metadata=payload.get('metadata'),
+            instruction=_extract_instruction(payload)
         )
-        elapsed_ms = int((time.time() - started) * 1000)
-        stdout_text, stdout_truncated = _truncate_text(proc.stdout)
-        stderr_text, stderr_truncated = _truncate_text(proc.stderr)
-        status = 'success' if proc.returncode == 0 else 'error'
+        summary = queue_summary()
+
         response_payload = {
-            'run_id': run_id,
-            'status': status,
+            'status': 'success',
+            'task_id': task['id'],
             'idempotency_key': idempotency_key,
             'mode': mode,
-            'timeout_seconds': timeout_seconds,
-            'elapsed_ms': elapsed_ms,
-            'exit_code': proc.returncode,
-            'stdout': stdout_text,
-            'stderr': stderr_text,
-            'stdout_truncated': stdout_truncated,
-            'stderr_truncated': stderr_truncated
+            'message': 'Task enqueued. Cursor will execute on next check-in.',
+            'queue_summary': summary
         }
-        http_status = 200 if status == 'success' else 500
-    except subprocess.TimeoutExpired as e:
-        out, out_truncated = _truncate_text(e.stdout or "")
-        err, err_truncated = _truncate_text(e.stderr or "")
+        http_status = 200
+    except ValueError as e:
         response_payload = {
-            'run_id': run_id,
             'status': 'error',
-            'error_code': 'timeout',
-            'message': f'auto_improver.py exceeded timeout ({timeout_seconds}s).',
-            'idempotency_key': idempotency_key,
-            'timeout_seconds': timeout_seconds,
-            'stdout': out,
-            'stderr': err,
-            'stdout_truncated': out_truncated,
-            'stderr_truncated': err_truncated
+            'error_code': 'queue_full',
+            'message': str(e),
+            'idempotency_key': idempotency_key
         }
-        http_status = 504
+        http_status = 429
     except Exception as e:
         response_payload = {
-            'run_id': run_id,
             'status': 'error',
-            'error_code': 'runner_exception',
+            'error_code': 'enqueue_failed',
             'message': str(e),
             'idempotency_key': idempotency_key
         }
@@ -1405,7 +1343,6 @@ def run_improver():
 
     with AUTOMATION_LOCK:
         AUTOMATION_RUNS[idempotency_key] = {
-            'run_id': run_id,
             'status': 'completed',
             'created_at': now_ts,
             'response': response_payload

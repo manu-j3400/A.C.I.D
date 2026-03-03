@@ -25,6 +25,9 @@ backend/.env
 # Local databases
 *.db
 
+# Automation task queue (runtime state)
+automation_queue.json
+
 # Test artifacts
 middleware/test_*.json
 middleware/test_*.py

@@ -1,113 +1,128 @@
+"""
+Soteria Automation Task Queue
+
+Manages a lightweight JSON task queue that Make writes to (via webhook)
+and Cursor reads from when the user triggers "run the improvement queue".
+
+No LLM calls — Cursor handles all code generation, debugging, and testing.
+"""
+import json
 import os
 import sys
-import subprocess
-import requests
-import json
+import time
+import uuid
+from pathlib import Path
+from datetime import datetime, timezone
 
-# --- Configuration ---
-# You can run this script directly on a cron job or call it via a Make webhook.
-# Prefer a dedicated automation key and fall back to the app-level Gemini key.
-GEMINI_API_KEY = os.environ.get("GEMINI_AUTOMATION_KEY") or os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+QUEUE_PATH = Path(__file__).resolve().parent / "automation_queue.json"
+MAX_QUEUE_SIZE = 100
 
-if not GEMINI_API_KEY:
-    print("❌ Critical Error: GEMINI_AUTOMATION_KEY or GEMINI_API_KEY is missing.")
-    sys.exit(1)
 
-# Prompt instructions designed to instruct Claude to output valid code diffs.
-SYSTEM_PROMPT = """
-You are an autonomous expert software engineer tasked with iteratively improving the Soteria codebase. 
-You will be provided with git status, recent commit logs, test suite output, or a specific user instruction.
-Your objective is to:
-1. Identify bugs, performance bottlenecks, or clean up dead code.
-2. Output your proposed changes ONLY in standard GNU diff or regex patch format.
-3. Keep changes isolated per run. Do not attempt massive multi-file refactors in a single pass.
-"""
-
-def call_gemini(prompt: str) -> str:
-    """Send a request to Gemini Flash and return generated text."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    headers = {"content-type": "application/json"}
-    data = {
-        "system_instruction": {
-            "parts": [{"text": SYSTEM_PROMPT}]
-        },
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 4000
-        }
-    }
-
-    print(f"🤖 Prompting Gemini ({GEMINI_MODEL})...")
-    response = requests.post(url, headers=headers, json=data, timeout=90)
-
-    if response.status_code != 200:
-        print(f"❌ API Error {response.status_code}: {response.text}")
-        return ""
-
-    payload = response.json()
-    candidates = payload.get("candidates", [])
-    if not candidates:
-        print("❌ API Error: Gemini returned no candidates.")
-        return ""
-
-    parts = candidates[0].get("content", {}).get("parts", [])
-    text = "".join(part.get("text", "") for part in parts if isinstance(part, dict))
-    if not text.strip():
-        print("❌ API Error: Gemini candidate had no text content.")
-        return ""
-
-    return text
-
-def gather_context():
-    """Run tools to gather the current state of the codebase for Gemini."""
+def _load_queue() -> list:
+    if not QUEUE_PATH.exists():
+        return []
     try:
-        git_diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
-        git_status = subprocess.check_output(['git', 'status', '-s']).decode('utf-8')
-        return f"Git Status:\n{git_status}\n\nUncommitted Diff:\n{git_diff}"
-    except Exception as e:
-        return f"Error gathering git status: {e}"
+        data = json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
 
-def execute_improvement_loop(instruction=None):
-    """
-    The main execution flow:
-    1. Gather Context
-    2. Prompt Gemini
-    3. Apply Patch
-    4. Verify Build/Tests
-    """
-    print("🔄 Starting Continuous Improvement Loop...")
-    context = gather_context()
-    
-    prompt = f"Here is the current repository context:\n{context}\n\n"
-    if instruction:
-        prompt += f"SPECIFIC INSTRUCTION: {instruction}\n"
-    else:
-        prompt += "Analyze the codebase state and propose an isolated, structured optimization or bug fix. Return the file path and the raw code to replace."
 
-    # Send to Gemini
-    output = call_gemini(prompt)
-    
-    if not output:
-        return False
-        
-    print("\n📝 Gemini's Proposed Changes:")
-    print("-" * 40)
-    print(output)
-    print("-" * 40)
-    
-    # In a full setup, you would use a strict AST-parsing script to apply the model diff
-    # or let an agentic framework execute CLI tools to write the file.
-    # For now, it logs the suggestion which can be manually approved or piped to 'patch'.
-    return True
+def _save_queue(tasks: list):
+    QUEUE_PATH.write_text(json.dumps(tasks, indent=2), encoding="utf-8")
+
+
+def add_task(task_type: str, scope: dict = None, quality_gates: dict = None,
+             metadata: dict = None, instruction: str = None) -> dict:
+    """Append a new task to the queue. Returns the created task."""
+    tasks = _load_queue()
+
+    if len(tasks) >= MAX_QUEUE_SIZE:
+        pending = [t for t in tasks if t.get("status") == "pending"]
+        if len(pending) >= MAX_QUEUE_SIZE:
+            raise ValueError(f"Queue full ({MAX_QUEUE_SIZE} pending tasks).")
+
+    task = {
+        "id": str(uuid.uuid4()),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "task_type": task_type,
+        "scope": scope or {},
+        "quality_gates": quality_gates or {},
+        "metadata": metadata or {},
+        "instruction": instruction or "",
+        "result": None,
+        "completed_at": None
+    }
+    tasks.append(task)
+    _save_queue(tasks)
+    return task
+
+
+def get_pending_tasks() -> list:
+    """Return all pending tasks in FIFO order."""
+    return [t for t in _load_queue() if t.get("status") == "pending"]
+
+
+def mark_task(task_id: str, status: str, result: str = None):
+    """Update a task's status (in_progress, completed, failed, skipped)."""
+    tasks = _load_queue()
+    for task in tasks:
+        if task["id"] == task_id:
+            task["status"] = status
+            if result:
+                task["result"] = result
+            if status in ("completed", "failed", "skipped"):
+                task["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _save_queue(tasks)
+            return task
+    return None
+
+
+def cleanup_completed(max_age_hours: int = 168):
+    """Remove completed/failed tasks older than max_age_hours (default 7 days)."""
+    tasks = _load_queue()
+    cutoff = time.time() - (max_age_hours * 3600)
+    kept = []
+    removed = 0
+    for task in tasks:
+        completed_at = task.get("completed_at")
+        if completed_at and task.get("status") in ("completed", "failed", "skipped"):
+            try:
+                ts = datetime.fromisoformat(completed_at).timestamp()
+                if ts < cutoff:
+                    removed += 1
+                    continue
+            except (ValueError, TypeError):
+                pass
+        kept.append(task)
+    _save_queue(kept)
+    return removed
+
+
+def queue_summary() -> dict:
+    """Return counts by status."""
+    tasks = _load_queue()
+    summary = {"total": len(tasks), "pending": 0, "in_progress": 0,
+               "completed": 0, "failed": 0, "skipped": 0}
+    for task in tasks:
+        s = task.get("status", "pending")
+        if s in summary:
+            summary[s] += 1
+    return summary
+
 
 if __name__ == "__main__":
-    instruction = sys.argv[1] if len(sys.argv) > 1 else None
-    success = execute_improvement_loop(instruction)
-    sys.exit(0 if success else 1)
+    action = sys.argv[1] if len(sys.argv) > 1 else "summary"
+
+    if action == "summary":
+        print(json.dumps(queue_summary(), indent=2))
+    elif action == "pending":
+        for t in get_pending_tasks():
+            print(f"[{t['id'][:8]}] {t['task_type']}: {t.get('instruction', '')[:80]}")
+    elif action == "cleanup":
+        n = cleanup_completed()
+        print(f"Removed {n} old tasks.")
+    else:
+        print(f"Unknown action: {action}")
+        sys.exit(1)
