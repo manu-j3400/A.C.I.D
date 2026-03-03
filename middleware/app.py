@@ -568,20 +568,11 @@ def analyze(current_user):
     
     load_model_if_updated()
 
-    # 4. AI VERDICT
-    maliciousProb = 0.5 if triggerKeywords else 0.1
+    # 4. INITIALIZE DEFAULTS 
+    maliciousProb = 0.1
     confidence = 50.0
 
-    try:
-        if model is not None and hasattr(model, 'predict_proba'):
-            probability = model.predict_proba(featuresDf)[0]
-            maliciousProb = probability[1]
-            confidence = round(max(probability) * 100, 1)
-    except Exception as e:
-        # Model may not support new language features - use keyword detection only
-        print(f"Model prediction failed: {e}")
-
-    # 5. RISK HIERARCHY LOGIC
+    # Determine highest keyword severity FIRST before AI prediction
     highest_keyword_severity = "LOW"
     critical_or_high_keyword = None
     
@@ -591,28 +582,46 @@ def analyze(current_user):
             sev = SEVERITY_LOOKUP.get(kw, "MEDIUM")
             if severity_ranks.get(sev, 0) > severity_ranks.get(highest_keyword_severity, 0):
                 highest_keyword_severity = sev
-                critical_or_high_keyword = kw
+                if sev in ["CRITICAL", "HIGH"]:
+                    critical_or_high_keyword = kw
 
+    # If we found a critical keyword, bump base probability before ML
+    if critical_or_high_keyword:
+        maliciousProb = 0.85 
+
+    # 5. AI VERDICT
+    try:
+        if model is not None and hasattr(model, 'predict_proba'):
+            probability = model.predict_proba(featuresDf)[0]
+            # ONLY override if ML actually thinks it's strictly worse, or if no critical keywords exist
+            if probability[1] > maliciousProb:
+                maliciousProb = probability[1]
+                confidence = round(max(probability) * 100, 1)
+    except Exception as e:
+        # Model may not support new language features - use keyword detection only
+        print(f"Model prediction failed: {e}")
+
+    # 6. RISK HIERARCHY LOGIC
     # Priority 1: CRITICAL or HIGH Keyword Match
-    if critical_or_high_keyword and highest_keyword_severity in ["CRITICAL", "HIGH"]:
+    if critical_or_high_keyword:
         verdict = True
         riskLabel = highest_keyword_severity
         detail = BUZZ_WORDS.get(critical_or_high_keyword, "Suspicious pattern detected")
         message = f"Immediate threat: {detail}"
         
-    # Priority 2: High AI Confidence
+    # Priority 2: High AI Confidence (Catch complex obfuscated ML threats)
     elif maliciousProb > 0.85:
         verdict = True
         riskLabel = "HIGH"
         message = f"Critical structural anomaly detected: {round(maliciousProb * 100)}% confidence"
         
-    # Priority 3: Medium Risk / Suspicious
+    # Priority 3: Medium Risk / Suspicious (ML thinks it's sketchy OR we caught a medium keyword)
     elif maliciousProb > 0.40 or highest_keyword_severity == "MEDIUM":
         verdict = False
         riskLabel = "MEDIUM"
         message = "Suspicious patterns noted, but insufficient evidence for threat classification"
         
-    # Priority 4: Safe
+    # Priority 4: Safe (Only LOW severity keywords like 'print(', and low ML risk)
     else:
         verdict = False
         riskLabel = "LOW"
