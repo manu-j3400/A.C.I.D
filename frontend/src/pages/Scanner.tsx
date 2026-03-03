@@ -148,15 +148,20 @@ export default function Scanner() {
     llmOutputRef.current = '';
     setResult({ status: 'loading' });
 
-    const baseUrl = API_BASE_URL;
-
-
     try {
+      const token = localStorage.getItem('soteria_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ code })
       });
+
+      if (!response.ok) {
+        throw new Error(`Analyze API returned status: ${response.status}`);
+      }
 
       const data = await response.json();
       const verdict = data.malicious ? 'malicious' : 'clean';
@@ -201,21 +206,26 @@ export default function Scanner() {
 
 
     try {
+      const token = localStorage.getItem('soteria_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(`${API_BASE_URL}/deep-scan`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           code,
           scan_result: {
             risk_level: result.riskLevel,
-            reason: result.message,
-            language: result.language,
-            confidence: result.confidence
+            confidence: result.confidence,
+            reason: result.message
           }
         })
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Deep-Scan API returned status: ${response.status}`);
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
