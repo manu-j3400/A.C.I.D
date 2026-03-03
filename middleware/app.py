@@ -74,8 +74,9 @@ except ImportError as e:
 
 app = Flask(__name__)
 # Secure CORS configuration
-allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
+allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,https://www.trysoteria.live,https://trysoteria.live,https://codebasesentinel.vercel.app,https://codebasesentinel-n2ikfeqq5-manu-j3400s-projects.vercel.app')
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
+# Add support for vercel preview branches using regex if needed, but explicit list is safer
 CORS(app, resources={r"/*": {'origins': allowed_origins}})
 
 @app.after_request
