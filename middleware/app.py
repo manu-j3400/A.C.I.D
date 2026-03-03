@@ -602,26 +602,29 @@ def analyze(current_user):
         print(f"Model prediction failed: {e}")
 
     # 6. RISK HIERARCHY LOGIC
-    # Priority 1: CRITICAL or HIGH Keyword Match
+    code_line_count = len([l for l in codeInput.splitlines() if l.strip()])
+
+    # Priority 1: CRITICAL or HIGH Keyword Match (always wins)
     if critical_or_high_keyword:
         verdict = True
         riskLabel = highest_keyword_severity
         detail = BUZZ_WORDS.get(critical_or_high_keyword, "Suspicious pattern detected")
         message = f"Immediate threat: {detail}"
         
-    # Priority 2: High AI Confidence (Catch complex obfuscated ML threats)
-    elif maliciousProb > 0.85:
+    # Priority 2: Very High AI Confidence on complex code (ML-only verdict)
+    # Require 0.97+ threshold AND at least 5 meaningful lines to prevent false positives on trivial code
+    elif maliciousProb > 0.97 and code_line_count >= 5 and not critical_or_high_keyword:
         verdict = True
         riskLabel = "HIGH"
-        message = f"Critical structural anomaly detected: {round(maliciousProb * 100)}% confidence"
+        message = f"AI detected complex threat pattern: {round(maliciousProb * 100)}% confidence"
         
-    # Priority 3: Medium Risk / Suspicious (ML thinks it's sketchy OR we caught a medium keyword)
-    elif maliciousProb > 0.40 or highest_keyword_severity == "MEDIUM":
+    # Priority 3: Medium Risk / Suspicious
+    elif maliciousProb > 0.60 or highest_keyword_severity == "MEDIUM":
         verdict = False
         riskLabel = "MEDIUM"
         message = "Suspicious patterns noted, but insufficient evidence for threat classification"
         
-    # Priority 4: Safe (Only LOW severity keywords like 'print(', and low ML risk)
+    # Priority 4: Safe (LOW or no keywords, low ML risk)
     else:
         verdict = False
         riskLabel = "LOW"
