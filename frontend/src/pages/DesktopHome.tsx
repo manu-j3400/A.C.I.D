@@ -166,7 +166,24 @@ export default function DesktopHome() {
 
     const fetchAnalytics = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/security-score`);
+            const token = localStorage.getItem('soteria_token');
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const res = await fetch(`${API_BASE_URL}/security-score`, {
+                headers
+            });
+
+            if (res.status === 401) {
+                console.error('Unauthorized access to analytics.');
+                setLoading(false);
+                return;
+            }
 
             const data = await res.json();
             setScoreData(data);

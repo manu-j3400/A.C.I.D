@@ -94,13 +94,7 @@ function App() {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/about" element={
-                  <ProtectedRoute>
-                    <AuthenticatedLayout>
-                      <About />
-                    </AuthenticatedLayout>
-                  </ProtectedRoute>
-                } />
+                <Route path="/about" element={<About />} />
 
                 <Route path="/batch" element={
                   <ProtectedRoute>

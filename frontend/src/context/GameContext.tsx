@@ -7,8 +7,6 @@ interface GameContextType {
     level: Level;
     streak: number;
     addXp: (amount: number) => void;
-    roastMode: boolean;
-    toggleRoastMode: () => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -16,17 +14,14 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: React.ReactNode }) {
     const [xp, setXp] = useState(0);
     const [streak, setStreak] = useState(1);
-    const [roastMode, setRoastMode] = useState(false);
 
     // Initialize from storage or default
     useEffect(() => {
         const savedXp = localStorage.getItem('soteria_xp');
         const savedStreak = localStorage.getItem('soteria_streak');
-        const savedRoast = localStorage.getItem('soteria_roast');
 
         if (savedXp) setXp(parseInt(savedXp));
         if (savedStreak) setStreak(parseInt(savedStreak));
-        if (savedRoast) setRoastMode(savedRoast === 'true');
     }, []);
 
     const level = (() => {
@@ -43,14 +38,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('soteria_xp', newXp.toString());
     };
 
-    const toggleRoastMode = () => {
-        const newVal = !roastMode;
-        setRoastMode(newVal);
-        localStorage.setItem('soteria_roast', newVal.toString());
-    };
-
     return (
-        <GameContext.Provider value={{ xp, level, streak, addXp, roastMode, toggleRoastMode }}>
+        <GameContext.Provider value={{ xp, level, streak, addXp }}>
             {children}
         </GameContext.Provider>
     );

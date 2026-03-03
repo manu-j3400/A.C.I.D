@@ -1,319 +1,130 @@
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Zap, Github, Check, Users, Award, Target } from 'lucide-react';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Github, Linkedin, Globe, Cpu, Shield, Sparkles } from 'lucide-react';
+import PublicNavbar from '@/components/PublicNavbar';
 
 export default function About() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const faqs = [
-    {
-      question: "How does Soteria detect malware?",
-      answer: "We use advanced neural networks trained on millions of malware samples. Our AI analyzes code patterns, behavioral signatures, and known exploit techniques to identify threats with 99.8% accuracy."
-    },
-    {
-      question: "Is my code stored or shared?",
-      answer: "Absolutely not. All analysis is performed in real-time and your code is never stored on our servers. We take privacy seriously and use end-to-end encryption for all transmissions."
-    },
-    {
-      question: "What programming languages are supported?",
-      answer: "Currently we support Python, JavaScript, Java, C++, C#, PHP, Ruby, and Go. We're constantly adding support for more languages based on community feedback."
-    },
-    {
-      question: "Can I use this for commercial projects?",
-      answer: "Yes! Our open-source license allows both personal and commercial use. For enterprise features and support, check out our pricing plans."
-    },
-    {
-      question: "How accurate is the detection?",
-      answer: "Our system maintains a 99.8% accuracy rate with less than 1% false positives. We continuously improve our models with feedback from the security community."
-    }
-  ];
-
   return (
-    <div className="py-20 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">
-            About Soteria
-          </h1>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Next-generation security platform powered by artificial intelligence and built for developers
-          </p>
-        </div>
+    <div className="min-h-screen bg-black text-white selection:bg-blue-600 selection:text-white pt-32 pb-24 px-6 overflow-x-hidden relative">
+      <PublicNavbar />
 
-        {/* Mission & Technology */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-blue-500/15 to-sky-500/15 rounded-lg">
-                  <Target className="w-6 h-6 text-blue-400" />
-                </div>
-                <CardTitle className="text-xl text-white">Our Mission</CardTitle>
-              </div>
-              <CardDescription className="text-slate-400 leading-relaxed">
-                To democratize enterprise-grade security tools and make advanced threat detection accessible to developers worldwide. We believe in proactive security through AI-powered analysis and transparent, open-source technology.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+      {/* Ambient Background Elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[150px] pointer-events-none" />
 
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-cyan-500/15 to-teal-500/15 rounded-lg">
-                  <Zap className="w-6 h-6 text-cyan-400" />
-                </div>
-                <CardTitle className="text-xl text-white">Technology</CardTitle>
-              </div>
-              <CardDescription className="text-slate-400 leading-relaxed">
-                Built on state-of-the-art neural networks trained on millions of malware samples. Our models continuously learn from new threats to stay ahead of emerging security risks and zero-day exploits.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+      <div className="max-w-4xl mx-auto relative z-10 pt-10">
 
-        {/* Pricing Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center text-white">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="text-slate-400 text-center mb-12">
-            Choose the plan that fits your needs
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-blue-500/30 transition-all">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-white mb-2">Free</CardTitle>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-white">$0</span>
-                  <span className="text-slate-400">/month</span>
-                </div>
-                <CardDescription className="text-slate-400">Perfect for individual developers</CardDescription>
-              </CardHeader>
-              <div className="px-6 pb-6">
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">100 scans per month</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">Basic threat detection</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">Community support</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">Open source license</span>
-                  </li>
-                </ul>
-                <Button variant="outline" className="w-full border-slate-700 hover:border-blue-500/50">
-                  Get Started
-                </Button>
-              </div>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm border-blue-500/50 hover:border-blue-500 transition-all relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                  MOST POPULAR
-                </span>
-              </div>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-white mb-2">Pro</CardTitle>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">$29</span>
-                  <span className="text-slate-400">/month</span>
-                </div>
-                <CardDescription className="text-slate-400">For professional developers & teams</CardDescription>
-              </CardHeader>
-              <div className="px-6 pb-6">
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">Unlimited scans</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">Advanced AI detection</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">Priority support</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">API access</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">Detailed reports</span>
-                  </li>
-                </ul>
-                <Button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400">
-                  Start Pro Trial
-                </Button>
-              </div>
-            </Card>
-
-            {/* Enterprise Plan */}
-            <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-cyan-500/30 transition-all">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-white mb-2">Enterprise</CardTitle>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-white">Custom</span>
-                </div>
-                <CardDescription className="text-slate-400">For large organizations</CardDescription>
-              </CardHeader>
-              <div className="px-6 pb-6">
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm">Everything in Pro</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm">Dedicated support</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm">Custom integrations</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm">SLA guarantees</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-300">
-                    <Check className="w-4 h-4 text-cyan-500" />
-                    <span className="text-sm">On-premise deployment</span>
-                  </li>
-                </ul>
-                <Button variant="outline" className="w-full border-slate-700 hover:border-cyan-500/50">
-                  Contact Sales
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* Testimonials */}
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center text-white">
-            Trusted by Developers
-          </h2>
-          <p className="text-slate-400 text-center mb-12">
-            See what security professionals are saying about Soteria
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base text-white">Sarah Chen</CardTitle>
-                    <CardDescription className="text-xs">Senior Security Engineer</CardDescription>
-                  </div>
-                </div>
-                <CardDescription className="text-slate-400">
-                  "The best malware detection tool I've used. Fast, accurate, and the AI keeps getting better. Essential for our security pipeline."
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-teal-500/20 flex items-center justify-center">
-                    <Award className="w-6 h-6 text-cyan-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base text-white">Marcus Rodriguez</CardTitle>
-                    <CardDescription className="text-xs">DevSecOps Lead</CardDescription>
-                  </div>
-                </div>
-                <CardDescription className="text-slate-400">
-                  "Soteria caught vulnerabilities that other tools missed. The API integration was seamless and the results are incredibly detailed."
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-sky-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base text-white">Emily Thompson</CardTitle>
-                    <CardDescription className="text-xs">CTO at TechStart</CardDescription>
-                  </div>
-                </div>
-                <CardDescription className="text-slate-400">
-                  "Open source and transparent - exactly what we needed. The community support is amazing and the detection speed is unmatched."
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-
-        {/* FAQ */}
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center text-white">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-slate-400 text-center mb-12">
-            Everything you need to know about Soteria
-          </p>
-
-          <div className="max-w-3xl mx-auto space-y-4">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-lg overflow-hidden"
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-slate-800/30 transition-colors"
-                >
-                  <span className="font-semibold text-white">{faq.question}</span>
-                  <span className="text-blue-400 text-xl">{openFaq === index ? '−' : '+'}</span>
-                </button>
-                {openFaq === index && (
-                  <div className="px-6 pb-4 text-slate-400">
-                    {faq.answer}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-8 text-center">
-          <h3 className="text-2xl md:text-3xl font-bold mb-3 text-white">Open Source & Transparent</h3>
-          <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
-            We believe in transparency. Our detection algorithms and model architecture are open source, allowing the security community to audit, contribute, and improve our technology.
-          </p>
-          <Button
-            variant="outline"
-            className="border-blue-500/50 hover:border-blue-400 hover:bg-blue-500/10 text-blue-300 hover:text-blue-200"
-            asChild
+        {/* Founder Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col items-center text-center mb-24"
+        >
+          {/* Main Hero Badge */}
+          <motion.div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-sm font-semibold mb-8"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-              <Github className="w-4 h-4 mr-2" />
-              View on GitHub
+            <Sparkles className="w-4 h-4" /> Founder & Engineer
+          </motion.div>
+
+          {/* Profile Identifier */}
+          <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-blue-600/20 to-cyan-400/20 border-2 border-blue-500/30 flex items-center justify-center mb-8 shadow-[0_0_50px_-10px_rgba(59,130,246,0.3)] ring-1 ring-white/10 backdrop-blur-xl">
+            <span className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-blue-200">MJ</span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-4 text-white drop-shadow-lg">
+            Manu Jawahar
+          </h1>
+
+          <div className="text-xl md:text-2xl text-blue-400 font-medium mb-10 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+            <span>Building Soteria</span>
+            <span className="hidden md:block text-neutral-600">•</span>
+            <span className="text-neutral-300">CSE @ UC Irvine (1st Year)</span>
+          </div>
+
+          {/* Social Links Row */}
+          <div className="flex flex-wrap justify-center gap-4 w-full max-w-2xl px-4">
+            <a
+              href="https://manujawahar.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-blue-500/40 text-neutral-300 hover:text-white transition-all duration-300 group shadow-lg"
+            >
+              <Globe className="w-5 h-5 text-neutral-500 group-hover:text-blue-400 transition-colors" />
+              <span className="text-sm font-bold">Personal Site</span>
             </a>
-          </Button>
-        </div>
+            <a
+              href="https://github.com/manujawahar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/40 text-neutral-300 hover:text-white transition-all duration-300 group shadow-lg"
+            >
+              <Github className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
+              <span className="text-sm font-bold">GitHub</span>
+            </a>
+            <a
+              href="https://linkedin.com/in/manujawahar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#0A66C2]/60 text-neutral-300 hover:text-white transition-all duration-300 group shadow-lg"
+            >
+              <Linkedin className="w-5 h-5 text-neutral-500 group-hover:text-[#0A66C2] transition-colors" />
+              <span className="text-sm font-bold">LinkedIn</span>
+            </a>
+          </div>
+        </motion.div>
+
+        {/* Story Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative"
+        >
+          {/* Decorative line */}
+          <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+          <div className="pt-20 px-4 md:px-0">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-[1.1] mb-12 text-center text-white">
+              Combating the rise of<br />
+              <span className="text-blue-500">AI-generated bugs.</span>
+            </h2>
+
+            <div className="max-w-3xl mx-auto space-y-8 text-lg text-neutral-400 font-medium leading-relaxed">
+              <p className="text-xl text-neutral-200 font-semibold border-l-2 border-blue-500 pl-6 py-2">
+                I built Soteria out of a direct frustration with modern development habits.
+              </p>
+
+              <div className="space-y-6">
+                <p>
+                  With the explosive rise of AI coding assistants like Copilot and ChatGPT, programming has become exponentially faster. But there's a serious catch: it's also become exponentially easier to ship insecure, hallucinated, or fundamentally flawed code without fully understanding it.
+                </p>
+                <p>
+                  As a CSE student, I saw this happening firsthand. Students and junior developers were blindly accepting AI suggestions—pasting SQL injections, exposing API keys, and deploying vulnerable logic because the code "looked right" and compiled successfully.
+                </p>
+                <p>
+                  I realized that while AI is great at writing code, we need better tools to <strong className="text-white">verify</strong> and <strong className="text-white">understand</strong> that code.
+                </p>
+              </div>
+
+              {/* Mission Bento */}
+              <div className="grid sm:grid-cols-2 gap-6 pt-10">
+                <div className="p-8 rounded-3xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+                  <Cpu className="w-8 h-8 text-blue-400 mb-6 group-hover:scale-110 group-hover:text-blue-300 transition-all duration-300" />
+                  <h3 className="text-xl text-white font-bold mb-3">The Problem</h3>
+                  <p className="text-base text-neutral-400 leading-relaxed">AI writes the code, but developers copy/paste it without realizing the security implications or architectural flaws.</p>
+                </div>
+                <div className="p-8 rounded-3xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+                  <Shield className="w-8 h-8 text-cyan-400 mb-6 group-hover:scale-110 group-hover:text-cyan-300 transition-all duration-300" />
+                  <h3 className="text-xl text-white font-bold mb-3">The Solution</h3>
+                  <p className="text-base text-neutral-400 leading-relaxed">Soteria acts as an educational firewall. It catches vulnerabilities early and explains them in plain English.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

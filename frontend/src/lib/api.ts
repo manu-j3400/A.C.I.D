@@ -2,9 +2,18 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:50
 
 export const scannerApi = {
     async analyzeCode(code: string) {
+        const token = localStorage.getItem('soteria_token');
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/analyze`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers,
             body: JSON.stringify({ code }),
         });
 

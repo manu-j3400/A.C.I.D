@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/syne": "^5.2.7",
     "@hookform/resolvers": "^5.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-accordion": "^1.2.8",
@@ -52,6 +54,7 @@
     "lucide-react": "^0.503.0",
     "motion-dom": "12.22.0",
     "motion-utils": "12.19.0",
+    "posthog-js": "^1.357.1",
     "react": "18.3.1",
     "react-day-picker": "8.10.1",
     "react-dom": "18.3.1",

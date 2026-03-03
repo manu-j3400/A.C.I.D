@@ -91,7 +91,7 @@ export default function Scanner() {
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const llmOutputRef = useRef('');
 
-  const { xp, addXp, roastMode, toggleRoastMode } = useGame();
+  const { xp, addXp } = useGame();
 
   // Persistence
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function Scanner() {
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, roast_mode: roastMode })
+        body: JSON.stringify({ code })
       });
 
       const data = await response.json();
@@ -296,19 +296,6 @@ export default function Scanner() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-bold uppercase tracking-widest">
               <Sparkles className="w-3 h-3" /> AI-Powered
             </div>
-          </div>
-
-          {/* Roast Toggle */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 border border-slate-800">
-            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${!roastMode ? 'text-green-400' : 'text-slate-600'}`}>Mentor</span>
-            <Switch
-              checked={roastMode}
-              onCheckedChange={toggleRoastMode}
-              className="data-[state=checked]:bg-red-500"
-            />
-            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center gap-1 ${roastMode ? 'text-red-400' : 'text-slate-600'}`}>
-              Roast <Flame className={`w-3 h-3 ${roastMode ? 'animate-pulse' : ''}`} />
-            </span>
           </div>
         </motion.div>
 

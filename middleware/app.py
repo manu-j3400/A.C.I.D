@@ -150,6 +150,7 @@ def init_scan_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS scans (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         timestamp TEXT NOT NULL,
         language TEXT,
         risk_level TEXT,
@@ -159,9 +160,17 @@ def init_scan_db():
         nodes_scanned INTEGER,
         reason TEXT
     )''')
+    
+    # Run a simple migration safely: if user_id doesn't exist, this adds it. 
+    # (SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we use a try-except)
+    try:
+        c.execute('ALTER TABLE scans ADD COLUMN user_id INTEGER')
+    except sqlite3.OperationalError:
+        pass # Column already exists
+        
     conn.commit()
     conn.close()
-    print(f"✅ Scan history database initialized")
+    print("✅ Scan history database initialized")
 
 init_scan_db()
 
@@ -228,6 +237,32 @@ def decode_token(token):
 # ══════════════════════════════════════
 # AUTH API ENDPOINTS
 # ══════════════════════════════════════
+
+def token_required(optional=False):
+    """Decorator to enforce JWT authentication and extract user_id."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            token = None
+            if 'Authorization' in request.headers:
+                auth_header = request.headers['Authorization']
+                if auth_header.startswith('Bearer '):
+                    token = auth_header.split(" ")[1]
+            
+            if not token:
+                if optional:
+                    return f(None, *args, **kwargs)
+                return jsonify({'error': 'Authentication token is missing'}), 401
+
+            decoded = decode_token(token)
+            if not decoded:
+                if optional:
+                    return f(None, *args, **kwargs)
+                return jsonify({'error': 'Invalid or expired token'}), 401
+                
+            return f(decoded, *args, **kwargs)
+        return wrapped
+    return decorator
 
 @app.route('/api/auth/signup', methods=['POST'])
 @rate_limit(max_requests=5, window_seconds=300)  # 5 signups per 5 minutes per IP
@@ -365,15 +400,15 @@ def auth_admin_login():
         }
     })
 
-def save_scan_result(language, risk_level, confidence, malicious, code, nodes_scanned, reason):
+def save_scan_result(user_id, language, risk_level, confidence, malicious, code, nodes_scanned, reason):
     """Save a scan result to the history database."""
     try:
         code_hash = hashlib.sha256(code.encode()).hexdigest()[:16]
         conn = sqlite3.connect(str(SCAN_DB_PATH))
         c = conn.cursor()
         c.execute(
-            'INSERT INTO scans (timestamp, language, risk_level, confidence, malicious, code_hash, nodes_scanned, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (datetime.now().isoformat(), language, risk_level, confidence, 1 if malicious else 0, code_hash, nodes_scanned, reason)
+            'INSERT INTO scans (user_id, timestamp, language, risk_level, confidence, malicious, code_hash, nodes_scanned, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (user_id, datetime.now().isoformat(), language, risk_level, confidence, 1 if malicious else 0, code_hash, nodes_scanned, reason)
         )
         conn.commit()
         conn.close()
@@ -422,10 +457,15 @@ def structuralDNAExtraction(rawCode):
                 return "SYNTAX_ERROR"
             
             # Create DataFrame with node counts
+            if not isinstance(counts, dict):
+                counts = {}
             df = pd.DataFrame([counts])
             
             # Align with model features (fill missing with 0)
-            df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
+            if modelFeatures is not None:
+                df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
+            else:
+                df_aligned = df
             
             # Add any extra columns from detection that model doesn't know about
             for col in df.columns:
@@ -448,7 +488,10 @@ def structuralDNAExtraction(rawCode):
         
         # reindexing
         df = pd.DataFrame([counts])
-        df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
+        if modelFeatures is not None:
+            df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
+        else:
+            df_aligned = df
 
         return df_aligned, 'python'
     
@@ -475,11 +518,15 @@ def strip_comments(code_str):
     return code_str
 
 
-@app.route('/analyze', methods=['POST'])
+@app.route('/analyze', methods=['POST', 'OPTIONS'])
 @rate_limit(max_requests=20, window_seconds=60)
-def analyze():
+@token_required(optional=True)
+def analyze(current_user):
     data = request.get_json()
     codeInput = data.get('code', '')
+
+    if not isinstance(codeInput, str):
+        codeInput = str(codeInput)
 
     if len(codeInput) > 50000:
         return jsonify({
@@ -521,25 +568,37 @@ def analyze():
     load_model_if_updated()
 
     # 4. AI VERDICT
+    maliciousProb = 0.5 if triggerKeywords else 0.1
+    confidence = 50.0
+
     try:
-        probability = model.predict_proba(featuresDf)[0]
-        maliciousProb = probability[1]
-        confidence = round(max(probability) * 100, 1)
+        if model is not None and hasattr(model, 'predict_proba'):
+            probability = model.predict_proba(featuresDf)[0]
+            maliciousProb = probability[1]
+            confidence = round(max(probability) * 100, 1)
     except Exception as e:
         # Model may not support new language features - use keyword detection only
         print(f"Model prediction failed: {e}")
-        maliciousProb = 0.5 if triggerKeywords else 0.1
-        confidence = 50.0
 
     # 5. RISK HIERARCHY LOGIC
-    # Priority 1: Immediate Keyword Match
-    if triggerKeywords:
-        verdict = True
-        riskLabel = "CRITICAL"
-        keyword = triggerKeywords[0]
-        detail = BUZZ_WORDS.get(keyword, "Suspicious pattern detected")
-        message = f"Immediate threat: {detail}"
+    highest_keyword_severity = "LOW"
+    critical_or_high_keyword = None
     
+    if triggerKeywords:
+        severity_ranks = {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+        for kw in triggerKeywords:
+            sev = SEVERITY_LOOKUP.get(kw, "MEDIUM")
+            if severity_ranks.get(sev, 0) > severity_ranks.get(highest_keyword_severity, 0):
+                highest_keyword_severity = sev
+                critical_or_high_keyword = kw
+
+    # Priority 1: CRITICAL or HIGH Keyword Match
+    if critical_or_high_keyword and highest_keyword_severity in ["CRITICAL", "HIGH"]:
+        verdict = True
+        riskLabel = highest_keyword_severity
+        detail = BUZZ_WORDS.get(critical_or_high_keyword, "Suspicious pattern detected")
+        message = f"Immediate threat: {detail}"
+        
     # Priority 2: High AI Confidence
     elif maliciousProb > 0.85:
         verdict = True
@@ -547,7 +606,7 @@ def analyze():
         message = f"Critical structural anomaly detected: {round(maliciousProb * 100)}% confidence"
         
     # Priority 3: Medium Risk / Suspicious
-    elif maliciousProb > 0.40:
+    elif maliciousProb > 0.40 or highest_keyword_severity == "MEDIUM":
         verdict = False
         riskLabel = "MEDIUM"
         message = "Suspicious patterns noted, but insufficient evidence for threat classification"
@@ -592,8 +651,11 @@ def analyze():
     if vulnerabilities:
         result['vulnerabilities'] = vulnerabilities
 
-    # Auto-save to scan history
+    # Auto-save to scan history if logged in
+    user_id = current_user['user_id'] if current_user else None
+    
     save_scan_result(
+        user_id=user_id,
         language=detected_language,
         risk_level=riskLabel,
         confidence=confidence,
@@ -826,15 +888,17 @@ def scan_history():
 
 
 @app.route('/security-score', methods=['GET'])
-def security_score():
-    """Calculate aggregate security score and analytics from scan history."""
+@token_required(optional=False)
+def security_score(current_user):
+    """Calculate aggregate security score and analytics from scan history for specific user."""
     try:
+        user_id = current_user['user_id']
         conn = sqlite3.connect(str(SCAN_DB_PATH))
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         
         # Total stats
-        c.execute('SELECT COUNT(*) as total FROM scans')
+        c.execute('SELECT COUNT(*) as total FROM scans WHERE user_id = ?', (user_id,))
         total = c.fetchone()['total']
         
         if total == 0:
@@ -846,19 +910,20 @@ def security_score():
                 'clean': 0,
                 'languages': {},
                 'risk_distribution': {},
-                'daily_trend': []
+                'daily_trend': [],
+                'recent_scans': []
             })
         
-        c.execute('SELECT COUNT(*) as threats FROM scans WHERE malicious = 1')
+        c.execute('SELECT COUNT(*) as threats FROM scans WHERE malicious = 1 AND user_id = ?', (user_id,))
         threats = c.fetchone()['threats']
         clean = total - threats
         
         # Language breakdown
-        c.execute('SELECT language, COUNT(*) as count FROM scans GROUP BY language ORDER BY count DESC')
+        c.execute('SELECT language, COUNT(*) as count FROM scans WHERE user_id = ? GROUP BY language ORDER BY count DESC', (user_id,))
         languages = {row['language']: row['count'] for row in c.fetchall()}
         
         # Risk distribution
-        c.execute('SELECT risk_level, COUNT(*) as count FROM scans GROUP BY risk_level')
+        c.execute('SELECT risk_level, COUNT(*) as count FROM scans WHERE user_id = ? GROUP BY risk_level', (user_id,))
         risk_dist = {row['risk_level']: row['count'] for row in c.fetchall()}
         
         # Daily trend (last 30 days)
@@ -868,14 +933,14 @@ def security_score():
                    SUM(CASE WHEN malicious = 1 THEN 1 ELSE 0 END) as threats,
                    AVG(confidence) as avg_confidence
             FROM scans 
-            WHERE timestamp >= datetime('now', '-30 days')
+            WHERE timestamp >= datetime('now', '-30 days') AND user_id = ?
             GROUP BY DATE(timestamp) 
             ORDER BY day ASC
-        ''')
+        ''', (user_id,))
         daily_trend = [dict(row) for row in c.fetchall()]
         
         # Recent scans (last 10)
-        c.execute('SELECT * FROM scans ORDER BY timestamp DESC LIMIT 10')
+        c.execute('SELECT * FROM scans WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10', (user_id,))
         recent = [dict(row) for row in c.fetchall()]
         
         conn.close()
@@ -1003,9 +1068,15 @@ def deep_scan():
     if not code:
         return jsonify({'error': 'No code provided'}), 400
 
-    risk_level = scan_result.get('risk_level', 'UNKNOWN')
-    reason = scan_result.get('reason', 'No initial analysis available')
-    language = scan_result.get('language', 'unknown')
+    if not isinstance(code, str):
+        code = str(code)
+
+    if len(code) > 50000:
+        return jsonify({'error': 'Code too large for deep scan (50k limit)'}), 400
+
+    risk_level = scan_result.get('risk_level', 'UNKNOWN') if isinstance(scan_result, dict) else 'UNKNOWN'
+    reason = scan_result.get('reason', 'No initial analysis available') if isinstance(scan_result, dict) else 'Unknown'
+    language = scan_result.get('language', 'unknown') if isinstance(scan_result, dict) else 'unknown'
 
     system_prompt = """You are Soteria, an expert security code auditor. You analyze code for vulnerabilities and provide fixes.
 
@@ -1128,9 +1199,15 @@ def process_files_batch(files):
     total_risk_score = 0
     
     for file_item in files:
+        if not isinstance(file_item, dict):
+            continue
+            
         filename = file_item.get('filename', 'unknown')
         code = file_item.get('code', '')
         
+        if not isinstance(code, str):
+            code = str(code)
+            
         if not code or len(code) > 50000:
             results.append({
                 'filename': filename,
@@ -1180,24 +1257,37 @@ def process_files_batch(files):
             triggerKeywords = [k for k in BUZZ_WORDS if k in code]
             
             # ML prediction
+            maliciousProb = 0.5 if triggerKeywords else 0.1
+            confidence = 50.0
+
             try:
-                probability = model.predict_proba(featuresDf)[0]
-                maliciousProb = probability[1]
-                confidence = round(max(probability) * 100, 1)
-            except Exception:
-                maliciousProb = 0.5 if triggerKeywords else 0.1
-                confidence = 50.0
+                if model is not None and hasattr(model, 'predict_proba'):
+                    probability = model.predict_proba(featuresDf)[0]
+                    maliciousProb = probability[1]
+                    confidence = round(max(probability) * 100, 1)
+            except Exception as e:
+                print(f"Batch model prediction failed: {e}")
             
             # Risk classification
+            highest_keyword_severity = "LOW"
+            critical_or_high_keyword = None
             if triggerKeywords:
+                severity_ranks = {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+                for kw in triggerKeywords:
+                    sev = SEVERITY_LOOKUP.get(kw, "MEDIUM")
+                    if severity_ranks.get(sev, 0) > severity_ranks.get(highest_keyword_severity, 0):
+                        highest_keyword_severity = sev
+                        critical_or_high_keyword = kw
+
+            if critical_or_high_keyword and highest_keyword_severity in ["CRITICAL", "HIGH"]:
                 verdict = True
-                riskLabel = "CRITICAL"
-                message = f"Immediate threat: {BUZZ_WORDS.get(triggerKeywords[0], 'Suspicious pattern')}"
+                riskLabel = highest_keyword_severity
+                message = f"Immediate threat: {BUZZ_WORDS.get(critical_or_high_keyword, 'Suspicious pattern')}"
             elif maliciousProb > 0.85:
                 verdict = True
                 riskLabel = "HIGH"
                 message = f"Critical structural anomaly: {round(maliciousProb * 100)}% confidence"
-            elif maliciousProb > 0.40:
+            elif maliciousProb > 0.40 or highest_keyword_severity == "MEDIUM":
                 verdict = False
                 riskLabel = "MEDIUM"
                 message = "Suspicious patterns noted"
