@@ -519,7 +519,7 @@ def strip_comments(code_str):
     return code_str
 
 
-@app.route('/analyze', methods=['POST', 'OPTIONS'])
+@app.route('/analyze', methods=['POST'])
 @rate_limit(max_requests=20, window_seconds=60)
 @token_required(optional=True)
 def analyze(current_user):
