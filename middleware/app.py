@@ -107,6 +107,8 @@ def rate_limit(max_requests=20, window_seconds=60):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
+            if app.config.get("TESTING"):
+                return f(*args, **kwargs)
             ip = request.headers.get('X-Forwarded-For', request.remote_addr)
             if ip:
                 ip = ip.split(',')[0].strip()
