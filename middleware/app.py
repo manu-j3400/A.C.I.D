@@ -1350,6 +1350,95 @@ def run_improver():
 
     return jsonify(response_payload), http_status
 
+
+def _require_automation_secret():
+    """Shared auth check for automation endpoints. Returns error tuple or None."""
+    configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
+    provided_secret = request.headers.get('X-Automation-Secret', '')
+    if not configured_secret:
+        return jsonify({
+            'status': 'error',
+            'error_code': 'automation_secret_not_configured',
+            'message': 'MAKE_WEBHOOK_SECRET is not configured on the server.'
+        }), 503
+    if not provided_secret or not hmac.compare_digest(provided_secret, configured_secret):
+        return jsonify({
+            'status': 'error',
+            'error_code': 'unauthorized',
+            'message': 'Invalid automation secret.'
+        }), 401
+    return None
+
+
+@app.route('/automation/webhook/render-deploy', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=60)
+def render_deploy_webhook():
+    """
+    Reactive Healing Loop entry point.
+    Render POSTs here on deploy failure. Circuit breaker prevents loops.
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({'status': 'error', 'error_code': 'invalid_json',
+                        'message': 'Request body must be valid JSON.'}), 400
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from automation_agent import handle_render_failure
+        result = handle_render_failure(payload)
+        status_code = 200 if result.get('status') != 'circuit_breaker_open' else 429
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'healing_failed',
+                        'message': str(e)}), 500
+
+
+@app.route('/automation/improve', methods=['GET', 'POST'])
+@rate_limit(max_requests=6, window_seconds=60)
+def proactive_improve():
+    """
+    Proactive Improvement Loop entry point.
+    Triggered by Make cron or manual GET. Reads ROADMAP.md and enqueues
+    the next highest-priority task for Cursor.
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from automation_agent import handle_proactive_improvement
+        result = handle_proactive_improvement()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'improve_failed',
+                        'message': str(e)}), 500
+
+
+@app.route('/automation/status', methods=['GET'])
+@rate_limit(max_requests=20, window_seconds=60)
+def automation_status():
+    """Diagnostics: queue summary + circuit breaker state."""
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from auto_improver import queue_summary
+        from automation_agent import circuit_breaker
+        return jsonify({
+            'queue': queue_summary(),
+            'circuit_breaker': circuit_breaker.status()
+        }), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 import tempfile
 import subprocess
 import os
