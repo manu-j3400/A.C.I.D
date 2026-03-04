@@ -1,0 +1,92 @@
+name: Auto-merge Automation PRs
+
+on:
+  check_suite:
+    types: [completed]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'check_suite' &&
+      github.event.check_suite.conclusion == 'success'
+    steps:
+      - name: Find automation PRs ready to merge
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 10
+            });
+
+            for (const pr of pulls) {
+              const isAutomation = pr.labels.some(l => l.name === 'automation');
+              if (!isAutomation) continue;
+
+              // Check all CI checks passed
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: pr.head.sha
+              });
+
+              const allPassed = checks.check_runs.length > 0 &&
+                checks.check_runs.every(c => c.conclusion === 'success');
+
+              if (!allPassed) {
+                console.log(`PR #${pr.number}: CI not green yet, skipping`);
+                continue;
+              }
+
+              // Convert from draft if needed
+              if (pr.draft) {
+                try {
+                  await github.graphql(`
+                    mutation($id: ID!) {
+                      markPullRequestReadyForReview(input: {pullRequestId: $id}) {
+                        pullRequest { number }
+                      }
+                    }
+                  `, { id: pr.node_id });
+                  console.log(`PR #${pr.number}: Converted from draft`);
+                } catch (e) {
+                  console.log(`PR #${pr.number}: Could not convert from draft: ${e.message}`);
+                  continue;
+                }
+              }
+
+              // Merge
+              try {
+                await github.rest.pulls.merge({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  merge_method: 'squash',
+                  commit_title: `${pr.title} (#${pr.number})`,
+                  commit_message: `Auto-merged by Soteria autonomous dev loop.\n\n${pr.body || ''}`
+                });
+                console.log(`PR #${pr.number}: Auto-merged!`);
+
+                // Notify via automation status
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: '**Soteria Auto-Merge:** This PR was automatically merged after all CI checks passed. Render will deploy shortly.'
+                });
+              } catch (e) {
+                console.log(`PR #${pr.number}: Merge failed: ${e.message}`);
+              }
+            }

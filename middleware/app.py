@@ -1574,6 +1574,125 @@ def github_push_webhook():
                         'message': str(e)}), 500
 
 
+# ── SELF-IMPROVING ML ENDPOINTS ──────────────────────────────────────────────
+
+@app.route('/feedback', methods=['POST'])
+@rate_limit(max_requests=30, window_seconds=60)
+def submit_feedback():
+    """
+    Users submit feedback on scan results (false positive, false negative, correct).
+    No auth required — feedback is valuable from anyone.
+    """
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'status': 'error', 'message': 'JSON body required.'}), 400
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from ml_feedback import record_feedback
+        result = record_feedback(
+            scan_id=data.get("scan_id"),
+            code_hash=data.get("code_hash"),
+            original_verdict=data.get("original_verdict", ""),
+            user_verdict=data.get("user_verdict", ""),
+            feedback_type=data.get("feedback_type", ""),
+            comment=data.get("comment", "")
+        )
+        return jsonify(result), 201
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/automation/ml-health', methods=['GET'])
+@rate_limit(max_requests=10, window_seconds=60)
+def ml_health():
+    """
+    ML model health check. If accuracy drops below threshold, auto-triggers retrain.
+    Called by Make cron (e.g. daily).
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from ml_feedback import ml_health_check
+        result = ml_health_check()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'ml_health_failed',
+                        'notification_summary': f'ML health check crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
+@app.route('/automation/ml-retrain', methods=['POST'])
+@rate_limit(max_requests=2, window_seconds=3600)
+def ml_retrain():
+    """Force a model retrain. Rate-limited to 2/hour."""
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from ml_feedback import trigger_retrain
+        reason = (request.get_json(silent=True) or {}).get("reason", "manual_trigger")
+        result = trigger_retrain(reason=reason)
+        status_code = 200 if result["status"] == "retrain_success" else 500
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'retrain_failed',
+                        'notification_summary': f'Retrain crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
+# ── LEAD GENERATION ENDPOINTS ────────────────────────────────────────────────
+
+@app.route('/automation/lead-scan', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=3600)
+def lead_scan():
+    """
+    Scan GitHub for repos with vulnerabilities and generate leads.
+    Rate-limited to 5/hour to respect GitHub API limits.
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from lead_generator import scan_for_leads
+        payload = request.get_json(silent=True) or {}
+        query_index = payload.get("query_index")
+        result = scan_for_leads(query_index=query_index)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'lead_scan_failed',
+                        'notification_summary': f'Lead scan crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
+@app.route('/automation/leads', methods=['GET'])
+@rate_limit(max_requests=20, window_seconds=60)
+def leads_pipeline():
+    """Get lead pipeline summary and top leads ready for outreach."""
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from lead_generator import get_lead_pipeline_status
+        result = get_lead_pipeline_status()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'leads_failed',
+                        'notification_summary': f'Leads endpoint crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
 import tempfile
 import subprocess
 import os
