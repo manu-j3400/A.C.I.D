@@ -13,7 +13,7 @@ Tasks marked `[ ]` are available. `[~]` means in progress. `[x]` means done.
 
 - [ ] Optimize AST parsing logic for large files (>10k lines) to reduce scan latency
 - [x] Add new vulnerability detection patterns for supply chain attacks (dependency confusion, typosquatting)
-- [ ] Implement structured error logging with request IDs for production debugging
+- [x] Implement structured error logging with request IDs for production debugging
 - [ ] Add model performance metrics tracking (precision, recall, F1) after each retrain
 - [ ] Harden GitHub OAuth flow with PKCE and state parameter validation
 

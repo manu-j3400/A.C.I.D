@@ -19,6 +19,8 @@ import re
 import time
 import hmac
 import uuid
+import logging
+import json as json_stdlib
 from functools import wraps
 
 BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
@@ -81,14 +83,79 @@ allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') i
 # Add support for vercel preview branches using regex if needed, but explicit list is safer
 CORS(app, resources={r"/*": {'origins': allowed_origins}})
 
+# ── STRUCTURED LOGGING WITH REQUEST IDs ──────────────────────────────────────
+
+class StructuredFormatter(logging.Formatter):
+    """JSON-line log format for easy parsing by log aggregators."""
+    def format(self, record):
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "logger": record.name,
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+        }
+        if hasattr(record, 'request_id'):
+            log_entry["request_id"] = record.request_id
+        if hasattr(record, 'endpoint'):
+            log_entry["endpoint"] = record.endpoint
+        if hasattr(record, 'method'):
+            log_entry["method"] = record.method
+        if hasattr(record, 'status_code'):
+            log_entry["status_code"] = record.status_code
+        if hasattr(record, 'duration_ms'):
+            log_entry["duration_ms"] = record.duration_ms
+        if hasattr(record, 'ip'):
+            log_entry["ip"] = record.ip
+        if record.exc_info and record.exc_info[0]:
+            log_entry["exception"] = self.formatException(record.exc_info)
+        return json_stdlib.dumps(log_entry)
+
+
+_log_handler = logging.StreamHandler()
+_log_handler.setFormatter(StructuredFormatter())
+app.logger.handlers.clear()
+app.logger.addHandler(_log_handler)
+app.logger.setLevel(logging.INFO)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+
+@app.before_request
+def attach_request_id():
+    """Generate a unique request ID and attach it to every request."""
+    request.request_id = request.headers.get('X-Request-ID', uuid.uuid4().hex[:12])
+    request.start_time = time.time()
+
+
 @app.after_request
 def add_security_headers(response):
-    """Add critical HTTP security headers (Helmet equivalent) to all responses."""
+    """Add critical HTTP security headers and request ID to all responses."""
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    # Prevents browser from caching sensitive API responses
     response.headers['Cache-Control'] = 'no-store, max-age=0'
+    response.headers['X-Request-ID'] = getattr(request, 'request_id', 'unknown')
+
+    duration_ms = round((time.time() - getattr(request, 'start_time', time.time())) * 1000, 1)
+    extra = {
+        'request_id': getattr(request, 'request_id', 'unknown'),
+        'endpoint': request.path,
+        'method': request.method,
+        'status_code': response.status_code,
+        'duration_ms': duration_ms,
+        'ip': request.remote_addr,
+    }
+    log_record = app.logger.makeRecord(
+        'soteria', logging.INFO, '', 0,
+        f"{request.method} {request.path} → {response.status_code} ({duration_ms}ms)",
+        (), None
+    )
+    for k, v in extra.items():
+        setattr(log_record, k, v)
+    app.logger.handle(log_record)
+
     return response
 # --- RATE LIMITER ---
 RATE_LIMITS = {}
