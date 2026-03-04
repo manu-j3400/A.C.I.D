@@ -1386,6 +1386,7 @@ def render_deploy_webhook():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({'status': 'error', 'error_code': 'invalid_json',
+                        'notification_summary': 'Render webhook rejected — invalid JSON payload',
                         'message': 'Request body must be valid JSON.'}), 400
 
     try:
@@ -1396,6 +1397,7 @@ def render_deploy_webhook():
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({'status': 'error', 'error_code': 'healing_failed',
+                        'notification_summary': f'Healing endpoint crashed: {str(e)[:120]}',
                         'message': str(e)}), 500
 
 
@@ -1418,6 +1420,7 @@ def proactive_improve():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'status': 'error', 'error_code': 'improve_failed',
+                        'notification_summary': f'Improve endpoint crashed: {str(e)[:120]}',
                         'message': str(e)}), 500
 
 
@@ -1433,12 +1436,22 @@ def automation_status():
         sys.path.insert(0, str(ROOT))
         from auto_improver import queue_summary
         from automation_agent import circuit_breaker
+        qs = queue_summary()
+        cb = circuit_breaker.status()
+        blocked_count = sum(1 for v in cb.values() if v.get("blocked"))
         return jsonify({
-            'queue': queue_summary(),
-            'circuit_breaker': circuit_breaker.status()
+            'notification_summary': (
+                f"Queue: {qs.get('pending', 0)} pending, {qs.get('in_progress', 0)} in progress, "
+                f"{qs.get('completed', 0)} completed | "
+                f"Circuit breaker: {blocked_count} blocked error(s)"
+            ),
+            'queue': qs,
+            'circuit_breaker': cb
         }), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error',
+                        'notification_summary': f'Status endpoint crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
 
 
 import tempfile

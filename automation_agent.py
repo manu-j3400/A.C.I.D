@@ -116,6 +116,7 @@ def handle_render_failure(payload: dict) -> dict:
     if not circuit_breaker.allow(logs):
         return {
             "status": "circuit_breaker_open",
+            "notification_summary": f"[BLOCKED] Healing suppressed for {service_name} — circuit breaker open (error repeated too often)",
             "message": f"Healing blocked: error seen too many times in the last hour.",
             "error_key": circuit_breaker._error_key(logs),
             "breaker_status": circuit_breaker.status()
@@ -150,13 +151,19 @@ def handle_render_failure(payload: dict) -> dict:
         instruction=instruction
     )
 
+    qs = queue_summary()
     return {
         "status": "healing_task_enqueued",
+        "notification_summary": (
+            f"[HEALING] {service_name} deploy failed ({deploy_status}, commit {commit_id}) "
+            f"— task enqueued — {qs.get('pending', 0)} pending, {qs.get('in_progress', 0)} in progress"
+        ),
         "task_id": task["id"],
         "service": service_name,
         "deploy_status": deploy_status,
         "commit": commit_id,
-        "message": "Cursor will analyze and fix on next check-in."
+        "message": "Cursor will analyze and fix on next check-in.",
+        "queue_summary": qs
     }
 
 
@@ -247,15 +254,21 @@ def handle_proactive_improvement() -> dict:
     if not roadmap_tasks:
         return {
             "status": "no_tasks",
+            "notification_summary": "No roadmap tasks found — ROADMAP.md is empty or missing",
             "message": "ROADMAP.md is empty or not found. Nothing to improve."
         }
 
     selected = select_next_task(roadmap_tasks)
     if not selected:
+        qs = queue_summary()
         return {
             "status": "all_assigned",
+            "notification_summary": (
+                f"All roadmap tasks already assigned — "
+                f"{qs.get('pending', 0)} pending, {qs.get('in_progress', 0)} in progress"
+            ),
             "message": "All roadmap tasks are already assigned or in progress.",
-            "queue_summary": queue_summary()
+            "queue_summary": qs
         }
 
     instruction = (
@@ -282,11 +295,16 @@ def handle_proactive_improvement() -> dict:
 
     mark_roadmap_in_progress(selected["description"])
 
+    qs = queue_summary()
     return {
         "status": "improvement_task_enqueued",
+        "notification_summary": (
+            f"[{selected['priority']}] Enqueued: {selected['description'][:100]} "
+            f"— {qs.get('pending', 0)} pending, {qs.get('in_progress', 0)} in progress"
+        ),
         "task_id": task["id"],
         "priority": selected["priority"],
         "description": selected["description"],
         "message": "Cursor will implement on next check-in.",
-        "queue_summary": queue_summary()
+        "queue_summary": qs
     }
