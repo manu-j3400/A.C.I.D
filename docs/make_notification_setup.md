@@ -256,22 +256,175 @@ Add a **Gmail > Send an Email** module with the standard error template.
 
 ---
 
-## Backend Endpoints and Their `notification_summary` Values
+## Scenario 4: ML Health Check (Daily)
 
-Every automation endpoint now returns a `notification_summary` string you can use directly.
+Monitors model accuracy and auto-triggers retraining when it degrades.
 
-| Endpoint | Status | Example `notification_summary` |
+### Setup
+
+1. **Create a new scenario** in Make.
+2. **Schedule** trigger: once daily (e.g. 9:00 AM).
+3. **HTTP > Make a request**:
+
+| Setting | Value |
+|---|---|
+| **URL** | `https://a-c-i-d-1.onrender.com/automation/ml-health` |
+| **Method** | GET |
+| **Headers** | `X-Automation-Secret`: your secret |
+| **Parse response** | Yes |
+
+4. **Router** with two routes:
+
+**Route 1 — Retrain triggered** (filter: `1. data: status` equals `retrain_triggered`):
+
+Gmail subject: `ALERT — Soteria ML auto-retrain triggered`
+Gmail body: `{{1.data.notification_summary}}`
+
+**Route 2 — Healthy** (fallback):
+
+Gmail subject: `Soteria ML: {{1.data.notification_summary}}`
+Gmail body: `Accuracy: {{1.data.metrics.accuracy}} | FP: {{1.data.metrics.false_positives}} | FN: {{1.data.metrics.false_negatives}}`
+
+---
+
+## Scenario 5: Lead Generation Scan (Daily)
+
+Finds vulnerable repos on GitHub and builds your sales pipeline automatically.
+
+### Setup
+
+1. **Create a new scenario** in Make.
+2. **Schedule** trigger: once daily (e.g. 10:00 AM).
+3. **HTTP > Make a request**:
+
+| Setting | Value |
+|---|---|
+| **URL** | `https://a-c-i-d-1.onrender.com/automation/lead-scan` |
+| **Method** | POST |
+| **Headers** | `X-Automation-Secret`: your secret |
+| **Body type** | Raw / JSON |
+| **Request content** | `{}` |
+| **Parse response** | Yes |
+
+4. **Gmail > Send an Email** (no Router needed):
+
+| Setting | Value |
+|---|---|
+| **Subject** | `Soteria Leads: {{1.data.notification_summary}}` |
+| **Body type** | Raw HTML |
+
+```html
+<h2>Lead Scan Results</h2>
+<p><strong>{{1.data.notification_summary}}</strong></p>
+<h3>Stats</h3>
+<ul>
+  <li>Repos scanned: {{1.data.stats.repos_scanned}}</li>
+  <li>Vulnerabilities found: {{1.data.stats.total_vulnerabilities}}</li>
+  <li>High-value targets: {{1.data.stats.high_value_targets}}</li>
+</ul>
+<p>View full pipeline at <code>GET /automation/leads</code></p>
+```
+
+---
+
+## Scenario 6: Lead Outreach (Weekly)
+
+Fetches top leads and prepares personalized outreach emails.
+
+### Setup
+
+1. **Create a new scenario** in Make.
+2. **Schedule** trigger: once weekly (e.g. Monday 11:00 AM).
+3. **HTTP > Make a request** to `GET /automation/leads`.
+4. **Iterator** module: iterate over `1.data.top_leads`.
+5. For each lead, **Gmail > Send an Email**:
+
+| Setting | Value |
+|---|---|
+| **To** | your email (review before forwarding to lead) |
+| **Subject** | `Outreach draft: {{item.repo_full_name}} — {{item.vulnerabilities_found}} vulnerabilities found` |
+| **Body type** | Raw HTML |
+
+```html
+<h3>Lead: {{item.repo_full_name}}</h3>
+<ul>
+  <li>Stars: {{item.stars}}</li>
+  <li>Vulnerabilities: {{item.vulnerabilities_found}}</li>
+  <li>Highest risk: {{item.highest_risk}}</li>
+  <li>Owner: {{item.owner}}</li>
+</ul>
+<h4>Draft outreach message:</h4>
+<p>Hi {{item.owner}},</p>
+<p>I ran a security scan on {{item.repo_full_name}} and found
+{{item.vulnerabilities_found}} potential vulnerability(ies), including
+{{item.highest_risk}}-severity issues. Happy to share the full report
+if you're interested.</p>
+<p>We built <a href="https://soteria.app">Soteria</a> specifically for
+this — free scan, instant results.</p>
+```
+
+> **Note:** Emails go to YOU first for review. Once you approve the draft, forward it to the repo owner. This keeps outreach authentic and avoids spam.
+
+---
+
+## Scenario 7: GTM Intelligence (Daily)
+
+Monitors communities, competitors, and trending topics for go-to-market opportunities.
+
+### Setup
+
+1. **Create a new scenario** in Make.
+2. **Schedule** trigger: once daily.
+3. **HTTP > Make a request**:
+
+| Setting | Value |
+|---|---|
+| **URL** | `https://a-c-i-d-1.onrender.com/automation/gtm-intel` |
+| **Method** | GET |
+| **Headers** | `X-Automation-Secret`: your secret |
+| **Parse response** | Yes |
+
+4. **Gmail > Send an Email**:
+
+| Setting | Value |
+|---|---|
+| **Subject** | `Soteria GTM: {{1.data.notification_summary}}` |
+| **Body type** | Raw HTML |
+
+```html
+<h2>GTM Intelligence Report</h2>
+<p><strong>{{1.data.notification_summary}}</strong></p>
+
+<h3>Trending Topics</h3>
+<p>{{1.data.trending_summary}}</p>
+
+<h3>Community Opportunities</h3>
+<p>{{1.data.community_summary}}</p>
+
+<h3>Competitor Activity</h3>
+<p>{{1.data.competitor_summary}}</p>
+
+<h3>Recommended Actions</h3>
+<p>{{1.data.actions_summary}}</p>
+```
+
+---
+
+## Backend Endpoints Reference
+
+| Endpoint | Method | Purpose |
 |---|---|---|
-| `GET /automation/improve` | `improvement_task_enqueued` | `[P0] Enqueued: Fix race condition... — 3 pending, 1 in progress` |
-| `GET /automation/improve` | `no_tasks` | `No roadmap tasks found — ROADMAP.md is empty or missing` |
-| `GET /automation/improve` | `all_assigned` | `All roadmap tasks already assigned — 2 pending, 1 in progress` |
-| `GET /automation/improve` | error (500) | `Improve endpoint crashed: <error message>` |
-| `POST /automation/webhook/render-deploy` | `healing_task_enqueued` | `[HEALING] soteria-backend deploy failed...` |
-| `POST /automation/webhook/render-deploy` | `circuit_breaker_open` | `[BLOCKED] Healing suppressed for soteria-backend...` |
-| `GET /automation/status` | 200 | `Queue: 3 pending, 1 in progress, 5 completed \| Circuit breaker: 0 blocked` |
-| `GET /automation/digest` | `digest_ready` | `Health: B (80/100) \| Queue: 9P/0IP/0C \| Scans: 5 total, 1 threat \| Roadmap: 2/17 done` |
-| `POST /automation/webhook/github-push` | `scan_complete` | `Push to user/repo/main by user — 3 file(s) scanned, clean` |
-| `POST /automation/webhook/github-push` | `no_commits` | `Push to user/repo/main by user — no commits to scan` |
+| `/automation/improve` | GET | Proactive improvement loop |
+| `/automation/digest` | GET | Daily security digest |
+| `/automation/status` | GET | Queue + circuit breaker diagnostics |
+| `/automation/webhook/render-deploy` | POST | Reactive healing on deploy failure |
+| `/automation/webhook/github-push` | POST | Scan files on push |
+| `/automation/ml-health` | GET | ML accuracy check + auto-retrain |
+| `/automation/ml-retrain` | POST | Force model retrain |
+| `/automation/lead-scan` | POST | Scan GitHub for vulnerable repos |
+| `/automation/leads` | GET | Lead pipeline summary + top targets |
+| `/automation/gtm-intel` | GET | Community, competitor, and trend intelligence |
+| `/feedback` | POST | User feedback on scan results |
 
 ---
 
@@ -280,8 +433,12 @@ Every automation endpoint now returns a `notification_summary` string you can us
 | Scenario | Ops per run | Frequency | Ops/month |
 |---|---|---|---|
 | Proactive improvement loop | 3 | Every 12h | ~180 |
-| Daily security digest | 2 | Once daily | ~60 |
+| Daily security digest | 2 | Daily | ~60 |
 | Scan-on-push | 3 | ~5 pushes/day | ~450 |
-| **Total** | | | **~690** |
+| ML health check | 3 | Daily | ~90 |
+| Lead scan | 2 | Daily | ~60 |
+| Lead outreach | 3 | Weekly | ~12 |
+| GTM intelligence | 2 | Daily | ~60 |
+| **Total** | | | **~912** |
 
-Make free tier allows 1,000 ops/month. All three scenarios combined use roughly 690 ops/month, leaving a comfortable buffer. Reduce push frequency or skip the "no commits" emails to save more.
+Make free tier allows 1,000 ops/month. All scenarios combined use roughly 912 ops/month. To stay within budget, reduce scan-on-push frequency or make lead outreach biweekly. Upgrade to Make Pro ($9/mo, 10,000 ops) when revenue starts flowing.

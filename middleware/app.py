@@ -1693,6 +1693,30 @@ def leads_pipeline():
                         'message': str(e)}), 500
 
 
+# ── GTM INTELLIGENCE ENDPOINT ────────────────────────────────────────────────
+
+@app.route('/automation/gtm-intel', methods=['GET'])
+@rate_limit(max_requests=5, window_seconds=3600)
+def gtm_intelligence():
+    """
+    Go-To-Market intelligence report. Discovers communities, monitors competitors,
+    scans trends, and generates prioritized actions.
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from gtm_engine import run_gtm_intel
+        result = run_gtm_intel()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'gtm_failed',
+                        'notification_summary': f'GTM intel crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
 import tempfile
 import subprocess
 import os
