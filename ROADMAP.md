@@ -5,9 +5,9 @@ Tasks marked `[ ]` are available. `[~]` means in progress. `[x]` means done.
 
 ## P0 — Critical
 
-- [ ] Add comprehensive test suite for middleware API endpoints (analyze, batch-scan, github-scan)
-- [ ] Add input validation and sanitization for all user-facing API endpoints
-- [ ] Fix potential race condition in scan history SQLite writes under concurrent batch scans
+- [x] Add comprehensive test suite for middleware API endpoints (analyze, batch-scan, github-scan)
+- [x] Add input validation and sanitization for all user-facing API endpoints
+- [x] Fix potential race condition in scan history SQLite writes under concurrent batch scans
 
 ## P1 — High
 

@@ -192,11 +192,29 @@ except Exception as e:
     print(f"Could not load model, {e}")
 
 # --- SCAN HISTORY DATABASE ---
+# Thread-safe SQLite with WAL mode to prevent "database is locked" under
+# concurrent batch scans. All DB access goes through get_db_connection().
 SCAN_DB_PATH = ROOT / 'middleware' / 'scan_history.db'
+_db_lock = threading.Lock()
+
+
+def get_db_connection(readonly=False):
+    """
+    Get a SQLite connection with WAL mode and busy timeout.
+    WAL allows concurrent reads while a write is in progress.
+    The 10s busy_timeout retries automatically on lock contention.
+    """
+    conn = sqlite3.connect(str(SCAN_DB_PATH), timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
+    if readonly:
+        conn.execute("PRAGMA query_only=ON")
+    return conn
+
 
 def init_scan_db():
     """Initialize SQLite database for scan history."""
-    conn = sqlite3.connect(str(SCAN_DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS scans (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -210,17 +228,15 @@ def init_scan_db():
         nodes_scanned INTEGER,
         reason TEXT
     )''')
-    
-    # Run a simple migration safely: if user_id doesn't exist, this adds it. 
-    # (SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we use a try-except)
+
     try:
         c.execute('ALTER TABLE scans ADD COLUMN user_id INTEGER')
     except sqlite3.OperationalError:
-        pass # Column already exists
-        
+        pass
+
     conn.commit()
     conn.close()
-    print("✅ Scan history database initialized")
+    print("✅ Scan history database initialized (WAL mode)")
 
 init_scan_db()
 
@@ -236,7 +252,7 @@ if not JWT_SECRET:
 
 def init_users_db():
     """Initialize SQLite users table."""
-    conn = sqlite3.connect(str(SCAN_DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -329,7 +345,7 @@ def auth_signup():
 
     try:
         pw_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        conn = sqlite3.connect(str(SCAN_DB_PATH))
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute(
             'INSERT INTO users (name, email, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?, ?)',
@@ -360,7 +376,7 @@ def auth_login():
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
 
-    conn = sqlite3.connect(str(SCAN_DB_PATH))
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE email = ?', (email,))
@@ -396,7 +412,7 @@ def auth_me():
     if not payload:
         return jsonify({'error': 'Invalid or expired token'}), 401
 
-    conn = sqlite3.connect(str(SCAN_DB_PATH))
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('SELECT id, name, email, is_admin FROM users WHERE id = ?', (payload['user_id'],))
@@ -426,7 +442,7 @@ def auth_admin_login():
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
 
-    conn = sqlite3.connect(str(SCAN_DB_PATH))
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE email = ? AND is_admin = 1', (email,))
@@ -450,18 +466,22 @@ def auth_admin_login():
         }
     })
 
-def save_scan_result(user_id, language, risk_level, confidence, malicious, code, nodes_scanned, reason):
-    """Save a scan result to the history database."""
+def save_scan_result(user_id=None, language=None, risk_level=None, confidence=None,
+                     malicious=None, code="", nodes_scanned=0, reason=""):
+    """Save a scan result to the history database (thread-safe)."""
     try:
         code_hash = hashlib.sha256(code.encode()).hexdigest()[:16]
-        conn = sqlite3.connect(str(SCAN_DB_PATH))
-        c = conn.cursor()
-        c.execute(
-            'INSERT INTO scans (user_id, timestamp, language, risk_level, confidence, malicious, code_hash, nodes_scanned, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (user_id, datetime.now().isoformat(), language, risk_level, confidence, 1 if malicious else 0, code_hash, nodes_scanned, reason)
-        )
-        conn.commit()
-        conn.close()
+        with _db_lock:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute(
+                'INSERT INTO scans (user_id, timestamp, language, risk_level, confidence, '
+                'malicious, code_hash, nodes_scanned, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (user_id, datetime.now().isoformat(), language, risk_level, confidence,
+                 1 if malicious else 0, code_hash, nodes_scanned, reason)
+            )
+            conn.commit()
+            conn.close()
     except Exception as e:
         print(f"Failed to save scan result: {e}")
 
@@ -926,7 +946,7 @@ def scan_history():
     offset = request.args.get('offset', 0, type=int)
     
     try:
-        conn = sqlite3.connect(str(SCAN_DB_PATH))
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         
@@ -955,7 +975,7 @@ def security_score(current_user):
     """Calculate aggregate security score and analytics from scan history for specific user."""
     try:
         user_id = current_user['user_id']
-        conn = sqlite3.connect(str(SCAN_DB_PATH))
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         
