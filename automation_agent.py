@@ -17,6 +17,8 @@ import threading
 from pathlib import Path
 from datetime import datetime, timezone
 
+import sqlite3
+
 from auto_improver import add_task, get_pending_tasks, queue_summary
 
 ROOT = Path(__file__).resolve().parent
@@ -307,4 +309,231 @@ def handle_proactive_improvement() -> dict:
         "description": selected["description"],
         "message": "Cursor will implement on next check-in.",
         "queue_summary": qs
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DAILY DIGEST
+# Aggregates queue state, recent scan stats, circuit breaker health, and
+# roadmap progress into a single morning-briefing payload.
+# ══════════════════════════════════════════════════════════════════════════════
+
+SCAN_DB_PATH = ROOT / "middleware" / "scan_history.db"
+
+
+def _recent_scan_stats(hours: int = 24) -> dict:
+    """Pull scan statistics from the last N hours."""
+    if not SCAN_DB_PATH.exists():
+        return {"total_scans": 0, "threats_found": 0, "risk_breakdown": {},
+                "top_language": "N/A", "avg_confidence": 0.0}
+
+    cutoff = datetime.now(timezone.utc).isoformat()
+    try:
+        conn = sqlite3.connect(str(SCAN_DB_PATH))
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute(
+            "SELECT COUNT(*) as cnt FROM scans WHERE timestamp >= datetime('now', ?)",
+            (f"-{hours} hours",)
+        )
+        total = c.fetchone()["cnt"]
+
+        c.execute(
+            "SELECT COUNT(*) as cnt FROM scans WHERE malicious = 1 AND timestamp >= datetime('now', ?)",
+            (f"-{hours} hours",)
+        )
+        threats = c.fetchone()["cnt"]
+
+        c.execute(
+            "SELECT risk_level, COUNT(*) as cnt FROM scans "
+            "WHERE timestamp >= datetime('now', ?) GROUP BY risk_level",
+            (f"-{hours} hours",)
+        )
+        risk_breakdown = {row["risk_level"]: row["cnt"] for row in c.fetchall()}
+
+        c.execute(
+            "SELECT language, COUNT(*) as cnt FROM scans "
+            "WHERE timestamp >= datetime('now', ?) GROUP BY language ORDER BY cnt DESC LIMIT 1",
+            (f"-{hours} hours",)
+        )
+        top_lang_row = c.fetchone()
+        top_language = top_lang_row["language"] if top_lang_row else "N/A"
+
+        c.execute(
+            "SELECT AVG(confidence) as avg_conf FROM scans WHERE timestamp >= datetime('now', ?)",
+            (f"-{hours} hours",)
+        )
+        avg_conf_row = c.fetchone()
+        avg_confidence = round(avg_conf_row["avg_conf"] or 0.0, 3)
+
+        conn.close()
+        return {
+            "total_scans": total,
+            "threats_found": threats,
+            "risk_breakdown": risk_breakdown,
+            "top_language": top_language,
+            "avg_confidence": avg_confidence
+        }
+    except Exception:
+        return {"total_scans": 0, "threats_found": 0, "risk_breakdown": {},
+                "top_language": "N/A", "avg_confidence": 0.0}
+
+
+def _roadmap_progress() -> dict:
+    """Count roadmap tasks by status."""
+    if not ROADMAP_PATH.exists():
+        return {"done": 0, "in_progress": 0, "available": 0, "total": 0}
+
+    content = ROADMAP_PATH.read_text(encoding="utf-8")
+    done = len(re.findall(r'^\s*-\s*\[x\]', content, re.MULTILINE))
+    in_prog = len(re.findall(r'^\s*-\s*\[~\]', content, re.MULTILINE))
+    available = len(re.findall(r'^\s*-\s*\[ \]', content, re.MULTILINE))
+    return {"done": done, "in_progress": in_prog, "available": available,
+            "total": done + in_prog + available}
+
+
+def _health_score(qs: dict, scan_stats: dict, cb_status: dict, roadmap: dict) -> dict:
+    """Compute a simple 0-100 health score with component breakdown."""
+    score = 100
+    reasons = []
+
+    pending = qs.get("pending", 0)
+    if pending > 10:
+        score -= 20
+        reasons.append(f"Queue backlog: {pending} pending tasks")
+    elif pending > 5:
+        score -= 10
+        reasons.append(f"Queue growing: {pending} pending tasks")
+
+    blocked = sum(1 for v in cb_status.values() if v.get("blocked"))
+    if blocked > 0:
+        score -= 25
+        reasons.append(f"Circuit breaker: {blocked} error(s) blocked")
+
+    threats = scan_stats.get("threats_found", 0)
+    if threats > 5:
+        score -= 20
+        reasons.append(f"High threat volume: {threats} threats in last 24h")
+    elif threats > 0:
+        score -= 5
+        reasons.append(f"{threats} threat(s) detected in last 24h")
+
+    total_roadmap = roadmap.get("total", 0)
+    done_roadmap = roadmap.get("done", 0)
+    if total_roadmap > 0 and done_roadmap / total_roadmap < 0.2:
+        score -= 10
+        reasons.append(f"Roadmap progress low: {done_roadmap}/{total_roadmap} complete")
+
+    score = max(0, min(100, score))
+    grade = "A" if score >= 90 else "B" if score >= 75 else "C" if score >= 60 else "D" if score >= 40 else "F"
+
+    if not reasons:
+        reasons.append("All systems healthy")
+
+    return {"score": score, "grade": grade, "reasons": reasons}
+
+
+def generate_daily_digest() -> dict:
+    """Compile the full daily digest payload."""
+    qs = queue_summary()
+    cb = circuit_breaker.status()
+    scan_stats = _recent_scan_stats(hours=24)
+    roadmap = _roadmap_progress()
+    health = _health_score(qs, scan_stats, cb, roadmap)
+
+    summary_parts = [
+        f"Health: {health['grade']} ({health['score']}/100)",
+        f"Queue: {qs.get('pending', 0)}P/{qs.get('in_progress', 0)}IP/{qs.get('completed', 0)}C",
+        f"Scans (24h): {scan_stats['total_scans']} total, {scan_stats['threats_found']} threats",
+        f"Roadmap: {roadmap['done']}/{roadmap['total']} done",
+    ]
+
+    return {
+        "status": "digest_ready",
+        "notification_summary": " | ".join(summary_parts),
+        "health": health,
+        "queue": qs,
+        "scans_24h": scan_stats,
+        "roadmap_progress": roadmap,
+        "circuit_breaker": cb,
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCAN-ON-PUSH
+# Accepts a GitHub push webhook payload, extracts changed files with raw
+# content URLs, and returns them for scanning by the main analyze engine.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def extract_push_files(payload: dict) -> dict:
+    """
+    Parse a GitHub push webhook payload and extract changed file info.
+
+    Returns a structured dict with repo info, commit details, and
+    file lists suitable for passing to the /analyze endpoint.
+    """
+    repo = payload.get("repository", {})
+    repo_name = repo.get("full_name", "unknown/unknown")
+    ref = payload.get("ref", "unknown")
+    branch = ref.split("/")[-1] if "/" in ref else ref
+    pusher = payload.get("pusher", {}).get("name", "unknown")
+
+    commits = payload.get("commits", [])
+    if not commits:
+        return {
+            "status": "no_commits",
+            "notification_summary": f"Push to {repo_name}/{branch} by {pusher} — no commits to scan",
+            "repo": repo_name,
+            "branch": branch,
+            "pusher": pusher,
+            "files": []
+        }
+
+    added = set()
+    modified = set()
+    removed = set()
+    commit_messages = []
+
+    for commit in commits:
+        added.update(commit.get("added", []))
+        modified.update(commit.get("modified", []))
+        removed.update(commit.get("removed", []))
+        msg = commit.get("message", "")[:80]
+        commit_messages.append(f"{commit.get('id', '')[:7]}: {msg}")
+
+    scannable_extensions = {
+        '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp',
+        '.cs', '.go', '.rb', '.php', '.rs', '.sh', '.bash'
+    }
+    changed = (added | modified) - removed
+    scannable = [f for f in changed if any(f.endswith(ext) for ext in scannable_extensions)]
+
+    head_sha = payload.get("after", commits[-1].get("id", "unknown"))[:8]
+    raw_url_base = f"https://raw.githubusercontent.com/{repo_name}/{head_sha}"
+    file_entries = [{"path": f, "raw_url": f"{raw_url_base}/{f}"} for f in sorted(scannable)]
+
+    total_changed = len(changed)
+    total_scannable = len(scannable)
+
+    return {
+        "status": "files_extracted",
+        "notification_summary": (
+            f"Push to {repo_name}/{branch} by {pusher} — "
+            f"{total_scannable} scannable file(s) out of {total_changed} changed"
+        ),
+        "repo": repo_name,
+        "branch": branch,
+        "pusher": pusher,
+        "head_sha": head_sha,
+        "commits": commit_messages,
+        "files": file_entries,
+        "stats": {
+            "total_changed": total_changed,
+            "scannable": total_scannable,
+            "added": len(added),
+            "modified": len(modified),
+            "removed": len(removed)
+        }
     }

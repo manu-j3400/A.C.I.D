@@ -1454,6 +1454,126 @@ def automation_status():
                         'message': str(e)}), 500
 
 
+@app.route('/automation/digest', methods=['GET'])
+@rate_limit(max_requests=10, window_seconds=60)
+def daily_digest():
+    """
+    Daily Security Digest — morning briefing with health score, queue state,
+    scan stats (24h), roadmap progress, and circuit breaker status.
+    """
+    auth_error = _require_automation_secret()
+    if auth_error:
+        return auth_error
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from automation_agent import generate_daily_digest
+        result = generate_daily_digest()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'digest_failed',
+                        'notification_summary': f'Digest endpoint crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
+@app.route('/automation/webhook/github-push', methods=['POST'])
+@rate_limit(max_requests=30, window_seconds=60)
+def github_push_webhook():
+    """
+    Scan-on-Push — receives a GitHub push webhook, extracts changed files,
+    fetches their content, runs security scans, and returns results.
+    """
+    auth_error = _require_automation_secret(allow_query_param=True)
+    if auth_error:
+        return auth_error
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({'status': 'error', 'error_code': 'invalid_json',
+                        'notification_summary': 'GitHub push webhook rejected — invalid JSON',
+                        'message': 'Request body must be valid JSON.'}), 400
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        from automation_agent import extract_push_files
+        file_info = extract_push_files(payload)
+
+        if not file_info.get("files"):
+            return jsonify(file_info), 200
+
+        import urllib.request
+        scan_results = []
+        threats_found = 0
+
+        for entry in file_info["files"][:20]:
+            try:
+                req = urllib.request.Request(entry["raw_url"], headers={"User-Agent": "Soteria/1.0"})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    code = resp.read().decode("utf-8", errors="replace")
+
+                if len(code) > 50000:
+                    scan_results.append({"file": entry["path"], "status": "skipped",
+                                         "reason": "File too large (>50KB)"})
+                    continue
+
+                with app.test_request_context(
+                    '/analyze', method='POST', json={"code": code},
+                    headers={"Content-Type": "application/json"}
+                ):
+                    from flask import g
+                    analysis = analyze()
+                    if hasattr(analysis, 'get_json'):
+                        data = analysis.get_json()
+                    else:
+                        data = analysis[0].get_json() if isinstance(analysis, tuple) else {}
+
+                    is_threat = data.get("malicious", False)
+                    if is_threat:
+                        threats_found += 1
+
+                    scan_results.append({
+                        "file": entry["path"],
+                        "status": "scanned",
+                        "risk_level": data.get("risk_level", "UNKNOWN"),
+                        "confidence": data.get("confidence", 0),
+                        "malicious": is_threat,
+                        "reason": data.get("reason", ""),
+                        "language": data.get("language", "unknown"),
+                        "vulnerabilities": data.get("vulnerabilities", [])
+                    })
+            except Exception as scan_err:
+                scan_results.append({"file": entry["path"], "status": "error",
+                                     "reason": str(scan_err)[:200]})
+
+        total_scanned = sum(1 for r in scan_results if r.get("status") == "scanned")
+        high_risk = sum(1 for r in scan_results
+                        if r.get("risk_level") in ("HIGH", "CRITICAL"))
+
+        threat_label = f"{threats_found} THREAT(S)" if threats_found else "clean"
+        file_info["scan_results"] = scan_results
+        file_info["scan_summary"] = {
+            "total_scanned": total_scanned,
+            "threats_found": threats_found,
+            "high_risk": high_risk,
+            "skipped": sum(1 for r in scan_results if r.get("status") == "skipped"),
+            "errors": sum(1 for r in scan_results if r.get("status") == "error"),
+        }
+        file_info["notification_summary"] = (
+            f"Push to {file_info['repo']}/{file_info['branch']} by {file_info['pusher']} — "
+            f"{total_scanned} file(s) scanned, {threat_label}"
+            + (f", {high_risk} HIGH/CRITICAL" if high_risk else "")
+        )
+        file_info["status"] = "scan_complete"
+
+        status_code = 200 if threats_found == 0 else 200
+        return jsonify(file_info), status_code
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'error_code': 'push_scan_failed',
+                        'notification_summary': f'Push scan crashed: {str(e)[:120]}',
+                        'message': str(e)}), 500
+
+
 import tempfile
 import subprocess
 import os
