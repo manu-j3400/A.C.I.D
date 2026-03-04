@@ -134,46 +134,152 @@ COMMUNITY_SOURCES = {
 }
 
 COMPETITORS = [
+    # ── Giants (monitor for market shifts) ──
     {
         "name": "Snyk",
         "url": "https://snyk.io",
         "github_url": "https://github.com/snyk/cli",
-        "pricing_tier": "Free tier + paid",
+        "tier": "giant",
+        "pricing_tier": "Free tier + paid ($25+/dev/mo)",
         "key_features": "SCA, container scanning, IaC, SAST",
-        "weaknesses": "Expensive at scale, complex setup"
+        "weaknesses": "Expensive at scale, complex setup, enterprise-focused sales cycle"
     },
     {
         "name": "SonarQube",
         "url": "https://www.sonarsource.com",
         "github_url": "https://github.com/SonarSource/sonarqube",
+        "tier": "giant",
         "pricing_tier": "Community (free) + paid",
         "key_features": "Code quality, SAST, multi-language",
-        "weaknesses": "Heavy infrastructure, Java-based, slow scans"
+        "weaknesses": "Heavy infrastructure, Java-based, slow scans, ugly UI"
     },
     {
         "name": "Semgrep",
         "url": "https://semgrep.dev",
         "github_url": "https://github.com/semgrep/semgrep",
-        "pricing_tier": "Free OSS + paid cloud",
+        "tier": "giant",
+        "pricing_tier": "Free OSS + paid cloud ($40/dev/mo)",
         "key_features": "Pattern matching, custom rules, fast",
-        "weaknesses": "Rule writing learning curve, limited ML"
+        "weaknesses": "Rule writing learning curve, limited ML, no real-time scanning"
     },
     {
         "name": "CodeQL",
         "url": "https://codeql.github.com",
         "github_url": "https://github.com/github/codeql",
-        "pricing_tier": "Free for public repos",
+        "tier": "giant",
+        "pricing_tier": "Free for public repos, GitHub Advanced Security for private",
         "key_features": "Deep semantic analysis, GitHub native",
-        "weaknesses": "Slow on large codebases, query language complex"
+        "weaknesses": "Slow on large codebases, query language complex, GitHub lock-in"
     },
+    # ── Direct competitors (same weight class, fight these first) ──
     {
         "name": "Bandit",
         "url": "https://bandit.readthedocs.io",
         "github_url": "https://github.com/PyCQA/bandit",
+        "tier": "small",
         "pricing_tier": "Free (OSS)",
-        "key_features": "Python-specific, fast, lightweight",
-        "weaknesses": "Python only, no ML, high false positive rate"
-    }
+        "key_features": "Python-specific, fast, lightweight, CI-friendly",
+        "weaknesses": "Python only, no ML, high false positive rate, no UI"
+    },
+    {
+        "name": "Bearer",
+        "url": "https://www.bearer.com",
+        "github_url": "https://github.com/Bearer/bearer",
+        "tier": "small",
+        "pricing_tier": "Free OSS + cloud",
+        "key_features": "Data flow analysis, SAST, privacy-focused scanning",
+        "weaknesses": "Narrow focus on data leaks, smaller rule set, newer product"
+    },
+    {
+        "name": "Grype",
+        "url": "https://github.com/anchore/grype",
+        "github_url": "https://github.com/anchore/grype",
+        "tier": "small",
+        "pricing_tier": "Free (OSS)",
+        "key_features": "Container/SCA vulnerability scanner, fast, Go-based",
+        "weaknesses": "SCA only (no SAST), no code analysis, no ML"
+    },
+    {
+        "name": "Trivy",
+        "url": "https://trivy.dev",
+        "github_url": "https://github.com/aquasecurity/trivy",
+        "tier": "small",
+        "pricing_tier": "Free (OSS by Aqua Security)",
+        "key_features": "Container, filesystem, git repo scanning, fast",
+        "weaknesses": "Primarily SCA/config, limited SAST, no ML-based detection"
+    },
+    {
+        "name": "Horusec",
+        "url": "https://horusec.io",
+        "github_url": "https://github.com/ZupIT/horusec",
+        "tier": "small",
+        "pricing_tier": "Free (OSS)",
+        "key_features": "Multi-language SAST, orchestrates other tools, dashboard",
+        "weaknesses": "Complex setup, depends on other scanners, slower, less active maintenance"
+    },
+    {
+        "name": "Insider",
+        "url": "https://github.com/insidersec/insider",
+        "github_url": "https://github.com/insidersec/insider",
+        "tier": "small",
+        "pricing_tier": "Free (OSS)",
+        "key_features": "SAST for mobile/web apps, OWASP-focused",
+        "weaknesses": "Limited language support, smaller community, less frequent updates"
+    },
+    {
+        "name": "Njsscan",
+        "url": "https://github.com/ajinabraham/njsscan",
+        "github_url": "https://github.com/ajinabraham/njsscan",
+        "tier": "small",
+        "pricing_tier": "Free (OSS)",
+        "key_features": "Node.js SAST, semantic grep, pattern matching",
+        "weaknesses": "JS/Node only, no ML, small team, limited patterns"
+    },
+    {
+        "name": "Whispers",
+        "url": "https://github.com/Skyscanner/whispers",
+        "github_url": "https://github.com/Skyscanner/whispers",
+        "tier": "small",
+        "pricing_tier": "Free (OSS by Skyscanner)",
+        "key_features": "Secret detection in code and config files",
+        "weaknesses": "Secrets only (no vuln detection), narrow scope, no UI"
+    },
+    {
+        "name": "GuardDog",
+        "url": "https://github.com/DataDog/guarddog",
+        "github_url": "https://github.com/DataDog/guarddog",
+        "tier": "small",
+        "pricing_tier": "Free (OSS by DataDog)",
+        "key_features": "PyPI/npm malicious package detection, supply chain focus",
+        "weaknesses": "Package scanning only, no source code SAST, narrow scope"
+    },
+    {
+        "name": "Socket.dev",
+        "url": "https://socket.dev",
+        "github_url": "https://github.com/SocketDev/socket",
+        "tier": "mid",
+        "pricing_tier": "Free tier + paid",
+        "key_features": "Supply chain security, dependency analysis, npm/PyPI focus",
+        "weaknesses": "Dependencies only (no source SAST), JS/Python ecosystem focus"
+    },
+    {
+        "name": "Aikido Security",
+        "url": "https://www.aikido.dev",
+        "github_url": "",
+        "tier": "mid",
+        "pricing_tier": "Free tier + paid ($17/dev/mo)",
+        "key_features": "All-in-one AppSec, SAST+SCA+DAST+secrets+IaC",
+        "weaknesses": "Newer company, aggregates other tools, less deep per-area"
+    },
+    {
+        "name": "Qwiet AI (ShiftLeft)",
+        "url": "https://qwiet.ai",
+        "github_url": "https://github.com/ShiftLeftSecurity/sast-scan",
+        "tier": "mid",
+        "pricing_tier": "Free community + enterprise",
+        "key_features": "AI-powered SAST, code property graphs, fast",
+        "weaknesses": "Enterprise-focused, complex onboarding, limited free tier"
+    },
 ]
 
 
@@ -310,9 +416,11 @@ def monitor_competitors() -> list[dict]:
 
         results.append({
             "name": comp["name"],
+            "tier": comp.get("tier", "unknown"),
             "stars": stars,
             "last_release": last_release,
             "pricing": comp["pricing_tier"],
+            "key_features": comp["key_features"],
             "weaknesses": comp["weaknesses"]
         })
 
@@ -504,11 +612,21 @@ def run_gtm_intel() -> dict:
         if communities else "No new communities (all already tracked)"
     )
 
+    giants = [c for c in competitors if c.get("tier") == "giant"]
+    mids = [c for c in competitors if c.get("tier") == "mid"]
+    smalls = [c for c in competitors if c.get("tier") == "small"]
+
+    giant_names = ", ".join(f"{c['name']} ({c['stars']:,}★)" for c in giants if c.get("stars"))
+    mid_names = ", ".join(f"{c['name']} ({c['stars']:,}★)" for c in mids if c.get("stars"))
+    small_names = ", ".join(f"{c['name']} ({c['stars']:,}★)" for c in smalls if c.get("stars"))
+
     competitor_summary = (
-        f"Tracking {len(competitors)} competitors — "
-        f"total {total_stars:,} GitHub stars combined. "
-        + (f"Top: {competitors[0]['name']} ({competitors[0]['stars']:,} stars)"
-           if competitors and competitors[0].get("stars") else "GitHub data unavailable")
+        f"Tracking {len(competitors)} competitors ({len(giants)} giants, "
+        f"{len(mids)} mid-tier, {len(smalls)} direct rivals) — "
+        f"{total_stars:,} GitHub stars combined. "
+        f"Giants: {giant_names or 'N/A'}. "
+        f"Mid-tier: {mid_names or 'N/A'}. "
+        f"Direct rivals: {small_names or 'N/A'}."
     )
 
     trending_summary = (
