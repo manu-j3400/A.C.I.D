@@ -340,6 +340,26 @@ def discover_communities() -> list[dict]:
     other_platforms = [
         {"platform": "producthunt", "name": "Product Hunt",
          "url": "https://www.producthunt.com", "category": "launch_platform", "relevance": 0.9},
+        {"platform": "producthunt", "name": "Product Hunt — Cybersecurity",
+         "url": "https://www.producthunt.com/topics/cybersecurity", "category": "launch_platform", "relevance": 0.95},
+        {"platform": "producthunt", "name": "Product Hunt — Developer Tools",
+         "url": "https://www.producthunt.com/topics/developer-tools", "category": "launch_platform", "relevance": 0.85},
+        {"platform": "x.com", "name": "X.com #infosec",
+         "url": "https://x.com/search?q=%23infosec", "category": "security", "relevance": 0.9},
+        {"platform": "x.com", "name": "X.com #appsec",
+         "url": "https://x.com/search?q=%23appsec", "category": "security", "relevance": 0.9},
+        {"platform": "x.com", "name": "X.com #cybersecurity",
+         "url": "https://x.com/search?q=%23cybersecurity", "category": "security", "relevance": 0.85},
+        {"platform": "x.com", "name": "X.com #devsecops",
+         "url": "https://x.com/search?q=%23devsecops", "category": "security", "relevance": 0.85},
+        {"platform": "x.com", "name": "X.com #SAST",
+         "url": "https://x.com/search?q=%23SAST", "category": "security", "relevance": 0.9},
+        {"platform": "x.com", "name": "X.com #opensource security",
+         "url": "https://x.com/search?q=opensource%20security%20scanner", "category": "security", "relevance": 0.8},
+        {"platform": "x.com", "name": "@snaborern (Semgrep founder)",
+         "url": "https://x.com/snaborern", "category": "competitor_intel", "relevance": 0.85},
+        {"platform": "x.com", "name": "@saborner (Snyk CEO)",
+         "url": "https://x.com/guaborner", "category": "competitor_intel", "relevance": 0.8},
         {"platform": "discord", "name": "Python Discord",
          "url": "https://discord.gg/python", "category": "development", "relevance": 0.7},
         {"platform": "discord", "name": "OWASP Slack",
@@ -435,17 +455,18 @@ def monitor_competitors() -> list[dict]:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def scan_trends() -> list[dict]:
-    """Check Hacker News for trending security topics."""
+    """Check Hacker News and Product Hunt for trending security topics."""
     conn = sqlite3.connect(str(GTM_DB_PATH))
     c = conn.cursor()
     now = datetime.now(timezone.utc).isoformat()
     trends = []
 
-    keywords = ["security vulnerability", "supply chain attack", "CVE", "code scanner",
-                "SAST", "malware", "ransomware", "zero day", "dependency confusion",
-                "npm malware", "PyPI malware"]
+    # ── Hacker News (Algolia API) ──
+    hn_keywords = ["security vulnerability", "supply chain attack", "CVE", "code scanner",
+                   "SAST", "malware", "ransomware", "zero day", "dependency confusion",
+                   "npm malware", "PyPI malware"]
 
-    for kw in keywords[:5]:
+    for kw in hn_keywords[:5]:
         try:
             encoded = urllib.parse.quote(kw)
             url = f"https://hn.algolia.com/api/v1/search_by_date?query={encoded}&tags=story&hitsPerPage=3"
@@ -478,6 +499,85 @@ def scan_trends() -> list[dict]:
                         "url": story_url,
                         "actionable": is_actionable,
                         "keyword": kw
+                    })
+        except Exception:
+            continue
+
+    # ── Product Hunt (search for competing/relevant launches) ──
+    ph_queries = ["security scanner", "code security", "SAST", "vulnerability",
+                  "devsecops", "appsec", "malware detection"]
+    for q in ph_queries[:3]:
+        try:
+            encoded = urllib.parse.quote(q)
+            url = f"https://hn.algolia.com/api/v1/search?query=producthunt+{encoded}&tags=story&hitsPerPage=3"
+            req = urllib.request.Request(url, headers={"User-Agent": "Soteria-GTM/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+                for hit in data.get("hits", []):
+                    title = hit.get("title", "")
+                    story_url = hit.get("url", "") or f"https://news.ycombinator.com/item?id={hit.get('objectID', '')}"
+                    points = hit.get("points", 0) or 0
+
+                    c.execute("SELECT id FROM trends WHERE url = ?", (story_url,))
+                    if c.fetchone():
+                        continue
+
+                    is_actionable = True
+
+                    c.execute(
+                        "INSERT INTO trends (topic, source, url, engagement_score, "
+                        "category, discovered_at, actionable) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (title[:200], "producthunt", story_url, points,
+                         f"PH:{q}", now, 1)
+                    )
+                    trends.append({
+                        "title": title[:120],
+                        "source": "PH",
+                        "points": points,
+                        "url": story_url,
+                        "actionable": is_actionable,
+                        "keyword": f"PH:{q}"
+                    })
+        except Exception:
+            continue
+
+    # ── X.com / Twitter (via HN mentions — X API requires paid access) ──
+    # We search HN for tweets/X posts being discussed, which surfaces the
+    # most impactful X.com security content without needing X API access.
+    x_queries = ["x.com security", "twitter cybersecurity tool", "x.com SAST",
+                 "x.com vulnerability scanner"]
+    for q in x_queries[:2]:
+        try:
+            encoded = urllib.parse.quote(q)
+            url = f"https://hn.algolia.com/api/v1/search_by_date?query={encoded}&tags=story&hitsPerPage=3"
+            req = urllib.request.Request(url, headers={"User-Agent": "Soteria-GTM/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+                for hit in data.get("hits", []):
+                    title = hit.get("title", "")
+                    story_url = hit.get("url", "") or f"https://news.ycombinator.com/item?id={hit.get('objectID', '')}"
+                    points = hit.get("points", 0) or 0
+
+                    c.execute("SELECT id FROM trends WHERE url = ?", (story_url,))
+                    if c.fetchone():
+                        continue
+
+                    is_x = "x.com" in story_url or "twitter.com" in story_url
+                    is_actionable = is_x or points > 30
+
+                    c.execute(
+                        "INSERT INTO trends (topic, source, url, engagement_score, "
+                        "category, discovered_at, actionable) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (title[:200], "x.com" if is_x else "hackernews",
+                         story_url, points, f"X:{q}", now, 1 if is_actionable else 0)
+                    )
+                    trends.append({
+                        "title": title[:120],
+                        "source": "X" if is_x else "HN",
+                        "points": points,
+                        "url": story_url,
+                        "actionable": is_actionable,
+                        "keyword": f"X:{q}"
                     })
         except Exception:
             continue
