@@ -18,6 +18,7 @@ import urllib.parse
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import Counter
+import email_builder
 
 ROOT = Path(__file__).resolve().parent
 GTM_DB_PATH = ROOT / "middleware" / "gtm.db"
@@ -655,5 +656,9 @@ def run_gtm_intel() -> dict:
         "competitors": competitors,
         "trends": trends[:15],
         "actions": actions,
-        "generated_at": datetime.now(timezone.utc).isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "email_html": email_builder.gtm_report(
+            communities, competitors, trends[:15], actions,
+            community_summary, competitor_summary, trending_summary, actions_summary
+        )
     }

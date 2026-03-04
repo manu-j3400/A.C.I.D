@@ -1351,6 +1351,23 @@ def run_improver():
     return jsonify(response_payload), http_status
 
 
+def _automation_error(endpoint, error_code, message, status_code=500):
+    """Build a JSON error response with email_html for automation endpoints."""
+    sys.path.insert(0, str(ROOT))
+    try:
+        from email_builder import error_email
+        html = error_email(endpoint, error_code, message, status_code)
+    except Exception:
+        html = f"<p>Error on {endpoint}: {error_code} — {message}</p>"
+    return jsonify({
+        'status': 'error',
+        'error_code': error_code,
+        'notification_summary': f'{endpoint} error: {message[:120]}',
+        'message': message,
+        'email_html': html
+    }), status_code
+
+
 def _require_automation_secret(allow_query_param=False):
     """Shared auth check for automation endpoints. Returns error tuple or None."""
     configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
@@ -1396,9 +1413,7 @@ def render_deploy_webhook():
         status_code = 200 if result.get('status') != 'circuit_breaker_open' else 429
         return jsonify(result), status_code
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'healing_failed',
-                        'notification_summary': f'Healing endpoint crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/webhook/render-deploy', 'healing_failed', str(e))
 
 
 @app.route('/automation/improve', methods=['GET', 'POST'])
@@ -1419,9 +1434,7 @@ def proactive_improve():
         result = handle_proactive_improvement()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'improve_failed',
-                        'notification_summary': f'Improve endpoint crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/improve', 'improve_failed', str(e))
 
 
 @app.route('/automation/status', methods=['GET'])
@@ -1449,9 +1462,7 @@ def automation_status():
             'circuit_breaker': cb
         }), 200
     except Exception as e:
-        return jsonify({'status': 'error',
-                        'notification_summary': f'Status endpoint crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/status', 'status_failed', str(e))
 
 
 @app.route('/automation/digest', methods=['GET'])
@@ -1471,9 +1482,7 @@ def daily_digest():
         result = generate_daily_digest()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'digest_failed',
-                        'notification_summary': f'Digest endpoint crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/digest', 'digest_failed', str(e))
 
 
 @app.route('/automation/webhook/github-push', methods=['POST'])
@@ -1569,9 +1578,7 @@ def github_push_webhook():
         return jsonify(file_info), status_code
 
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'push_scan_failed',
-                        'notification_summary': f'Push scan crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/webhook/github-push', 'push_scan_failed', str(e))
 
 
 # ── SELF-IMPROVING ML ENDPOINTS ──────────────────────────────────────────────
@@ -1622,9 +1629,7 @@ def ml_health():
         result = ml_health_check()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'ml_health_failed',
-                        'notification_summary': f'ML health check crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/ml-health', 'ml_health_failed', str(e))
 
 
 @app.route('/automation/ml-retrain', methods=['POST'])
@@ -1643,9 +1648,7 @@ def ml_retrain():
         status_code = 200 if result["status"] == "retrain_success" else 500
         return jsonify(result), status_code
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'retrain_failed',
-                        'notification_summary': f'Retrain crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/ml-retrain', 'retrain_failed', str(e))
 
 
 # ── LEAD GENERATION ENDPOINTS ────────────────────────────────────────────────
@@ -1669,9 +1672,7 @@ def lead_scan():
         result = scan_for_leads(query_index=query_index)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'lead_scan_failed',
-                        'notification_summary': f'Lead scan crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/lead-scan', 'lead_scan_failed', str(e))
 
 
 @app.route('/automation/leads', methods=['GET'])
@@ -1688,9 +1689,7 @@ def leads_pipeline():
         result = get_lead_pipeline_status()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'leads_failed',
-                        'notification_summary': f'Leads endpoint crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/leads', 'leads_failed', str(e))
 
 
 # ── GTM INTELLIGENCE ENDPOINT ────────────────────────────────────────────────
@@ -1712,9 +1711,7 @@ def gtm_intelligence():
         result = run_gtm_intel()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'error_code': 'gtm_failed',
-                        'notification_summary': f'GTM intel crashed: {str(e)[:120]}',
-                        'message': str(e)}), 500
+        return _automation_error('/automation/gtm-intel', 'gtm_failed', str(e))
 
 
 import tempfile

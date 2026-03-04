@@ -20,6 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
+import email_builder
 
 ROOT = Path(__file__).resolve().parent
 SCAN_DB_PATH = ROOT / "middleware" / "scan_history.db"
@@ -273,7 +274,8 @@ def ml_health_check() -> dict:
                 f"{retrain_result.get('notification_summary', 'retrain initiated')}"
             ),
             "metrics": metrics,
-            "retrain": retrain_result
+            "retrain": retrain_result,
+            "email_html": email_builder.ml_health_report(metrics, retrain=retrain_result)
         }
 
     grade = "A" if metrics["accuracy"] >= 0.95 else \
@@ -288,5 +290,6 @@ def ml_health_check() -> dict:
             f"FP: {metrics['false_positives']}, FN: {metrics['false_negatives']})"
         ),
         "grade": grade,
-        "metrics": metrics
+        "metrics": metrics,
+        "email_html": email_builder.ml_health_report(metrics, grade=grade)
     }

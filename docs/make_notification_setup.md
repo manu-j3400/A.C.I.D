@@ -2,6 +2,8 @@
 
 How to add success/failure notifications to your existing Make automation scenarios so you get alerted on every run.
 
+> **Simplified email setup:** Every automation endpoint now returns an `email_html` field containing a fully detailed, styled HTML email body. In any Gmail module, just set Body type to **Raw HTML** and Content to `{{N.data.email_html}}` (where N is your HTTP module number). No manual HTML templates needed.
+
 ## Prerequisites
 
 - Existing Make scenario with an **HTTP** module hitting your Render backend (e.g. `POST /automation/improve`)

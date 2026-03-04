@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import sqlite3
 
 from auto_improver import add_task, get_pending_tasks, queue_summary
+import email_builder
 
 ROOT = Path(__file__).resolve().parent
 ROADMAP_PATH = ROOT / "ROADMAP.md"
@@ -116,12 +117,15 @@ def handle_render_failure(payload: dict) -> dict:
         logs = f"Deploy {deploy.get('id', 'unknown')} failed with status: {deploy_status}"
 
     if not circuit_breaker.allow(logs):
+        err_key = circuit_breaker._error_key(logs)
+        cb_status = circuit_breaker.status()
         return {
             "status": "circuit_breaker_open",
             "notification_summary": f"[BLOCKED] Healing suppressed for {service_name} — circuit breaker open (error repeated too often)",
             "message": f"Healing blocked: error seen too many times in the last hour.",
-            "error_key": circuit_breaker._error_key(logs),
-            "breaker_status": circuit_breaker.status()
+            "error_key": err_key,
+            "breaker_status": cb_status,
+            "email_html": email_builder.healing_blocked(service_name, err_key, cb_status)
         }
 
     error_excerpt = logs[:2000]
@@ -165,7 +169,8 @@ def handle_render_failure(payload: dict) -> dict:
         "deploy_status": deploy_status,
         "commit": commit_id,
         "message": "Cursor will analyze and fix on next check-in.",
-        "queue_summary": qs
+        "queue_summary": qs,
+        "email_html": email_builder.healing_enqueued(task["id"], service_name, deploy_status, commit_id, error_excerpt, qs)
     }
 
 
@@ -257,7 +262,8 @@ def handle_proactive_improvement() -> dict:
         return {
             "status": "no_tasks",
             "notification_summary": "No roadmap tasks found — ROADMAP.md is empty or missing",
-            "message": "ROADMAP.md is empty or not found. Nothing to improve."
+            "message": "ROADMAP.md is empty or not found. Nothing to improve.",
+            "email_html": email_builder.improvement_no_tasks()
         }
 
     selected = select_next_task(roadmap_tasks)
@@ -270,7 +276,8 @@ def handle_proactive_improvement() -> dict:
                 f"{qs.get('pending', 0)} pending, {qs.get('in_progress', 0)} in progress"
             ),
             "message": "All roadmap tasks are already assigned or in progress.",
-            "queue_summary": qs
+            "queue_summary": qs,
+            "email_html": email_builder.improvement_all_assigned(qs)
         }
 
     instruction = (
@@ -308,7 +315,8 @@ def handle_proactive_improvement() -> dict:
         "priority": selected["priority"],
         "description": selected["description"],
         "message": "Cursor will implement on next check-in.",
-        "queue_summary": qs
+        "queue_summary": qs,
+        "email_html": email_builder.improvement_enqueued(task["id"], selected["priority"], selected["description"], qs)
     }
 
 
@@ -457,7 +465,8 @@ def generate_daily_digest() -> dict:
         "scans_24h": scan_stats,
         "roadmap_progress": roadmap,
         "circuit_breaker": cb,
-        "generated_at": datetime.now(timezone.utc).isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "email_html": email_builder.daily_digest(health, qs, scan_stats, roadmap, cb)
     }
 
 

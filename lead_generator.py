@@ -18,6 +18,7 @@ import urllib.request
 import urllib.parse
 from pathlib import Path
 from datetime import datetime, timezone
+import email_builder
 
 ROOT = Path(__file__).resolve().parent
 SCAN_DB_PATH = ROOT / "middleware" / "scan_history.db"
@@ -230,6 +231,11 @@ def scan_for_leads(query_index: int = None) -> dict:
     total_vulns = sum(l["vulnerabilities_found"] for l in new_leads)
     high_value = [l for l in new_leads if l["highest_risk"] in ("HIGH", "CRITICAL")]
 
+    stats = {
+        "repos_scanned": len(new_leads),
+        "total_vulnerabilities": total_vulns,
+        "high_value_targets": len(high_value)
+    }
     return {
         "status": "lead_scan_complete",
         "notification_summary": (
@@ -239,11 +245,8 @@ def scan_for_leads(query_index: int = None) -> dict:
         ),
         "leads": new_leads,
         "queries_used": queries,
-        "stats": {
-            "repos_scanned": len(new_leads),
-            "total_vulnerabilities": total_vulns,
-            "high_value_targets": len(high_value)
-        }
+        "stats": stats,
+        "email_html": email_builder.lead_scan_report(new_leads, queries, stats)
     }
 
 
