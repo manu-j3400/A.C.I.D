@@ -10,6 +10,11 @@ class codeNormalizer(ast.NodeTransformer):
     def __init__(self):
         self.mapping = {}
         self.counter = 0
+
+    def reset(self):
+        """Clear variable mapping between normalizations to bound memory usage."""
+        self.mapping.clear()
+        self.counter = 0
     
     def get_id(self, original_id):
         if original_id not in self.mapping:

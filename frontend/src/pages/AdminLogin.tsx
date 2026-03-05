@@ -34,7 +34,7 @@ export default function AdminLogin() {
 
             <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-950 border border-orange-500/15 backdrop-blur-xl shadow-2xl shadow-orange-900/10">
                 <div className="text-center mb-8">
-                    <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center mb-4 shadow-lg shadow-orange-600/20">
+                    <div className="mx-auto w-14 h-14 rounded-xl bg-orange-600 flex items-center justify-center mb-4 shadow-[3px_3px_0px_#7c2d12]">
                         <Shield className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">Admin Portal</h1>
@@ -70,7 +70,7 @@ export default function AdminLogin() {
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-orange-600 to-red-500 text-white hover:from-orange-500 hover:to-red-400 py-6 rounded-xl font-bold shadow-lg shadow-orange-600/20"
+                        className="w-full bg-orange-600 text-white hover:bg-orange-500 py-6 rounded-xl font-bold shadow-[4px_4px_0px_#7c2d12] hover:shadow-[2px_2px_0px_#7c2d12] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                     >
                         <Shield className="w-4 h-4 mr-2" />
                         {loading ? 'Authenticating...' : 'Admin Sign In'}

@@ -186,7 +186,7 @@ export default function NeuralEngine() {
                     <Button
                         onClick={startTraining}
                         disabled={isTraining}
-                        className="h-full min-h-[140px] rounded-3xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xl tracking-tight transition-all shadow-lg shadow-cyan-900/20 active:scale-95 flex flex-col items-center justify-center gap-2"
+                        className="h-full min-h-[140px] rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xl tracking-tight transition-all shadow-[6px_6px_0px_#0e7490] hover:shadow-[3px_3px_0px_#0e7490] hover:translate-x-[3px] hover:translate-y-[3px] active:scale-95 flex flex-col items-center justify-center gap-2"
                     >
                         {isTraining ? (
                             <>

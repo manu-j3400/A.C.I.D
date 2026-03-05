@@ -132,7 +132,7 @@ export function HeroMiniDemo() {
             <div className="relative">
                 <CodeEditor
                     className={cn(
-                        "transition-all duration-700 ease-in-out border-none rounded-none !h-[300px]",
+                        "transition-all duration-300 ease-in-out border-none rounded-none !h-[300px]",
                         (isScanning || scanComplete) ? "opacity-50 grayscale-[50%]" : "opacity-100"
                     )}
                     code={code}
@@ -148,7 +148,7 @@ export function HeroMiniDemo() {
                         className="absolute inset-0 z-20 pointer-events-none"
                     >
                         <motion.div
-                            className="w-full h-8 bg-gradient-to-b from-transparent via-blue-500/20 to-transparent border-y border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.3)] backdrop-blur-[2px]"
+                            className="w-full h-8 bg-blue-500/20 border-y border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.3)] backdrop-blur-[2px]"
                             animate={{ y: [0, 300, 0] }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                         />

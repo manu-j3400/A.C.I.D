@@ -138,7 +138,7 @@ function SecurityGrade({ score, grade }: { score: number; grade: string }) {
                     cx="60" cy="60" r="45" fill="none" stroke={color} strokeWidth="8"
                     strokeDasharray={circumference} strokeDashoffset={offset}
                     strokeLinecap="round" transform="rotate(-90 60 60)"
-                    className="transition-all duration-1000"
+                    className="transition-all duration-300"
                 />
                 <text x="60" y="55" textAnchor="middle" dominantBaseline="central" fill={color} fontSize="32" fontWeight="900">{grade}</text>
                 <text x="60" y="78" textAnchor="middle" dominantBaseline="central" fill="#64748b" fontSize="11" fontWeight="600">{score}/100</text>

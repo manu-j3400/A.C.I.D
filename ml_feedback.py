@@ -20,12 +20,14 @@ import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
+from typing import Optional
 import email_builder
 
 ROOT = Path(__file__).resolve().parent
 SCAN_DB_PATH = ROOT / "middleware" / "scan_history.db"
 MODEL_PATH = ROOT / "backend" / "ML_master" / "acidModel.pkl"
 MODEL_BACKUP_DIR = ROOT / "backend" / "ML_master" / "backups"
+NUMERIC_FEATURES_CSV = ROOT / "backend" / "CSV_master" / "numericFeatures.csv"
 FEEDBACK_MIN_SAMPLES = 20
 ACCURACY_THRESHOLD = 0.85
 RETRAIN_COOLDOWN_HOURS = 24
@@ -56,6 +58,23 @@ def init_feedback_table():
         status TEXT,
         model_path TEXT,
         duration_seconds REAL
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS model_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recorded_at TEXT NOT NULL,
+        retrain_id INTEGER,
+        accuracy REAL,
+        precision_score REAL,
+        recall_score REAL,
+        f1_score REAL,
+        true_positives INTEGER,
+        true_negatives INTEGER,
+        false_positives INTEGER,
+        false_negatives INTEGER,
+        total_samples INTEGER,
+        dataset_source TEXT,
+        model_path TEXT,
+        FOREIGN KEY (retrain_id) REFERENCES retrain_log(id)
     )''')
     conn.commit()
     conn.close()
@@ -137,6 +156,12 @@ def get_accuracy_metrics() -> dict:
         "ORDER BY id DESC LIMIT 1"
     )
     last_retrain = c.fetchone()
+
+    c.execute(
+        "SELECT accuracy, precision_score, recall_score, f1_score, total_samples, recorded_at "
+        "FROM model_metrics ORDER BY id DESC LIMIT 1"
+    )
+    last_holdout = c.fetchone()
     conn.close()
 
     needs_retrain = (
@@ -155,8 +180,66 @@ def get_accuracy_metrics() -> dict:
         "accuracy_threshold": ACCURACY_THRESHOLD,
         "min_samples_for_retrain": FEEDBACK_MIN_SAMPLES,
         "needs_retrain": needs_retrain,
-        "last_retrain": dict(last_retrain) if last_retrain else None
+        "last_retrain": dict(last_retrain) if last_retrain else None,
+        "last_holdout_eval": dict(last_holdout) if last_holdout else None,
     }
+
+
+def evaluate_model() -> Optional[dict]:
+    """
+    Evaluate the current model on the holdout split of numericFeatures.csv.
+    Uses same train/test split as trainer (test_size=0.15, random_state=42).
+    Returns dict with accuracy, precision, recall, f1, TP, TN, FP, FN.
+    Returns None if model or CSV missing, or evaluation fails.
+    """
+    if not MODEL_PATH.exists() or not NUMERIC_FEATURES_CSV.exists():
+        return None
+
+    try:
+        import pandas as pd
+        from joblib import load
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import (
+            accuracy_score,
+            precision_score,
+            recall_score,
+            f1_score,
+            confusion_matrix,
+        )
+
+        model = load(str(MODEL_PATH))
+        df = pd.read_csv(str(NUMERIC_FEATURES_CSV))
+
+        X = df.drop(["LABEL", "SOURCE"], axis=1)
+        y = df["LABEL"]
+
+        _, X_test, _, y_test = train_test_split(
+            X, y, test_size=0.15, random_state=42, stratify=y
+        )
+        y_pred = model.predict(X_test)
+
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()
+        accuracy = float(accuracy_score(y_test, y_pred))
+        precision = float(
+            precision_score(y_test, y_pred, zero_division=0, average="binary")
+        )
+        recall = float(recall_score(y_test, y_pred, zero_division=0, average="binary"))
+        f1 = float(f1_score(y_test, y_pred, zero_division=0, average="binary"))
+
+        return {
+            "accuracy": round(accuracy, 4),
+            "precision_score": round(precision, 4),
+            "recall_score": round(recall, 4),
+            "f1_score": round(f1, 4),
+            "true_positives": int(tp),
+            "true_negatives": int(tn),
+            "false_positives": int(fp),
+            "false_negatives": int(fn),
+            "total_samples": len(y_test),
+            "dataset_source": "numericFeatures.csv",
+        }
+    except Exception:
+        return None
 
 
 def trigger_retrain(reason: str = "accuracy_below_threshold") -> dict:
@@ -225,6 +308,37 @@ def trigger_retrain(reason: str = "accuracy_below_threshold") -> dict:
              None, metrics_before["rated_samples"], "success",
              str(MODEL_PATH), duration)
         )
+        retrain_id = c.lastrowid
+
+        eval_metrics = evaluate_model()
+        new_accuracy = None
+        if eval_metrics:
+            new_accuracy = eval_metrics["accuracy"]
+            c.execute(
+                "UPDATE retrain_log SET new_accuracy = ? WHERE id = ?",
+                (new_accuracy, retrain_id)
+            )
+            c.execute(
+                "INSERT INTO model_metrics (recorded_at, retrain_id, accuracy, "
+                "precision_score, recall_score, f1_score, true_positives, true_negatives, "
+                "false_positives, false_negatives, total_samples, dataset_source, model_path) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    datetime.now(timezone.utc).isoformat(),
+                    retrain_id,
+                    eval_metrics["accuracy"],
+                    eval_metrics["precision_score"],
+                    eval_metrics["recall_score"],
+                    eval_metrics["f1_score"],
+                    eval_metrics["true_positives"],
+                    eval_metrics["true_negatives"],
+                    eval_metrics["false_positives"],
+                    eval_metrics["false_negatives"],
+                    eval_metrics["total_samples"],
+                    eval_metrics["dataset_source"],
+                    str(MODEL_PATH),
+                ),
+            )
         conn.commit()
         conn.close()
 
@@ -232,18 +346,23 @@ def trigger_retrain(reason: str = "accuracy_below_threshold") -> dict:
         for old in old_backups:
             old.unlink()
 
-        return {
+        summary = (
+            f"Model retrained in {duration}s — old accuracy: {old_accuracy:.1%}"
+            + (f", holdout accuracy: {new_accuracy:.1%}" if new_accuracy is not None else "")
+            + f", feedback incorporated: {metrics_before['rated_samples']} samples"
+        )
+        result = {
             "status": "retrain_success",
-            "notification_summary": (
-                f"Model retrained in {duration}s — "
-                f"old accuracy: {old_accuracy:.1%}, "
-                f"feedback incorporated: {metrics_before['rated_samples']} samples"
-            ),
+            "notification_summary": summary,
             "old_accuracy": old_accuracy,
             "samples_used": metrics_before["rated_samples"],
             "duration_seconds": duration,
-            "backup_path": str(backup_path)
+            "backup_path": str(backup_path),
         }
+        if eval_metrics:
+            result["new_accuracy"] = new_accuracy
+            result["evaluation_metrics"] = eval_metrics
+        return result
 
     except Exception as e:
         if backup_path.exists() and MODEL_PATH.exists():

@@ -11,3 +11,4 @@ gitpython
 bcrypt
 PyJWT
 requests
+tree-sitter-rust

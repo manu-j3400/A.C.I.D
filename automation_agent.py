@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 import sqlite3
 
-from auto_improver import add_task, get_pending_tasks, queue_summary
+from auto_improver import add_task, get_pending_tasks, queue_summary, _load_queue
 import email_builder
 
 ROOT = Path(__file__).resolve().parent
@@ -450,6 +450,11 @@ def generate_daily_digest() -> dict:
     roadmap = _roadmap_progress()
     health = _health_score(qs, scan_stats, cb, roadmap)
 
+    # Gather actual task details for the digest
+    available_roadmap_tasks = parse_roadmap()[:7]
+    all_queue_tasks = _load_queue()
+    queue_tasks = [t for t in all_queue_tasks if t.get("status") in ("pending", "in_progress")]
+
     summary_parts = [
         f"Health: {health['grade']} ({health['score']}/100)",
         f"Queue: {qs.get('pending', 0)}P/{qs.get('in_progress', 0)}IP/{qs.get('completed', 0)}C",
@@ -465,8 +470,14 @@ def generate_daily_digest() -> dict:
         "scans_24h": scan_stats,
         "roadmap_progress": roadmap,
         "circuit_breaker": cb,
+        "available_roadmap_tasks": available_roadmap_tasks,
+        "queue_tasks": queue_tasks,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "email_html": email_builder.daily_digest(health, qs, scan_stats, roadmap, cb)
+        "email_html": email_builder.daily_digest(
+            health, qs, scan_stats, roadmap, cb,
+            available_roadmap_tasks=available_roadmap_tasks,
+            queue_tasks=queue_tasks
+        )
     }
 
 

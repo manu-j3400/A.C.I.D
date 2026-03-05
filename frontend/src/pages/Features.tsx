@@ -6,7 +6,7 @@ export default function Features() {
     <div className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
             Advanced Security Features
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
@@ -18,7 +18,7 @@ export default function Features() {
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-blue-500/15 to-sky-500/15 rounded-lg w-fit group-hover:from-blue-500/25 group-hover:to-sky-500/25 transition-all">
+              <div className="mb-4 p-3 bg-blue-500/15 rounded-lg w-fit group-hover:bg-blue-500/25 transition-all">
                 <Dna className="w-10 h-10 text-blue-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
@@ -32,7 +32,7 @@ export default function Features() {
 
           <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-cyan-500/15 to-teal-500/15 rounded-lg w-fit group-hover:from-cyan-500/25 group-hover:to-teal-500/25 transition-all">
+              <div className="mb-4 p-3 bg-cyan-500/15 rounded-lg w-fit group-hover:bg-cyan-500/25 transition-all">
                 <ShieldCheck className="w-10 h-10 text-cyan-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
@@ -46,7 +46,7 @@ export default function Features() {
 
           <Card className="bg-slate-900/50 backdrop-blur-sm border-slate-800 hover:border-sky-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-sky-500/20 group">
             <CardHeader>
-              <div className="mb-4 p-3 bg-gradient-to-br from-sky-500/15 to-blue-500/15 rounded-lg w-fit group-hover:from-sky-500/25 group-hover:to-blue-500/25 transition-all">
+              <div className="mb-4 p-3 bg-sky-500/15 rounded-lg w-fit group-hover:bg-sky-500/25 transition-all">
                 <Zap className="w-10 h-10 text-sky-400" />
               </div>
               <CardTitle className="text-xl text-white font-semibold mb-2">
@@ -152,27 +152,27 @@ export default function Features() {
         </div>
 
         {/* Comparison Section */}
-        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-8">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-8">
           <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white">
             Why Choose Soteria?
           </h2>
           <div className="grid md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black text-blue-400 mb-2">
                 3x
               </div>
               <p className="text-slate-300 font-medium mb-1">Faster Detection</p>
               <p className="text-slate-500 text-sm">Than traditional antivirus</p>
             </div>
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black text-blue-400 mb-2">
                 50%
               </div>
               <p className="text-slate-300 font-medium mb-1">Lower False Positives</p>
               <p className="text-slate-500 text-sm">More accurate predictions</p>
             </div>
             <div>
-              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black text-blue-400 mb-2">
                 100%
               </div>
               <p className="text-slate-300 font-medium mb-1">Open Source</p>

@@ -13,6 +13,15 @@ import tree_sitter_c_sharp
 import tree_sitter_go
 import tree_sitter_ruby
 import tree_sitter_php
+
+# Optional parsers (may not be installed)
+try:
+    import tree_sitter_rust
+    _has_rust = True
+except ImportError:
+    _has_rust = False
+    print("Info: tree-sitter-rust not installed — Rust uses regex-only detection")
+
 from tree_sitter import Language, Parser
 from collections import Counter
 from typing import Dict, Optional
@@ -46,6 +55,15 @@ def _init_parsers():
             PARSERS[lang_name] = parser
         except Exception as e:
             print(f"Warning: Failed to initialize {lang_name} parser: {e}")
+    
+    # Rust (optional)
+    if _has_rust:
+        try:
+            rust_lang = Language(tree_sitter_rust.language())
+            LANGUAGES['rust'] = rust_lang
+            PARSERS['rust'] = Parser(rust_lang)
+        except Exception as e:
+            print(f"Warning: Failed to initialize rust parser: {e}")
     
     # TypeScript has separate tsx and typescript
     try:
@@ -91,9 +109,17 @@ def parse_code(code: str, language: str) -> Optional[object]:
         return None
 
 
+# ── Performance constants ──
+MAX_NODE_COUNT = 50_000   # Stop counting after this many nodes (enough for ML accuracy)
+MAX_PARSE_BYTES = 512_000  # 500 KB — truncate code beyond this before parsing
+
+
 def get_node_counts(code: str, language: str) -> Dict[str, int]:
     """
     Parse code and count occurrences of each AST node type.
+    
+    Uses iterative traversal with a node cap to bound execution time
+    on large files. Truncates input beyond MAX_PARSE_BYTES.
     
     Args:
         code: Source code string
@@ -102,6 +128,16 @@ def get_node_counts(code: str, language: str) -> Dict[str, int]:
     Returns:
         Dictionary mapping node type names to counts
     """
+    # Truncate oversized code to last complete line within the byte limit
+    if len(code.encode('utf-8', errors='replace')) > MAX_PARSE_BYTES:
+        truncated = code.encode('utf-8', errors='replace')[:MAX_PARSE_BYTES].decode('utf-8', errors='ignore')
+        # Cut at last newline to avoid partial lines
+        last_nl = truncated.rfind('\n')
+        if last_nl > 0:
+            code = truncated[:last_nl]
+        else:
+            code = truncated
+
     tree = parse_code(code, language)
     
     if tree is None:
@@ -109,12 +145,16 @@ def get_node_counts(code: str, language: str) -> Dict[str, int]:
     
     node_counts = Counter()
     
-    def walk_tree(node):
+    # Iterative stack-based traversal with node cap
+    stack = [tree.root_node]
+    visited = 0
+    while stack and visited < MAX_NODE_COUNT:
+        node = stack.pop()
         node_counts[node.type] += 1
-        for child in node.children:
-            walk_tree(child)
-    
-    walk_tree(tree.root_node)
+        visited += 1
+        # Add children in reverse order so leftmost is processed first
+        for i in range(node.child_count - 1, -1, -1):
+            stack.append(node.children[i])
     
     return dict(node_counts)
 
@@ -191,8 +231,14 @@ if __name__ == "__main__":
         'go': 'package main\n\nimport "fmt"\n\nfunc main() { fmt.Println("Hello") }',
     }
     
+    # Add Rust test if parser available
+    if 'rust' in PARSERS:
+        test_code['rust'] = 'fn main() {\n    println!("Hello, World!");\n}'
+    
     for lang, code in test_code.items():
         print(f"\n--- {lang.upper()} ---")
         counts = get_node_counts(code, lang)
         print(f"Total node types: {len(counts)}")
         print(f"Top 5: {dict(Counter(counts).most_common(5))}")
+    
+    print(f"\nSupported languages: {get_supported_languages()}")

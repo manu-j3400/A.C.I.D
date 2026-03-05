@@ -4,11 +4,12 @@
 @import "@fontsource/syne/800.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/700.css";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "IBM Plex Sans", "Inter", sans-serif;
   --font-display: "Syne", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
@@ -23,43 +24,46 @@
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
 
-  --radius-sm: 0px;
-  --radius: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
+  /* Design Token: Developer Tool palette */
+  --color-soteria-primary: #3B82F6;
+  --color-soteria-cta: #2563EB;
+  --color-soteria-bg: #0F172A;
+  --color-soteria-surface: #1E293B;
+  --color-soteria-border: #334155;
+  --color-soteria-text: #F1F5F9;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 }
 
 @layer base {
   :root {
-    /* Cyber Brutalist Light Theme (Optional, usually enforce dark) */
     --background: #FFFFFF;
     --foreground: #000000;
     --card: #F5F5F5;
     --card-foreground: #000000;
     --border: #000000;
-    --primary: #CCFF00;
-    /* Neon Chartreuse */
-    --primary-foreground: #000000;
-    --secondary: #00F0FF;
-    /* Electric Cyan */
-    --accent: #CCFF00;
+    --primary: #3B82F6;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1E293B;
+    --accent: #2563EB;
   }
 
   .dark {
-    /* Cyber Brutalist Dark Theme - STARK HIGH CONTRAST */
-    --background: #000000;
-    --foreground: #FFFFFF;
-    --card: #050505;
-    --card-foreground: #FFFFFF;
-    --border: #333333;
+    /* Developer Tool Dark Theme — WCAG AAA */
+    --background: #0F172A;
+    --foreground: #F1F5F9;
+    --card: #1E293B;
+    --card-foreground: #F1F5F9;
+    --border: #334155;
 
-    --primary: #CCFF00;
-    /* Neon Chartreuse */
-    --primary-foreground: #000000;
-    --secondary: #00F0FF;
-    /* Electric Cyan */
-    --accent: #00F0FF;
+    --primary: #3B82F6;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1E293B;
+    --accent: #2563EB;
   }
 
   * {
@@ -70,6 +74,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1,
@@ -78,8 +83,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-display);
-    text-transform: uppercase;
+    font-family: var(--font-mono);
     letter-spacing: -0.02em;
   }
 
@@ -87,6 +91,37 @@
   pre,
   .font-mono {
     font-family: var(--font-mono);
+  }
+
+  /* UX Hardening: visible focus ring for keyboard nav */
+  :focus-visible {
+    outline: 2px solid var(--color-soteria-primary);
+    outline-offset: 2px;
+  }
+
+  /* UX Hardening: cursor-pointer on interactive elements */
+  button,
+  [role="button"],
+  a,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"],
+  summary {
+    cursor: pointer;
+  }
+}
+
+/* UX Hardening: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

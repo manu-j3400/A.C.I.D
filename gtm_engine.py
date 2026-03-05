@@ -19,6 +19,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 from collections import Counter
 import email_builder
+import re
+from auto_improver import _load_queue as _load_task_queue
 
 ROOT = Path(__file__).resolve().parent
 GTM_DB_PATH = ROOT / "middleware" / "gtm.db"
@@ -693,6 +695,105 @@ def generate_actions(communities: list, competitors: list, trends: list) -> list
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PRODUCT TASK GENERATOR — converts GTM intel into product/feature suggestions
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Features that Soteria likely does NOT have yet.
+# If a competitor lists one of these as a key feature, it's a product gap.
+_PRODUCT_FEATURE_KEYWORDS = [
+    "container scanning", "iac", "infrastructure as code", "go support",
+    "go-based", "rust", "webhook notifications", "slack", "discord",
+    "sca", "supply chain", "dast", "dynamic analysis", "sbom",
+    "secret detection", "license compliance", "api security",
+    "dependency analysis", "code property graph",
+]
+
+# Trend title keywords that suggest a product opportunity.
+_TREND_KEYWORDS = [
+    "cve", "supply chain", "dependency", "malware", "container",
+    "sbom", "ai security", "llm", "typosquat", "backdoor",
+    "zero day", "ransomware",
+]
+
+
+def _is_duplicate(suggestion: str, existing_text: str) -> bool:
+    """Fuzzy check: does the suggestion's core terms already appear in existing content?"""
+    # Extract meaningful words (3+ chars) from the suggestion
+    words = [w.lower() for w in re.findall(r'[a-zA-Z]{3,}', suggestion)]
+    key_terms = [w for w in words if w not in (
+        "add", "support", "for", "the", "and",
+        "implement", "create", "based", "like"
+    )]
+    if not key_terms:
+        return False
+    existing_lower = existing_text.lower()
+    # If most key terms appear, consider it a dupe
+    matches = sum(1 for t in key_terms if t in existing_lower)
+    return matches >= max(1, len(key_terms) * 0.6)
+
+
+def generate_product_tasks(competitors: list, trends: list) -> list[dict]:
+    """
+    Analyze competitor features and trending topics to generate product/feature
+    task suggestions for Soteria. Returns 0-5 deduplicated tasks.
+    """
+    # Build existing-content text for dedup
+    roadmap_path = ROOT / "ROADMAP.md"
+    roadmap_text = roadmap_path.read_text(encoding="utf-8") if roadmap_path.exists() else ""
+    queue_tasks = _load_task_queue()
+    queue_text = " ".join(t.get("instruction", "") for t in queue_tasks)
+    existing_text = roadmap_text + " " + queue_text
+
+    suggestions: list[dict] = []
+    seen_suggestions: set[str] = set()
+
+    # ── From competitors: identify product gaps ──
+    for comp in competitors:
+        features_str = comp.get("key_features", "").lower()
+        for keyword in _PRODUCT_FEATURE_KEYWORDS:
+            if keyword in features_str:
+                suggestion = f"Add {keyword} capability"
+                if suggestion in seen_suggestions:
+                    continue
+                if _is_duplicate(suggestion, existing_text):
+                    continue
+                seen_suggestions.add(suggestion)
+                suggestions.append({
+                    "type": "product_gap",
+                    "source": "competitor",
+                    "competitor": comp.get("name", "unknown"),
+                    "suggestion": suggestion,
+                    "priority": "P2",
+                })
+                if len(suggestions) >= 5:
+                    return suggestions
+
+    # ── From trends: identify opportunities ──
+    for trend in trends:
+        title_lower = trend.get("title", "").lower()
+        for keyword in _TREND_KEYWORDS:
+            if keyword in title_lower:
+                suggestion = f"Add detection/support for {keyword}-related threats"
+                if suggestion in seen_suggestions:
+                    continue
+                if _is_duplicate(suggestion, existing_text):
+                    continue
+                seen_suggestions.add(suggestion)
+                suggestions.append({
+                    "type": "trend_opportunity",
+                    "source": trend.get("source", "unknown"),
+                    "trend_title": trend.get("title", "")[:120],
+                    "suggestion": suggestion,
+                    "priority": "P2",
+                })
+                if len(suggestions) >= 5:
+                    return suggestions
+                break  # one suggestion per trend
+
+    return suggestions
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MAIN INTELLIGENCE REPORT
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -702,6 +803,7 @@ def run_gtm_intel() -> dict:
     competitors = monitor_competitors()
     trends = scan_trends()
     actions = generate_actions(communities, competitors, trends)
+    product_suggestions = generate_product_tasks(competitors, trends)
 
     p0_actions = [a for a in actions if a.get("priority") == "P0"]
     actionable_trends = [t for t in trends if t.get("actionable")]
@@ -746,7 +848,8 @@ def run_gtm_intel() -> dict:
             f"GTM: {len(p0_actions)} urgent actions | "
             f"{len(actionable_trends)} hot trends | "
             f"{len(communities)} new communities | "
-            f"{len(competitors)} competitors tracked"
+            f"{len(competitors)} competitors tracked | "
+            f"{len(product_suggestions)} product suggestions"
         ),
         "community_summary": community_summary,
         "competitor_summary": competitor_summary,
@@ -756,9 +859,11 @@ def run_gtm_intel() -> dict:
         "competitors": competitors,
         "trends": trends[:15],
         "actions": actions,
+        "product_suggestions": product_suggestions,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "email_html": email_builder.gtm_report(
             communities, competitors, trends[:15], actions,
-            community_summary, competitor_summary, trending_summary, actions_summary
+            community_summary, competitor_summary, trending_summary, actions_summary,
+            product_suggestions=product_suggestions
         )
     }

@@ -107,7 +107,7 @@ export default function AdminDashboard() {
             <header className="border-b border-white/[0.06] bg-neutral-950/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center shadow-lg shadow-orange-600/20">
+                        <div className="w-9 h-9 rounded-lg bg-orange-600 flex items-center justify-center shadow-[2px_2px_0px_#7c2d12]">
                             <Shield className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -117,8 +117,7 @@ export default function AdminDashboard() {
                     </div>
                     <Button
                         onClick={handleLogout}
-                        variant="outline"
-                        className="border-white/[0.08] text-neutral-400 hover:text-white hover:border-orange-500/30 bg-transparent"
+                        className="border-2 border-slate-600 bg-slate-800 text-neutral-300 hover:bg-slate-700 hover:text-white shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                     >
                         <LogOut className="w-4 h-4 mr-2" />
                         Logout
@@ -246,10 +245,10 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="px-6 py-3">
                                                     <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${s.risk_level === 'CRITICAL' || s.risk_level === 'HIGH'
-                                                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                                            : s.risk_level === 'MEDIUM'
-                                                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                        : s.risk_level === 'MEDIUM'
+                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                                         }`}>
                                                         {s.risk_level}
                                                     </span>

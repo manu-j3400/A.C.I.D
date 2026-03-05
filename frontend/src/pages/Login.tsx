@@ -79,7 +79,7 @@ export default function Login() {
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 py-6 rounded-xl font-bold shadow-lg shadow-blue-600/20"
+                        className="w-full bg-blue-600 text-white hover:bg-blue-500 py-6 rounded-xl font-bold shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                     >
                         <LogIn className="w-4 h-4 mr-2" />
                         {loading ? 'Signing In...' : 'Sign In'}

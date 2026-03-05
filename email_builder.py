@@ -183,7 +183,8 @@ def healing_blocked(service, error_key, breaker_status) -> str:
 # DAILY DIGEST
 # ═══════════════════════════════════════════════════════════════════════════
 
-def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker) -> str:
+def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker,
+                 available_roadmap_tasks=None, queue_tasks=None) -> str:
     h = health
     q = queue
     s = scans_24h
@@ -200,6 +201,43 @@ def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker) ->
                     f'<td>{"BLOCKED" if v["blocked"] else "OK"}</td></tr>')
 
     roadmap_pct = round(r["done"] / r["total"] * 100) if r["total"] > 0 else 0
+
+    # ── Next Roadmap Tasks section ──
+    roadmap_task_items = available_roadmap_tasks or []
+    if roadmap_task_items:
+        priority_colors = {"P0": "#dc3545", "P1": "#e67e22", "P2": "#3498db", "P3": "#6c757d"}
+        roadmap_bullets = "".join(
+            f'<li><span class="priority-{t["priority"].lower()}" '
+            f'style="color:{priority_colors.get(t["priority"], "#6c757d")}">'
+            f'{t["priority"]}</span>: {t["description"]}</li>'
+            for t in roadmap_task_items
+        )
+        roadmap_tasks_html = f'<ul>{roadmap_bullets}</ul>'
+    else:
+        roadmap_tasks_html = '<p style="color:#6c757d">All roadmap tasks are completed or in progress.</p>'
+
+    # ── Active Queue section ──
+    active_queue = queue_tasks or []
+    if active_queue:
+        queue_rows = ""
+        for t in active_queue:
+            status_badge = _badge(t.get("status", "pending").upper(),
+                                  "yellow" if t.get("status") == "in_progress" else "blue")
+            queue_rows += (
+                f'<tr><td><code>{t["id"][:8]}</code></td>'
+                f'<td>{t.get("task_type", "unknown")}</td>'
+                f'<td>{status_badge}</td>'
+                f'<td>{t.get("instruction", "")[:80]}</td></tr>'
+            )
+        active_queue_html = (
+            f'<table><tr><th>ID</th><th>Type</th><th>Status</th><th>Instruction</th></tr>'
+            f'{queue_rows}</table>'
+        )
+    else:
+        active_queue_html = (
+            '<p style="color:#6c757d">No tasks in queue &mdash; '
+            'trigger proactive improvement to pull from roadmap.</p>'
+        )
 
     return (
         _header("Daily Security Digest")
@@ -222,6 +260,9 @@ def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker) ->
         + _stat_box("Skipped", q.get("skipped", 0))
         + f'</div>'
 
+        + f'<h2>Active Queue</h2>'
+        + active_queue_html
+
         + f'<h2>Scan Activity (Last 24 Hours)</h2>'
         + f'<table><tr><th>Metric</th><th>Value</th></tr>'
         + f'<tr><td>Total scans</td><td>{s.get("total_scans", 0)}</td></tr>'
@@ -240,6 +281,9 @@ def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker) ->
         + _stat_box("Completion", f'{roadmap_pct}%', "#27ae60" if roadmap_pct > 50 else "#e67e22")
         + f'</div>'
 
+        + f'<h2>Next Roadmap Tasks</h2>'
+        + roadmap_tasks_html
+
         + (f'<h2>Circuit Breaker</h2>'
            + f'<table><tr><th>Error Key</th><th>Triggers</th><th>Status</th></tr>{cb_rows}</table>'
            if cb_rows else '')
@@ -253,7 +297,8 @@ def daily_digest(health, queue, scans_24h, roadmap_progress, circuit_breaker) ->
 # ═══════════════════════════════════════════════════════════════════════════
 
 def gtm_report(communities, competitors, trends, actions,
-               community_summary, competitor_summary, trending_summary, actions_summary) -> str:
+               community_summary, competitor_summary, trending_summary, actions_summary,
+               product_suggestions=None) -> str:
 
     action_rows = ""
     for a in actions:
@@ -287,6 +332,27 @@ def gtm_report(communities, competitors, trends, actions,
             f'<td>{c.get("last_release", "")}</td></tr>'
         )
 
+    # ── Product Suggestions section ──
+    ps = product_suggestions or []
+    if ps:
+        ps_rows = ""
+        for s in ps:
+            type_badge = _badge(s["type"].replace("_", " ").upper(),
+                                "yellow" if s["type"] == "product_gap" else "blue")
+            source_info = s.get("competitor", s.get("source", ""))
+            ps_rows += (
+                f'<tr><td>{type_badge}</td>'
+                f'<td>{source_info}</td>'
+                f'<td>{s["suggestion"]}</td>'
+                f'<td class="priority-{s["priority"].lower()}">{s["priority"]}</td></tr>'
+            )
+        product_html = (
+            f'<table><tr><th>Type</th><th>Source</th><th>Suggestion</th><th>Priority</th></tr>'
+            f'{ps_rows}</table>'
+        )
+    else:
+        product_html = '<p style="color:#6c757d">No new product suggestions from this intel cycle.</p>'
+
     return (
         _header("GTM Intelligence Report")
 
@@ -302,6 +368,9 @@ def gtm_report(communities, competitors, trends, actions,
         + f'<p>{competitor_summary}</p>'
         + (f'<table><tr><th>Name</th><th>Stars</th><th>Pricing</th><th>Weaknesses</th><th>Last Active</th></tr>'
            + comp_rows + '</table>' if comp_rows else '')
+
+        + f'<h2>Product Suggestions from Intel ({len(ps)})</h2>'
+        + product_html
 
         + f'<h2>Communities ({len(communities)} new)</h2>'
         + f'<p>{community_summary}</p>'
@@ -378,12 +447,43 @@ def ml_health_report(metrics, grade=None, retrain=None) -> str:
         + f'</table>'
     )
 
+    holdout = m.get("last_holdout_eval")
+    if holdout and not retrain:
+        html += (
+            f'<h3>Last Holdout Evaluation</h3>'
+            + f'<p style="font-size:12px;color:#6c757d">From most recent retrain (n={holdout.get("total_samples", "?")})</p>'
+            + f'<div class="stat-grid">'
+            + _stat_box("Accuracy", f'{holdout["accuracy"]:.1%}')
+            + _stat_box("Precision", f'{holdout["precision_score"]:.1%}')
+            + _stat_box("Recall", f'{holdout["recall_score"]:.1%}')
+            + _stat_box("F1", f'{holdout["f1_score"]:.1%}')
+            + f'</div>'
+        )
+
     if retrain:
         html += (
             f'<h2>Retrain Result</h2>'
             + f'<p>{_badge(retrain["status"].upper(), "green" if "success" in retrain["status"] else "red")}</p>'
             + f'<p>{retrain.get("notification_summary", "")}</p>'
         )
+        ev = retrain.get("evaluation_metrics")
+        if ev:
+            html += (
+                f'<h3>Holdout Evaluation Metrics</h3>'
+                + f'<div class="stat-grid">'
+                + _stat_box("Accuracy", f'{ev["accuracy"]:.1%}')
+                + _stat_box("Precision", f'{ev["precision_score"]:.1%}')
+                + _stat_box("Recall", f'{ev["recall_score"]:.1%}')
+                + _stat_box("F1 Score", f'{ev["f1_score"]:.1%}')
+                + f'</div>'
+                + f'<table><tr><th>Metric</th><th>Value</th></tr>'
+                + f'<tr><td>True Positives</td><td>{ev["true_positives"]}</td></tr>'
+                + f'<tr><td>True Negatives</td><td>{ev["true_negatives"]}</td></tr>'
+                + f'<tr><td>False Positives</td><td>{ev["false_positives"]}</td></tr>'
+                + f'<tr><td>False Negatives</td><td>{ev["false_negatives"]}</td></tr>'
+                + f'<tr><td>Holdout samples</td><td>{ev["total_samples"]}</td></tr>'
+                + f'</table>'
+            )
 
     html += _footer()
     return html

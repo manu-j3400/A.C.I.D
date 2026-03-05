@@ -70,8 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="space-y-2">
             <p className="px-4 text-[10px] font-black text-neutral-700 uppercase tracking-widest mb-2">Resources</p>
             <NavItem to="/dashboard" icon={Home} label="Overview" />
-            <NavItem to="/features" icon={Zap} label="Features" />
-            <NavItem to="/changelog" icon={FileText} label="Changelog" />
+            <NavItem to="/changelog" icon={FileText} label="Lifecycle" />
             <NavItem to="/about" icon={Info} label="About" />
           </div>
 

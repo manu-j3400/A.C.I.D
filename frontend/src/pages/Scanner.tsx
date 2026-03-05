@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import CodeEditor from '@/components/CodeEditor';
@@ -9,26 +9,31 @@ import { Flame } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
 // --- TYPES ---
+interface VulnerabilityItem {
+  line: number;
+  pattern: string;
+  severity: string;
+  description: string;
+  cwe: string;
+  category: string;
+  fix_hint: string;
+  snippet: string;
+}
+
 interface AnalysisResult {
   status: 'waiting' | 'loading' | 'malicious' | 'clean' | 'error';
   message?: string;
   confidence?: number;
   riskLevel?: string;
   language?: string;
+  summary?: string;
   metadata?: {
     nodes_scanned?: number;
     engine?: string;
     supported_languages?: string[];
     process_time?: string;
   };
-  vulnerabilities?: {
-    line: number;
-    pattern: string;
-    severity: string;
-    description: string;
-    cwe: string;
-    snippet: string;
-  }[];
+  vulnerabilities?: VulnerabilityItem[];
 }
 
 interface HistoryItem {
@@ -89,6 +94,7 @@ export default function Scanner() {
   const [llmOutput, setLlmOutput] = useState('');
   const [activeTab, setActiveTab] = useState<ResultTab>('verdict');
   const [activeLine, setActiveLine] = useState<number | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const llmOutputRef = useRef('');
 
   const { xp, addXp } = useGame();
@@ -188,9 +194,18 @@ export default function Scanner() {
         confidence: data.confidence,
         riskLevel: data.risk_level,
         language: data.language,
+        summary: data.summary,
         metadata: data.metadata,
         vulnerabilities: data.vulnerabilities
       });
+      // Auto-expand all groups on new scan
+      if (data.vulnerabilities) {
+        const groups: Record<string, boolean> = {};
+        data.vulnerabilities.forEach((v: VulnerabilityItem) => {
+          groups[v.category || 'Security Issue'] = true;
+        });
+        setExpandedGroups(groups);
+      }
     } catch (error) {
       setResult({ status: 'error', message: 'Intelligence Link Offline. Check Backend @ Port 5001.' });
     }
@@ -287,7 +302,7 @@ export default function Scanner() {
   const hasResults = result.status === 'malicious' || result.status === 'clean';
 
   return (
-    <div className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-[#020617] text-slate-200 py-8 px-6 overflow-x-hidden">
+    <div className="min-h-screen bg-[#020617] text-slate-200 py-8 px-6 overflow-x-hidden">
       <div className="max-w-[1600px] mx-auto">
 
         {/* HEADER — clean, minimal */}
@@ -392,7 +407,7 @@ export default function Scanner() {
               size="lg"
               onClick={analyzeCode}
               disabled={!code.trim() || result.status === 'loading'}
-              className="w-full py-7 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.4)] transition-all text-sm font-bold tracking-wide"
+              className="w-full py-7 rounded-2xl bg-blue-600 hover:bg-blue-500 shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
             >
               {result.status === 'loading' ? (
                 <span className="flex items-center gap-2">
@@ -419,7 +434,7 @@ export default function Scanner() {
                     size="lg"
                     onClick={startDeepScan}
                     disabled={deepScanStatus === 'scanning'}
-                    className="w-full py-6 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 hover:shadow-[0_0_30px_-5px_rgba(234,88,12,0.4)] transition-all text-sm font-bold tracking-wide"
+                    className="w-full py-6 rounded-2xl bg-orange-600 hover:bg-orange-500 shadow-[4px_4px_0px_#7c2d12] hover:shadow-[2px_2px_0px_#7c2d12] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
                   >
                     {deepScanStatus === 'scanning' ? (
                       <span className="flex items-center gap-2">
@@ -529,7 +544,7 @@ export default function Scanner() {
                             )}
                           </div>
 
-                          <div className={`mx-auto mb-5 w-20 h-20 rounded-full flex items-center justify-center border-2 shadow-xl transition-colors duration-1000 ${result.status === 'malicious' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/10' : 'bg-green-500/5 border-green-500/20 shadow-green-500/10'}`}>
+                          <div className={`mx-auto mb-5 w-20 h-20 rounded-full flex items-center justify-center border-2 shadow-xl transition-colors duration-300 ${result.status === 'malicious' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/10' : 'bg-green-500/5 border-green-500/20 shadow-green-500/10'}`}>
                             {result.status === 'malicious' ? <ShieldX className="w-10 h-10 text-red-500" /> : <ShieldCheck className="w-10 h-10 text-green-500" />}
                           </div>
 
@@ -570,10 +585,9 @@ export default function Scanner() {
                           <div className="flex gap-2">
                             <Button
                               onClick={handleDownloadReport}
-                              variant="outline"
-                              className={`flex-1 py-5 border-slate-800 rounded-xl font-bold transition-all uppercase tracking-widest text-[9px] ${result.status === 'malicious'
-                                ? 'hover:bg-red-500 hover:text-white hover:border-red-500'
-                                : 'hover:bg-white hover:text-black'
+                              className={`flex-1 py-5 rounded-xl font-bold transition-all uppercase tracking-widest text-[9px] bg-slate-800 border-2 border-slate-600 shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] ${result.status === 'malicious'
+                                ? 'hover:bg-red-600 hover:border-red-500 text-white'
+                                : 'hover:bg-slate-700 text-white'
                                 }`}
                             >
                               <Download className="w-3 h-3 mr-1.5" /> Export
@@ -588,39 +602,109 @@ export default function Scanner() {
                             )}
                           </div>
 
-                          {/* VULNERABILITY HEATMAP */}
-                          {result.vulnerabilities && result.vulnerabilities.length > 0 && (
-                            <div className="w-full mt-4 text-left">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Flame className="w-3 h-3 text-orange-400" />
-                                <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                                  {result.vulnerabilities.length} Vulnerabilit{result.vulnerabilities.length === 1 ? 'y' : 'ies'} Found
-                                </span>
-                              </div>
-                              <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                                {result.vulnerabilities.map((v, i) => (
-                                  <div
-                                    key={i}
-                                    onClick={() => setActiveLine(v.line)}
-                                    className="flex items-start gap-2 p-2 rounded-lg bg-neutral-950 border border-white/[0.04] hover:border-white/[0.08] hover:bg-white/[0.02] transition-colors cursor-pointer group/vuln"
-                                  >
-                                    <span className={`flex-shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded tracking-wider ${v.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
-                                      v.severity === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
-                                        'bg-yellow-500/20 text-yellow-400'
-                                      }`}>{v.severity}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[9px] font-bold text-blue-400 group-hover/vuln:text-blue-300 transition-colors">Line {v.line}</span>
-                                        {v.cwe && <span className="text-[8px] text-neutral-600 font-mono">{v.cwe}</span>}
-                                      </div>
-                                      <p className="text-[10px] text-neutral-400 leading-snug">{v.description}</p>
-                                      <code className="text-[9px] text-neutral-600 font-mono truncate block">{v.snippet}</code>
-                                    </div>
-                                  </div>
-                                ))}
+                          {/* TL;DR SUMMARY BANNER */}
+                          {result.summary && result.vulnerabilities && result.vulnerabilities.length > 0 && (
+                            <div className="w-full mt-4 p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 text-left">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                <p className="text-[10px] text-amber-200/90 leading-relaxed font-medium">{result.summary}</p>
                               </div>
                             </div>
                           )}
+
+                          {/* GROUPED VULNERABILITY FINDINGS */}
+                          {result.vulnerabilities && result.vulnerabilities.length > 0 && (() => {
+                            // Group by category
+                            const groups: Record<string, VulnerabilityItem[]> = {};
+                            result.vulnerabilities.forEach(v => {
+                              const cat = v.category || 'Security Issue';
+                              if (!groups[cat]) groups[cat] = [];
+                              groups[cat].push(v);
+                            });
+
+                            // Sort groups: CRITICAL-heavy first
+                            const sevRank = (s: string) => s === 'CRITICAL' ? 4 : s === 'HIGH' ? 3 : s === 'MEDIUM' ? 2 : 1;
+                            const sortedGroups = Object.entries(groups).sort((a, b) => {
+                              const aMax = Math.max(...a[1].map(v => sevRank(v.severity)));
+                              const bMax = Math.max(...b[1].map(v => sevRank(v.severity)));
+                              return bMax - aMax;
+                            });
+
+                            return (
+                              <div className="w-full mt-3 text-left">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Flame className="w-3 h-3 text-orange-400" />
+                                  <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
+                                    {result.vulnerabilities.length} Issue{result.vulnerabilities.length === 1 ? '' : 's'} in {sortedGroups.length} Categor{sortedGroups.length === 1 ? 'y' : 'ies'}
+                                  </span>
+                                </div>
+                                <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                  {sortedGroups.map(([category, items]) => {
+                                    const isExpanded = expandedGroups[category] !== false;
+                                    const critCount = items.filter(v => v.severity === 'CRITICAL').length;
+                                    const highCount = items.filter(v => v.severity === 'HIGH').length;
+                                    const medCount = items.filter(v => v.severity === 'MEDIUM').length;
+                                    const lowCount = items.filter(v => v.severity === 'LOW').length;
+                                    const topSev = critCount ? 'CRITICAL' : highCount ? 'HIGH' : medCount ? 'MEDIUM' : 'LOW';
+
+                                    return (
+                                      <div key={category} className="rounded-lg border border-white/[0.06] bg-neutral-950/80 overflow-hidden">
+                                        {/* Category Header */}
+                                        <button
+                                          onClick={() => setExpandedGroups(prev => ({ ...prev, [category]: !isExpanded }))}
+                                          className="w-full flex items-center gap-2 p-2.5 hover:bg-white/[0.02] transition-colors"
+                                        >
+                                          <span className={`text-[7px] w-1.5 h-1.5 rounded-full flex-shrink-0 ${topSev === 'CRITICAL' ? 'bg-red-500' : topSev === 'HIGH' ? 'bg-orange-500' : topSev === 'MEDIUM' ? 'bg-yellow-500' : 'bg-neutral-500'}`} />
+                                          <span className="text-[10px] font-bold text-neutral-200 flex-1 text-left">{category}</span>
+                                          {/* Severity mini-badges */}
+                                          <div className="flex items-center gap-1">
+                                            {critCount > 0 && <span className="text-[7px] font-black px-1 py-0.5 rounded bg-red-500/20 text-red-400">{critCount}C</span>}
+                                            {highCount > 0 && <span className="text-[7px] font-black px-1 py-0.5 rounded bg-orange-500/20 text-orange-400">{highCount}H</span>}
+                                            {medCount > 0 && <span className="text-[7px] font-black px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-400">{medCount}M</span>}
+                                            {lowCount > 0 && <span className="text-[7px] font-black px-1 py-0.5 rounded bg-neutral-500/20 text-neutral-400">{lowCount}L</span>}
+                                          </div>
+                                          <span className="text-neutral-600 text-[10px]">{isExpanded ? '▾' : '▸'}</span>
+                                        </button>
+
+                                        {/* Expanded findings */}
+                                        {isExpanded && (
+                                          <div className="border-t border-white/[0.04] px-2 pb-2 pt-1 space-y-1">
+                                            {items.map((v, i) => (
+                                              <div
+                                                key={i}
+                                                onClick={() => setActiveLine(v.line)}
+                                                className="flex items-start gap-2 p-1.5 rounded-md hover:bg-white/[0.03] transition-colors cursor-pointer group/vuln"
+                                              >
+                                                <span className={`flex-shrink-0 text-[7px] font-black px-1 py-0.5 rounded tracking-wider ${v.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
+                                                  v.severity === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
+                                                    v.severity === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                      'bg-neutral-500/20 text-neutral-400'
+                                                  }`}>{v.severity}</span>
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-bold text-blue-400 group-hover/vuln:text-blue-300 transition-colors">Line {v.line}</span>
+                                                    {v.cwe && <span className="text-[7px] text-neutral-600 font-mono">{v.cwe}</span>}
+                                                  </div>
+                                                  <p className="text-[9px] text-neutral-400 leading-snug">{v.description}</p>
+                                                  <code className="text-[8px] text-neutral-600 font-mono truncate block">{v.snippet}</code>
+                                                  {v.fix_hint && (
+                                                    <p className="text-[8px] text-emerald-400/70 leading-snug mt-1 flex items-start gap-1">
+                                                      <span className="text-emerald-500 font-black text-[7px] mt-px">FIX →</span>
+                                                      <span>{v.fix_hint}</span>
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </motion.div>
                       )}
 
@@ -664,7 +748,7 @@ export default function Scanner() {
                     {deepScanStatus === 'done' && fixedCode && (
                       <Button
                         onClick={() => setActiveTab('fix')}
-                        className="mt-3 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px]"
+                        className="mt-3 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         <Code2 className="w-3.5 h-3.5 mr-2" />
                         View Fixed Code
@@ -691,7 +775,7 @@ export default function Scanner() {
                     <div className="flex gap-2 mt-3">
                       <Button
                         onClick={applyFix}
-                        className="flex-1 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px]"
+                        className="flex-1 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
                         Apply Fix
@@ -702,8 +786,7 @@ export default function Scanner() {
                           setIsCopied(true);
                           setTimeout(() => setIsCopied(false), 2000);
                         }}
-                        variant="outline"
-                        className="py-5 rounded-xl border-slate-700 font-bold text-xs"
+                        className="py-5 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-xs shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                       </Button>

@@ -21,7 +21,7 @@ import hmac
 import uuid
 import logging
 import json as json_stdlib
-from functools import wraps
+from functools import wraps, lru_cache
 
 BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
 
@@ -74,6 +74,130 @@ except ImportError as e:
     print(f"⚠️ Vulnerability database not loaded: {e}")
     SEVERITY_LOOKUP = {}
     CWE_LOOKUP = {}
+
+# CWE → human-readable category mapping for vulnerability grouping
+CWE_CATEGORY_MAP = {
+    'CWE-78': 'Command Injection', 'CWE-89': 'SQL Injection', 'CWE-94': 'Code Injection',
+    'CWE-79': 'Cross-Site Scripting (XSS)', 'CWE-22': 'Path Traversal',
+    'CWE-120': 'Buffer Overflow', 'CWE-122': 'Buffer Overflow',
+    'CWE-502': 'Insecure Deserialization', 'CWE-798': 'Hardcoded Secrets',
+    'CWE-327': 'Weak Cryptography', 'CWE-328': 'Weak Cryptography', 'CWE-330': 'Weak Cryptography',
+    'CWE-319': 'Insecure Network', 'CWE-295': 'Insecure Network',
+    'CWE-611': 'XML External Entity (XXE)', 'CWE-918': 'Server-Side Request Forgery',
+    'CWE-287': 'Authentication Issues', 'CWE-384': 'Session Fixation',
+    'CWE-614': 'Insecure Cookie', 'CWE-1004': 'Insecure Cookie', 'CWE-1275': 'Insecure Cookie',
+    'CWE-347': 'JWT Vulnerability',
+    'CWE-362': 'Race Condition', 'CWE-367': 'Race Condition',
+    'CWE-532': 'Information Disclosure', 'CWE-215': 'Information Disclosure', 'CWE-209': 'Information Disclosure', 'CWE-200': 'Information Disclosure',
+    'CWE-20': 'Input Validation', 'CWE-621': 'Variable Injection',
+    'CWE-829': 'Supply Chain Attack', 'CWE-506': 'Supply Chain Attack', 'CWE-1357': 'Supply Chain Attack',
+    'CWE-943': 'NoSQL Injection', 'CWE-90': 'LDAP Injection',
+    'CWE-1336': 'Template Injection (SSTI)',
+    'CWE-377': 'Insecure File Operations', 'CWE-732': 'Insecure File Operations',
+    'CWE-915': 'Mass Assignment', 'CWE-639': 'Mass Assignment',
+    'CWE-416': 'Memory Safety', 'CWE-476': 'Memory Safety', 'CWE-843': 'Memory Safety',
+    'CWE-676': 'Unsafe Function Usage', 'CWE-862': 'Missing Authorization',
+    'CWE-921': 'Data Exposure', 'CWE-926': 'Improper Export', 'CWE-311': 'Data Protection',
+}
+
+
+def _cwe_to_category(cwe_id):
+    """Map a CWE ID to a human-readable category name."""
+    return CWE_CATEGORY_MAP.get(cwe_id, 'Security Issue')
+
+
+def generate_tldr_summary(vulnerabilities):
+    """Generate a one-sentence executive summary from vulnerability findings."""
+    if not vulnerabilities:
+        return "No vulnerabilities detected. Code follows standard safety profiles."
+
+    total = len(vulnerabilities)
+    sev_counts = {}
+    categories = {}
+    for v in vulnerabilities:
+        sev = v.get('severity', 'MEDIUM')
+        sev_counts[sev] = sev_counts.get(sev, 0) + 1
+        cat = v.get('category', 'Security Issue')
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(v.get('line', '?'))
+
+    # Build summary
+    parts = []
+    if sev_counts.get('CRITICAL', 0):
+        parts.append(f"{sev_counts['CRITICAL']} critical")
+    if sev_counts.get('HIGH', 0):
+        parts.append(f"{sev_counts['HIGH']} high")
+    if sev_counts.get('MEDIUM', 0):
+        parts.append(f"{sev_counts['MEDIUM']} medium")
+
+    severity_text = ", ".join(parts) if parts else f"{total} low"
+
+    # Top 2 categories by count
+    sorted_cats = sorted(categories.items(), key=lambda x: len(x[1]), reverse=True)[:2]
+    cat_texts = []
+    for cat_name, lines in sorted_cats:
+        line_str = ", ".join(str(l) for l in lines[:3])
+        if len(lines) > 3:
+            line_str += f" (+{len(lines)-3} more)"
+        cat_texts.append(f"{cat_name} on line{'s' if len(lines) > 1 else ''} {line_str}")
+
+    return f"{total} issues found ({severity_text}): {'; '.join(cat_texts)}. Address critical findings first."
+
+
+# Deterministic fix recommendations per CWE (instant, no AI needed)
+CWE_FIX_HINTS = {
+    'CWE-78': 'Use subprocess with a list of args instead of shell=True. Never pass user input to os.system().',
+    'CWE-89': 'Use parameterized queries (e.g., cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))). Never use f-strings or concatenation in SQL.',
+    'CWE-94': 'Remove eval()/exec(). Use ast.literal_eval() for safe data parsing, or a proper parser for expressions.',
+    'CWE-79': 'Escape all user output with html.escape(). Use template auto-escaping (Jinja2 does this by default).',
+    'CWE-22': 'Use os.path.realpath() to resolve paths and verify they stay within allowed directories. Reject inputs containing "..".',
+    'CWE-120': 'Use bounded string functions (strncpy instead of strcpy, snprintf instead of sprintf). Check buffer sizes.',
+    'CWE-122': 'Validate allocation sizes. Use safe allocation wrappers. Check return values of malloc/calloc.',
+    'CWE-502': 'Never deserialize untrusted data with pickle/yaml.load. Use json.loads() or yaml.safe_load() instead.',
+    'CWE-798': 'Move secrets to environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault). Never commit credentials.',
+    'CWE-327': 'Replace weak algorithms: use AES-256-GCM instead of DES/RC4, SHA-256+ instead of MD5/SHA-1, bcrypt/argon2 for passwords.',
+    'CWE-328': 'Use SHA-256 or SHA-3 instead of MD5/SHA-1 for hashing. For passwords, use bcrypt or argon2id.',
+    'CWE-330': 'Use secrets.token_bytes() or os.urandom() instead of random.random() for security-sensitive randomness.',
+    'CWE-319': 'Enforce HTTPS everywhere. Use TLS 1.2+ for all network connections. Set HSTS headers.',
+    'CWE-295': 'Never disable SSL verification (verify=False). Use valid certificates and pin known CAs.',
+    'CWE-611': 'Disable external entity processing: set defusedxml or use etree with resolve_entities=False.',
+    'CWE-918': 'Validate and whitelist URLs before making server-side requests. Block internal/private IP ranges.',
+    'CWE-287': 'Use established auth libraries (e.g., Passport.js, Django auth). Implement rate limiting and MFA.',
+    'CWE-347': 'Always verify JWT signatures. Use RS256 instead of HS256 for public-facing APIs. Set short expiration times.',
+    'CWE-384': 'Regenerate session ID after login. Use secure, HttpOnly, SameSite cookie flags.',
+    'CWE-614': 'Set Secure, HttpOnly, and SameSite=Strict flags on all authentication cookies.',
+    'CWE-1004': 'Set HttpOnly flag on cookies to prevent JavaScript access.',
+    'CWE-1275': 'Set SameSite=Strict or SameSite=Lax on cookies to prevent CSRF.',
+    'CWE-362': 'Use locks, mutexes, or atomic operations to prevent race conditions. Use database transactions for shared data.',
+    'CWE-367': 'Use file locking or atomic operations. Check-then-act patterns are inherently racy.',
+    'CWE-532': 'Never log passwords, tokens, or PII. Use structured logging with sensitive field redaction.',
+    'CWE-215': 'Disable debug mode in production. Set DEBUG=False and remove stack traces from error responses.',
+    'CWE-209': 'Return generic error messages to users. Log detailed errors server-side only.',
+    'CWE-200': 'Avoid exposing internal paths, versions, or stack traces. Return minimal error information.',
+    'CWE-20': 'Validate and sanitize all user input. Use allowlists over denylists. Enforce type and length constraints.',
+    'CWE-829': 'Pin dependency versions. Use lockfiles. Verify package checksums. Audit new dependencies.',
+    'CWE-506': 'Review all dependencies for backdoors. Use npm audit / pip-audit. Check package provenance.',
+    'CWE-1357': 'Use integrity hashes (SRI) for CDN resources. Pin exact versions in package managers.',
+    'CWE-943': 'Sanitize NoSQL query inputs. Use MongoDB\'s $eq operator explicitly. Never pass raw user input to $where.',
+    'CWE-90': 'Escape special LDAP characters (*, (, ), \\, NUL). Use parameterized LDAP queries.',
+    'CWE-1336': 'Never pass user input to render_template_string(). Use render_template() with separate template files.',
+    'CWE-377': 'Use tempfile.mkstemp() or tempfile.NamedTemporaryFile() instead of mktemp(). Set restrictive permissions.',
+    'CWE-732': 'Use restrictive file permissions (0o600 for sensitive files). Never use chmod 777 or umask(0).',
+    'CWE-915': 'Whitelist allowed fields explicitly. Never pass raw request data to model constructors.',
+    'CWE-639': 'Verify object ownership before access. Use scoped queries (WHERE user_id = current_user.id).',
+    'CWE-416': 'Set pointers to NULL after free(). Use RAII in C++ or smart pointers. In Rust, avoid unsafe blocks.',
+    'CWE-476': 'Check for NULL/None before dereferencing. Use Option/Result types in Rust, Optional in Java.',
+    'CWE-843': 'Avoid type confusion with proper type checking. In C, avoid casting between incompatible pointer types.',
+    'CWE-676': 'Replace dangerous functions: gets→fgets, strcpy→strncpy, sprintf→snprintf.',
+    'CWE-621': 'Never use extract() or register_globals. Pass variables explicitly.',
+    'CWE-862': 'Add authorization checks before every sensitive operation. Use middleware/decorators for access control.',
+}
+
+
+def _cwe_to_fix_hint(cwe_id):
+    """Get a deterministic fix recommendation for a CWE."""
+    return CWE_FIX_HINTS.get(cwe_id, 'Review this code for security best practices. Consider using established security libraries.')
 
 
 app = Flask(__name__)
@@ -567,19 +691,52 @@ def load_model_if_updated():
         print(f"❌ Error loading model: {e}")
 
 
+# ── Performance: LRU cache for parsed results ──
+_PARSE_CACHE_SIZE = 128
+_parse_cache: dict = {}  # code_hash -> (df_aligned, language)
+_LARGE_FILE_THRESHOLD = 10_000  # lines
+_SAMPLE_HEAD = 5_000  # lines from start
+_SAMPLE_TAIL = 2_000  # lines from end
+
+
+def _sample_large_code(raw_code: str) -> str:
+    """For files >10k lines, keep the first 5k + last 2k lines."""
+    lines = raw_code.splitlines(True)  # keep newlines
+    if len(lines) <= _LARGE_FILE_THRESHOLD:
+        return raw_code
+    print(f"⚡ Large file ({len(lines)} lines) — sampling first {_SAMPLE_HEAD} + last {_SAMPLE_TAIL} lines")
+    sampled = lines[:_SAMPLE_HEAD] + ['\n# ... [sampled: middle omitted] ...\n'] + lines[-_SAMPLE_TAIL:]
+    return ''.join(sampled)
+
+
 # Processing Engine
 def structuralDNAExtraction(rawCode):
     """
     Extract structural features from code using AST analysis.
     Supports multiple languages via tree-sitter.
+
+    Optimizations for large files (>10k lines):
+    - LRU cache by code hash to avoid re-parsing identical code
+    - Line sampling: first 5k + last 2k lines for oversized files
+    - Bounded AST traversal (via tree-sitter node cap)
     """
+    t_start = time.perf_counter()
+
+    # ── Cache check ──
+    code_hash = hashlib.sha256(rawCode.encode('utf-8', errors='replace')).hexdigest()[:24]
+    if code_hash in _parse_cache:
+        return _parse_cache[code_hash]
+
+    # ── Large-file sampling ──
+    code_to_parse = _sample_large_code(rawCode)
+
     detected_language = 'python'
     confidence = 0.0
     
     # Try multi-language detection first
     if MULTI_LANG_ENABLED:
         try:
-            detected_language, confidence = detect_language(rawCode)
+            detected_language, confidence = detect_language(code_to_parse)
             print(f"🔍 Detected language: {detected_language} (confidence: {confidence:.2f})")
         except Exception as e:
             print(f"Language detection failed: {e}")
@@ -588,7 +745,7 @@ def structuralDNAExtraction(rawCode):
     # Use tree-sitter for all languages (more consistent)
     if MULTI_LANG_ENABLED:
         try:
-            counts = get_node_counts(rawCode, detected_language)
+            counts = get_node_counts(code_to_parse, detected_language)
             
             if not counts:
                 return "SYNTAX_ERROR"
@@ -608,8 +765,11 @@ def structuralDNAExtraction(rawCode):
             for col in df.columns:
                 if col not in df_aligned.columns:
                     df_aligned[col] = df[col]
-            
-            return df_aligned, detected_language
+
+            result = (df_aligned, detected_language)
+            _cache_result(code_hash, result)
+            _log_perf(t_start, len(rawCode), detected_language)
+            return result
             
         except Exception as e:
             print(f"Tree-sitter parsing failed for {detected_language}: {e}")
@@ -617,7 +777,8 @@ def structuralDNAExtraction(rawCode):
     
     # Fallback: Original Python-only AST parsing
     try:
-        tree = ast.parse(rawCode)
+        tree = ast.parse(code_to_parse)
+        normalizer.reset()  # bound memory on large files
         normalizedTree = normalizer.visit(tree)
 
         nodes = [type(node).__name__ for node in ast.walk(normalizedTree)]
@@ -630,7 +791,10 @@ def structuralDNAExtraction(rawCode):
         else:
             df_aligned = df
 
-        return df_aligned, 'python'
+        result = (df_aligned, 'python')
+        _cache_result(code_hash, result)
+        _log_perf(t_start, len(rawCode), 'python')
+        return result
     
     except SyntaxError:
         return "SYNTAX_ERROR", detected_language
@@ -638,6 +802,24 @@ def structuralDNAExtraction(rawCode):
     except Exception as e:
         print(f"Error processing code: {e}")
         return None, detected_language
+
+
+def _cache_result(code_hash: str, result):
+    """Store parse result in bounded cache."""
+    if len(_parse_cache) >= _PARSE_CACHE_SIZE:
+        # Evict oldest entry (FIFO)
+        oldest = next(iter(_parse_cache))
+        del _parse_cache[oldest]
+    _parse_cache[code_hash] = result
+
+
+def _log_perf(t_start: float, code_size: int, language: str):
+    """Warn when parsing is slow."""
+    elapsed = time.perf_counter() - t_start
+    if elapsed > 2.0:
+        print(f"⚠️ Slow parse: {elapsed:.2f}s for {code_size} chars ({language})")
+    elif elapsed > 0.5:
+        print(f"📊 Parse time: {elapsed:.2f}s for {code_size} chars ({language})")
     
 def strip_comments(code_str):
     """
@@ -775,7 +957,7 @@ def analyze(current_user):
         'metadata': {
             'nodes_scanned': len(featuresDf.columns),
             'engine': 'ACID v3.0 (Multi-Language)',
-            'supported_languages': ['python', 'java', 'javascript', 'typescript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'php'],
+            'supported_languages': ['python', 'java', 'javascript', 'typescript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'php', 'rust', 'kotlin', 'swift'],
             'process_time': 'Real-time'
         }
     }
@@ -794,11 +976,16 @@ def analyze(current_user):
                     'severity': severity,
                     'description': BUZZ_WORDS[pattern],
                     'cwe': cwe,
+                    'category': _cwe_to_category(cwe),
+                    'fix_hint': _cwe_to_fix_hint(cwe),
                     'snippet': line_text.strip()[:100]
                 })
     
     if vulnerabilities:
         result['vulnerabilities'] = vulnerabilities
+        result['summary'] = generate_tldr_summary(vulnerabilities)
+    else:
+        result['summary'] = "No vulnerabilities detected. Code follows standard safety profiles."
 
     # Auto-save to scan history if logged in
     user_id = current_user['user_id'] if current_user else None
