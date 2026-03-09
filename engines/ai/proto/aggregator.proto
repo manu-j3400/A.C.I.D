@@ -1,0 +1,153 @@
+// aggregator.proto — Byzantine-Resilient Federated Learning Aggregation Service
+//
+// Compile with:
+//   python -m grpc_tools.protoc \
+//       -I engines/ai/proto \
+//       --python_out=engines/ai/aggregator \
+//       --grpc_python_out=engines/ai/aggregator \
+//       engines/ai/proto/aggregator.proto
+
+syntax = "proto3";
+
+package soteria.aggregator.v1;
+
+option py_generic_services = false;
+
+// ---------------------------------------------------------------------------
+// Aggregation Service
+// ---------------------------------------------------------------------------
+
+service AggregationService {
+    // Submit a flat gradient vector for the current federated round.
+    // Blocks until the round completes (quorum reached + Multi-Krum run).
+    // Returns the aggregated gradient if this worker was accepted by Multi-Krum,
+    // or a response with accepted=false if the worker was identified as Byzantine.
+    rpc SubmitGradient(GradientRequest) returns (AggregationResponse);
+
+    // Stream gradient submission — same semantics as SubmitGradient but
+    // returns a stream so the server can push round status updates.
+    rpc SubmitGradientStream(GradientRequest) returns (stream RoundUpdate);
+
+    // Query metadata about the last completed aggregation round.
+    rpc GetRoundStats(RoundStatsRequest) returns (RoundStatsResponse);
+
+    // Health check (used by load balancers and worker readiness probes).
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+// GradientRequest — sent by each worker at the end of a local training step.
+message GradientRequest {
+    // Opaque string identifying this worker (e.g. UUID, hostname, IP:port).
+    string worker_id = 1;
+
+    // Flat float32 gradient vector. Workers must ensure all workers send
+    // the same dimension D in a given round.
+    //
+    // Encoding: IEEE 754 little-endian float32 packed into bytes.
+    // Use torch.Tensor.numpy().tobytes() or struct.pack on the worker side.
+    bytes gradient_bytes = 2;
+
+    // Number of float32 values in gradient_bytes (D).
+    // Server validates: len(gradient_bytes) == gradient_dim * 4
+    uint32 gradient_dim = 3;
+
+    // Optional: round number the worker believes it is submitting for.
+    // If the server's current round != this value the submission is rejected
+    // to prevent stale-gradient injection attacks.
+    uint32 claimed_round = 4;
+
+    // Optional: HMAC-SHA256 of gradient_bytes using a pre-shared worker key.
+    // When set, the server verifies authenticity before acceptance.
+    // Leave empty to skip integrity verification (development only).
+    bytes gradient_hmac = 5;
+}
+
+// AggregationResponse — returned to the worker after the round completes.
+message AggregationResponse {
+    // Whether this worker's gradient was accepted by Multi-Krum.
+    // false = identified as a Byzantine outlier; gradient was not used.
+    bool accepted = 1;
+
+    // The aggregated gradient (mean of Multi-Krum selected gradients).
+    // Only populated when accepted = true. Same encoding as gradient_bytes.
+    bytes aggregated_gradient_bytes = 2;
+
+    // Gradient dimension.
+    uint32 gradient_dim = 3;
+
+    // Round number that was just completed.
+    uint32 round_id = 4;
+
+    // Krum score for this worker (lower = more geometrically central).
+    // Useful for worker-side logging and introspection.
+    float krum_score = 5;
+
+    // Number of workers whose gradients were accepted in this round.
+    uint32 workers_accepted = 6;
+
+    // Number of workers identified as Byzantine in this round.
+    uint32 workers_rejected = 7;
+
+    // L2 norm of the aggregated gradient.
+    float aggregated_grad_norm = 8;
+}
+
+// RoundUpdate — streamed by SubmitGradientStream.
+message RoundUpdate {
+    enum Status {
+        UNKNOWN          = 0;
+        WAITING_FOR_QUORUM = 1;   // still buffering submissions
+        AGGREGATING      = 2;     // running Multi-Krum
+        COMPLETE         = 3;     // round done, response follows
+        ERROR            = 4;     // server-side error
+    }
+
+    Status status = 1;
+    uint32 round_id = 2;
+    uint32 submissions_received = 3;
+    uint32 quorum_required = 4;
+
+    // Only populated when status = COMPLETE.
+    AggregationResponse result = 5;
+
+    // Human-readable status message (for logging).
+    string message = 6;
+}
+
+// RoundStatsRequest — query metadata for a specific or most-recent round.
+message RoundStatsRequest {
+    // 0 = most recent completed round.
+    uint32 round_id = 1;
+}
+
+// RoundStatsResponse — round metadata for audit / observability.
+message RoundStatsResponse {
+    uint32 round_id           = 1;
+    uint32 workers_accepted   = 2;
+    uint32 workers_rejected   = 3;
+    repeated string accepted_worker_ids = 4;
+    repeated string rejected_worker_ids = 5;
+    float aggregated_grad_norm = 6;
+    float kl_divergence_from_baseline = 7;  // drift signal
+    uint64 duration_ms        = 8;
+    string completed_at_iso   = 9;
+}
+
+// HealthRequest / HealthResponse — standard gRPC health protocol.
+message HealthRequest {}
+message HealthResponse {
+    enum ServingStatus {
+        UNKNOWN     = 0;
+        SERVING     = 1;
+        NOT_SERVING = 2;
+    }
+    ServingStatus status = 1;
+    uint32 current_round = 2;
+    uint32 workers_configured = 3;
+    uint32 f_byzantine_tolerance = 4;
+    string device = 5;
+}

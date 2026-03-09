@@ -12,6 +12,7 @@ interface AuthContextType {
     token: string | null;
     login: (email: string, password: string) => Promise<void>;
     signup: (name: string, email: string, password: string) => Promise<void>;
+    signInWithGoogle: () => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     isLoading: boolean;
@@ -28,7 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                setToken(session.access_token);
+                const t = session.access_token;
+                setToken(t);
+                localStorage.setItem('soteria_token', t);
                 setUser({
                     id: session.user.id,
                     email: session.user.email || '',
@@ -41,7 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session) {
-                setToken(session.access_token);
+                const t = session.access_token;
+                setToken(t);
+                localStorage.setItem('soteria_token', t);
                 setUser({
                     id: session.user.id,
                     email: session.user.email || '',
@@ -50,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
                 setToken(null);
                 setUser(null);
+                localStorage.removeItem('soteria_token');
             }
             setIsLoading(false);
         });
@@ -68,6 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 name: data.session.user.user_metadata?.name || 'User'
             });
         }
+    };
+
+    const signInWithGoogle = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: `${window.location.origin}/dashboard` }
+        });
+        if (error) throw new Error(error.message);
     };
 
     const signup = async (name: string, email: string, password: string) => {
@@ -101,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             token,
             login,
             signup,
+            signInWithGoogle,
             logout,
             isAuthenticated: !!user,
             isLoading

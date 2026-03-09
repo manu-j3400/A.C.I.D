@@ -1,0 +1,16 @@
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name            = "kyber"
+version         = "0.1.0"
+description     = "Multi-modal deep program analysis: TDA manifolds, Siamese GCN IR verification, SNN temporal profiling"
+requires-python = ">=3.11"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tda", "siamese", "snn"]
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"

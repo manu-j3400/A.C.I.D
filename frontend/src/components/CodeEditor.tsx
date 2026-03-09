@@ -74,6 +74,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         setCode(value || '');
     };
 
+    const ALLOWED_CODE_EXTENSIONS = new Set([
+        '.py', '.java', '.js', '.ts', '.jsx', '.tsx',
+        '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp',
+        '.go', '.rb', '.rs', '.php', '.kt', '.swift',
+        '.cs', '.sh', '.bash', '.r', '.m', '.scala',
+        '.sql', '.lua', '.pl', '.ex', '.exs', '.zig',
+        '.txt',  // plain text / pasted code
+    ]);
+
     const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
@@ -81,14 +90,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
             const file = files[0];
-            const reader = new FileReader();
+            const dotIndex = file.name.lastIndexOf('.');
+            const ext = dotIndex >= 0 ? file.name.slice(dotIndex).toLowerCase() : '';
 
+            if (!ALLOWED_CODE_EXTENSIONS.has(ext)) {
+                setCode(
+                    `// ⚠️ Unsupported file type: "${file.name}"\n` +
+                    `// Only source code files are accepted.\n` +
+                    `// Supported: .py .js .ts .java .go .rs .c .cpp .cs .rb .php .kt .swift …\n` +
+                    `// Please paste your code directly or drop a code file.`
+                );
+                return;
+            }
+
+            const reader = new FileReader();
             reader.onload = (event) => {
                 if (event.target?.result) {
                     setCode(event.target.result as string);
                 }
             };
-
             reader.readAsText(file);
         }
     }, [setCode]);

@@ -12,7 +12,7 @@ import pandas as pd
 from flask import send_file
 from io import BytesIO
 from fpdf import FPDF, XPos, YPos
-from datetime import datetime
+from datetime import datetime, timezone
 import subprocess
 import threading
 import re
@@ -74,6 +74,75 @@ except ImportError as e:
     print(f"⚠️ Vulnerability database not loaded: {e}")
     SEVERITY_LOOKUP = {}
     CWE_LOOKUP = {}
+
+# Entropy profiler (Phase 2) — torch-free; fails silently if unavailable
+try:
+    from entropy_profiler import get_anomalous_annotations as _get_entropy_flags
+    ENTROPY_ENABLED = True
+    print("✅ Entropy profiler loaded successfully!")
+except ImportError as e:
+    ENTROPY_ENABLED = False
+    _get_entropy_flags = None  # type: ignore[assignment]
+    print(f"⚠️ Entropy profiler not available: {e}")
+
+# Engine 3: SNN Micro-Temporal Profiler (Kyber) — lazy-loaded on first Python scan
+# Deferred to avoid heavy torch/snntorch import during worker boot (Render timeout)
+SNN_ENABLED = False
+_snn_profiler = None
+_snn_init_attempted = False
+
+def _init_snn_once():
+    """Lazy-load SNN profiler on first call. Safe to call repeatedly."""
+    global SNN_ENABLED, _snn_profiler, _snn_init_attempted
+    if _snn_init_attempted:
+        return
+    _snn_init_attempted = True
+    try:
+        _kyber_path = str(ROOT / 'engines' / 'kyber')
+        if _kyber_path not in sys.path:
+            sys.path.insert(0, _kyber_path)
+        from snn.profiler import BaselineProfiler as _SNNProfiler
+        _SNN_CKPT = ROOT / 'engines' / 'kyber' / 'snn' / 'snn_baseline.pt'
+        if _SNN_CKPT.exists():
+            _snn_profiler = _SNNProfiler.load(str(_SNN_CKPT))
+            SNN_ENABLED = True
+            print(f"✅ SNN temporal profiler loaded from {_SNN_CKPT}")
+        else:
+            print("⚠️ SNN profiler: no checkpoint found — run engines/kyber/snn/bootstrap.py to train")
+    except Exception as _snn_e:
+        print(f"⚠️ SNN temporal profiler not available: {_snn_e}")
+
+# GCN model (Phase 3b) — loaded once at startup via lazy singleton
+_gcn_model = None
+_gcn_f1    = 0.0   # test F1 from training checkpoint; blend only if >= 0.70
+_GCN_ENABLED = False
+
+def _load_gcn_model_once():
+    """Lazy singleton: load MalwareGCN on first call, cache thereafter."""
+    global _gcn_model, _gcn_f1, _GCN_ENABLED
+    if _gcn_model is not None:
+        return  # already loaded
+    try:
+        from trainerModel_GCN import load_gcn_model
+        import torch
+        from pathlib import Path as _Path
+        _ckpt_path = ROOT / 'backend' / 'ML_master' / 'acidModel_gcn.pt'
+        if _ckpt_path.exists():
+            # Read test_f1 from checkpoint before loading model
+            ckpt = torch.load(_ckpt_path, map_location='cpu', weights_only=True)
+            _gcn_f1 = ckpt.get('test_metrics', {}).get('f1', 0.0)
+            _gcn_model = load_gcn_model(str(_ckpt_path))
+            _GCN_ENABLED = True
+            print(f"✅ GCN model loaded (test F1={_gcn_f1:.3f}); blending {'ON' if _gcn_f1 >= 0.70 else 'OFF (F1 < 0.70)'}.")
+        else:
+            print("⚠️ GCN model checkpoint not found; GCN inference disabled.")
+    except ImportError as e:
+        print(f"⚠️ GCN inference disabled (PyTorch not available): {e}")
+    except Exception as e:
+        print(f"⚠️ GCN model load failed: {e}")
+
+# Attempt GCN load at startup (graceful — no crash if torch absent)
+_load_gcn_model_once()
 
 # CWE → human-readable category mapping for vulnerability grouping
 CWE_CATEGORY_MAP = {
@@ -201,6 +270,40 @@ def _cwe_to_fix_hint(cwe_id):
 
 
 app = Flask(__name__)
+
+try:
+    from flasgger import Swagger
+    swagger_config = {
+        'headers': [],
+        'specs': [{'endpoint': 'apispec', 'route': '/apispec.json', 'rule_filter': lambda rule: True, 'model_filter': lambda tag: True}],
+        'static_url_path': '/flasgger_static',
+        'swagger_ui': True,
+        'specs_route': '/apidocs',
+    }
+    swagger_template = {
+        'swagger': '2.0',
+        'info': {
+            'title': 'Soteria API',
+            'description': 'AI-powered supply chain security scanning engine',
+            'version': '3.0.0',
+            'contact': {'email': 'admin@acid.dev'},
+        },
+        'securityDefinitions': {
+            'Bearer': {
+                'type': 'apiKey',
+                'name': 'Authorization',
+                'in': 'header',
+                'description': 'JWT token: Bearer <token>',
+            }
+        },
+        'consumes': ['application/json'],
+        'produces': ['application/json'],
+    }
+    Swagger(app, config=swagger_config, template=swagger_template)
+    print("✅ Swagger UI available at /apidocs")
+except ImportError:
+    print("⚠️  flasgger not installed — /apidocs unavailable (pip install flasgger)")
+
 # Secure CORS configuration
 allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,https://www.trysoteria.live,https://trysoteria.live,https://codebasesentinel.vercel.app,https://codebasesentinel-n2ikfeqq5-manu-j3400s-projects.vercel.app')
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
@@ -213,7 +316,7 @@ class StructuredFormatter(logging.Formatter):
     """JSON-line log format for easy parsing by log aggregators."""
     def format(self, record):
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             "logger": record.name,
@@ -285,6 +388,7 @@ def add_security_headers(response):
 RATE_LIMITS = {}
 RATE_LIMIT_LOCK = threading.Lock()
 
+
 # --- AUTOMATION WEBHOOK STATE ---
 AUTOMATION_RUNS = {}
 AUTOMATION_LOCK = threading.Lock()
@@ -292,27 +396,33 @@ AUTOMATION_TTL_SECONDS = 60 * 60 * 24  # 24h idempotency window
 
 def rate_limit(max_requests=20, window_seconds=60):
     """
-    Simple in-memory sliding window rate limiter per IP address.
-    Protects against API spam and credit burn.
+    Sliding window rate limiter. Uses JWT user_id for authenticated requests,
+    falls back to IP address for anonymous requests.
     """
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-            if ip:
-                ip = ip.split(',')[0].strip()
-            else:
-                ip = 'unknown'
-            
+            # Prefer user_id from JWT; fall back to IP
+            key = None
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                try:
+                    payload = pyjwt.decode(
+                        auth_header.split(' ', 1)[1], JWT_SECRET, algorithms=['HS256']
+                    )
+                    key = f"user:{payload.get('user_id')}"
+                except Exception:
+                    pass
+            if not key:
+                ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+                key = f"ip:{ip.split(',')[0].strip() if ip else 'unknown'}"
+
             now = time.time()
             with RATE_LIMIT_LOCK:
-                if ip not in RATE_LIMITS:
-                    RATE_LIMITS[ip] = []
-                
-                # Remove timestamps older than window_seconds
-                RATE_LIMITS[ip] = [t for t in RATE_LIMITS[ip] if now - t < window_seconds]
-                
-                if len(RATE_LIMITS[ip]) >= max_requests:
+                if key not in RATE_LIMITS:
+                    RATE_LIMITS[key] = []
+                RATE_LIMITS[key] = [t for t in RATE_LIMITS[key] if now - t < window_seconds]
+                if len(RATE_LIMITS[key]) >= max_requests:
                     return jsonify({
                         'error': 'Rate limit exceeded. Please wait a minute before scanning again.',
                         'malicious': False,
@@ -320,9 +430,7 @@ def rate_limit(max_requests=20, window_seconds=60):
                         'risk_level': 'UNKNOWN',
                         'vulnerabilities': []
                     }), 429
-                
-                RATE_LIMITS[ip].append(now)
-                
+                RATE_LIMITS[key].append(now)
             return f(*args, **kwargs)
         return wrapped
     return decorator
@@ -453,8 +561,13 @@ def init_users_db():
         is_admin INTEGER DEFAULT 0,
         created_at TEXT NOT NULL
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_settings (
+        user_id INTEGER PRIMARY KEY,
+        webhook_url TEXT,
+        updated_at TEXT
+    )''')
     conn.commit()
-    
+
     # Seed default admin if none exists
     c.execute('SELECT id FROM users WHERE is_admin = 1')
     if not c.fetchone():
@@ -524,6 +637,26 @@ def token_required(optional=False):
 @app.route('/api/auth/signup', methods=['POST'])
 @rate_limit(max_requests=5, window_seconds=300)  # 5 signups per 5 minutes per IP
 def auth_signup():
+    """
+    Register a new user account.
+    ---
+    tags: [Auth]
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [name, email, password]
+          properties:
+            name: {type: string}
+            email: {type: string, format: email}
+            password: {type: string, minLength: 6}
+    responses:
+      201: {description: User created, schema: {type: object, properties: {token: {type: string}, user: {type: object}}}}
+      400: {description: Validation error}
+      409: {description: Email already registered}
+    """
     data = request.get_json()
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
@@ -560,6 +693,24 @@ def auth_signup():
 @app.route('/api/auth/login', methods=['POST'])
 @rate_limit(max_requests=10, window_seconds=300) # 10 login attempts per 5 minutes
 def auth_login():
+    """
+    Authenticate and receive a JWT token.
+    ---
+    tags: [Auth]
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [email, password]
+          properties:
+            email: {type: string, format: email}
+            password: {type: string}
+    responses:
+      200: {description: Login successful, schema: {type: object, properties: {token: {type: string}, user: {type: object}}}}
+      401: {description: Invalid credentials}
+    """
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -574,10 +725,7 @@ def auth_login():
     user = c.fetchone()
     conn.close()
 
-    if not user:
-        return jsonify({'error': 'Invalid email or password'}), 401
-
-    if not bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+    if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
         return jsonify({'error': 'Invalid email or password'}), 401
 
     token = generate_token(user['id'], user['email'], bool(user['is_admin']))
@@ -657,6 +805,37 @@ def auth_admin_login():
         }
     })
 
+@app.route('/api/admin/users', methods=['GET'])
+@token_required(optional=False)
+def admin_users(current_user):
+    """
+    List all registered users. Admin-only.
+    ---
+    tags: [Admin]
+    security: [{Bearer: []}]
+    responses:
+      200:
+        description: User list
+        schema:
+          type: object
+          properties:
+            users: {type: array, items: {type: object}}
+      403: {description: Admin access required}
+    """
+    if not current_user.get('is_admin'):
+        return jsonify({'error': 'Admin access required'}), 403
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT id, name, email, is_admin, created_at FROM users ORDER BY created_at DESC')
+        users = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return jsonify({'users': users})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 def save_scan_result(user_id=None, language=None, risk_level=None, confidence=None,
                      malicious=None, code="", nodes_scanned=0, reason=""):
     """Save a scan result to the history database (thread-safe)."""
@@ -710,7 +889,7 @@ def _sample_large_code(raw_code: str) -> str:
 
 
 # Processing Engine
-def structuralDNAExtraction(rawCode):
+def structuralDNAExtraction(rawCode, filename=None):
     """
     Extract structural features from code using AST analysis.
     Supports multiple languages via tree-sitter.
@@ -736,7 +915,7 @@ def structuralDNAExtraction(rawCode):
     # Try multi-language detection first
     if MULTI_LANG_ENABLED:
         try:
-            detected_language, confidence = detect_language(code_to_parse)
+            detected_language, confidence = detect_language(code_to_parse, filename=filename)
             print(f"🔍 Detected language: {detected_language} (confidence: {confidence:.2f})")
         except Exception as e:
             print(f"Language detection failed: {e}")
@@ -813,6 +992,35 @@ def _cache_result(code_hash: str, result):
     _parse_cache[code_hash] = result
 
 
+# ── 24-hour scan result cache (keyed by full SHA-256 code hash) ──
+_RESULT_CACHE_TTL = 24 * 60 * 60
+_result_cache: dict = {}        # code_hash -> (result_dict, timestamp)
+_result_cache_lock = threading.Lock()
+
+# ── GCN probability drift buffer ──
+import collections as _collections
+_GCN_PROB_BUFFER: _collections.deque = _collections.deque(maxlen=500)
+_GCN_DRIFT_BASELINE: list = []   # first 100 samples become the reference
+_GCN_DRIFT_LOCK = threading.Lock()
+
+
+def _kl_divergence(p: list, q: list, bins: int = 20) -> float:
+    """KL divergence D(P||Q) via histogram estimates over [0, 1]."""
+    try:
+        if len(p) < 2 or len(q) < 2:
+            return -1.0
+        import numpy as np
+        edges = np.linspace(0, 1, bins + 1)
+        ph, _ = np.histogram(p, bins=edges, density=True)
+        qh, _ = np.histogram(q, bins=edges, density=True)
+        eps = 1e-10
+        ph = (ph + eps) / (ph + eps).sum()
+        qh = (qh + eps) / (qh + eps).sum()
+        return float(np.sum(ph * np.log(ph / qh)))
+    except Exception:
+        return -1.0
+
+
 def _log_perf(t_start: float, code_size: int, language: str):
     """Warn when parsing is slow."""
     elapsed = time.perf_counter() - t_start
@@ -841,8 +1049,37 @@ def strip_comments(code_str):
 @rate_limit(max_requests=20, window_seconds=60)
 @token_required(optional=True)
 def analyze(current_user):
+    """
+    Scan a code snippet for malicious patterns.
+    ---
+    tags: [Scanning]
+    security: [{Bearer: []}]
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [code]
+          properties:
+            code: {type: string, description: Source code to scan (max 50 000 chars)}
+    responses:
+      200:
+        description: Scan result
+        schema:
+          type: object
+          properties:
+            malicious: {type: boolean}
+            risk_level: {type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL]}
+            confidence: {type: number}
+            reason: {type: string}
+            language: {type: string}
+            vulnerabilities: {type: array, items: {type: object}}
+      429: {description: Rate limit exceeded}
+    """
     data = request.get_json()
     codeInput = data.get('code', '')
+    filename = data.get('filename', None)  # e.g. "main.go", "package.json"
 
     if not isinstance(codeInput, str):
         codeInput = str(codeInput)
@@ -855,7 +1092,16 @@ def analyze(current_user):
 
     if not codeInput:
         return jsonify({'status': 'error', 'message': 'No code provided'}), 400
-    
+
+    # ── 24h result cache check ──
+    _cache_key = hashlib.sha256(codeInput.encode('utf-8', errors='replace')).hexdigest()
+    with _result_cache_lock:
+        _cached = _result_cache.get(_cache_key)
+        if _cached:
+            _cached_result, _cached_at = _cached
+            if time.time() - _cached_at < _RESULT_CACHE_TTL:
+                return jsonify(_cached_result)
+
     # Strip comments to prevent AI explanations from triggering false positives
     clean_code = strip_comments(codeInput)
 
@@ -863,7 +1109,7 @@ def analyze(current_user):
     triggerKeywords = [k for k in BUZZ_WORDS if k in clean_code]
 
     # 2. TRANSFORM CODE INTO NUMBERS (Original code is passed to AST parser)
-    result = structuralDNAExtraction(codeInput)
+    result = structuralDNAExtraction(codeInput, filename=filename)
     
     # Handle tuple return (dataframe, language)
     if isinstance(result, tuple):
@@ -886,14 +1132,32 @@ def analyze(current_user):
     
     load_model_if_updated()
 
-    # 4. INITIALIZE DEFAULTS 
+    # 1.5. ENTROPY PRE-SCAN (Phase 2) — torch-free; runs before ML models
+    entropy_flags = []
+    if ENTROPY_ENABLED and _get_entropy_flags is not None:
+        try:
+            entropy_flags = _get_entropy_flags(codeInput)
+        except Exception as _e:
+            print(f"Entropy profiler error: {_e}")
+
+    # 1.6. SNN TEMPORAL ANOMALY PROFILING (Kyber Engine 3) — Python only
+    if detected_language == 'python':
+        _init_snn_once()  # lazy-load torch/snntorch on first Python scan
+    snn_result = None
+    if SNN_ENABLED and _snn_profiler is not None and detected_language == 'python':
+        try:
+            snn_result = _snn_profiler.profile(codeInput)
+        except Exception as _e:
+            print(f"SNN profiler error: {_e}")
+
+    # 4. INITIALIZE DEFAULTS
     maliciousProb = 0.1
     confidence = 50.0
 
     # Determine highest keyword severity FIRST before AI prediction
     highest_keyword_severity = "LOW"
     critical_or_high_keyword = None
-    
+
     if triggerKeywords:
         severity_ranks = {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
         for kw in triggerKeywords:
@@ -905,7 +1169,15 @@ def analyze(current_user):
 
     # If we found a critical keyword, bump base probability before ML
     if critical_or_high_keyword:
-        maliciousProb = 0.85 
+        maliciousProb = 0.85
+
+    # Entropy floor: high-entropy literals indicate packed/obfuscated payloads
+    if entropy_flags:
+        maliciousProb = max(maliciousProb, 0.75)
+
+    # SNN floor: anomalous execution rhythm (decryption loops, network probing)
+    if snn_result is not None and snn_result.is_anomalous:
+        maliciousProb = max(maliciousProb, 0.65)
 
     # 5. AI VERDICT
     try:
@@ -918,6 +1190,27 @@ def analyze(current_user):
     except Exception as e:
         # Model may not support new language features - use keyword detection only
         print(f"Model prediction failed: {e}")
+
+    # 5.5. GCN INFERENCE (Phase 3b) — blend if model exists and F1 >= 0.70
+    gcn_probability = None
+    gcn_enabled     = _GCN_ENABLED
+    if _GCN_ENABLED and _gcn_model is not None and detected_language == 'python':
+        try:
+            from cfg_extractor import extract_function_graph  # type: ignore[import]
+            gcn_data = extract_function_graph(codeInput, normalize=True)
+            if gcn_data is not None:
+                from trainerModel_GCN import predict_gcn  # type: ignore[import]
+                _, gcn_prob = predict_gcn(_gcn_model, gcn_data)
+                gcn_probability = round(gcn_prob, 4)
+                if _gcn_f1 >= 0.70:
+                    maliciousProb = 0.6 * maliciousProb + 0.4 * gcn_prob
+                # Update drift buffer
+                with _GCN_DRIFT_LOCK:
+                    _GCN_PROB_BUFFER.append(gcn_probability)
+                    if len(_GCN_DRIFT_BASELINE) < 100:
+                        _GCN_DRIFT_BASELINE.append(gcn_probability)
+        except Exception as _gcn_err:
+            print(f"GCN inference error (non-fatal): {_gcn_err}")
 
     # 6. RISK HIERARCHY LOGIC
     code_line_count = len([l for l in codeInput.splitlines() if l.strip()])
@@ -955,12 +1248,25 @@ def analyze(current_user):
         'reason': message,
         'language': detected_language,
         'metadata': {
-            'nodes_scanned': len(featuresDf.columns),
-            'engine': 'ACID v3.0 (Multi-Language)',
+            'nodes_scanned':    len(featuresDf.columns),
+            'engine':           'ACID v3.0 (Multi-Language)',
             'supported_languages': ['python', 'java', 'javascript', 'typescript', 'c', 'cpp', 'c_sharp', 'go', 'ruby', 'php', 'rust', 'kotlin', 'swift'],
-            'process_time': 'Real-time'
+            'process_time':     'Real-time',
+            'gcn_probability':  gcn_probability,
+            'gcn_enabled':      gcn_enabled,
         }
     }
+
+    # SNN temporal metadata
+    if snn_result is not None:
+        result['metadata']['snn_temporal'] = {
+            'anomaly_prob':   round(snn_result.anomaly_prob, 4),
+            'is_anomalous':   snn_result.is_anomalous,
+            'isi_cv':         round(snn_result.isi_cv, 3),
+            'firing_rate_hz': round(snn_result.firing_rate_hz, 1),
+            'n_events':       snn_result.n_events,
+            'inference_ms':   round(snn_result.inference_ms, 1),
+        }
 
     # LINE-LEVEL VULNERABILITY DETECTION
     vulnerabilities = []
@@ -980,7 +1286,41 @@ def analyze(current_user):
                     'fix_hint': _cwe_to_fix_hint(cwe),
                     'snippet': line_text.strip()[:100]
                 })
-    
+
+    # SNN temporal anomaly (Kyber Engine 3) — CWE-506: Embedded Malicious Code
+    if snn_result is not None and snn_result.is_anomalous:
+        vulnerabilities.append({
+            'line':     0,
+            'pattern':  'SNN_TEMPORAL_ANOMALY',
+            'severity': 'HIGH',
+            'description': (
+                f'Anomalous execution rhythm detected '
+                f'(ISI-CV={snn_result.isi_cv:.2f}, '
+                f'rate={snn_result.firing_rate_hz:.0f} Hz). '
+                'Pattern consistent with decryption loops, unpacking, or network probing.'
+            ),
+            'cwe':      'CWE-506',
+            'category': 'Temporal Execution Anomaly',
+            'fix_hint': 'Review timed/deferred execution, eval, exec, and subprocess calls.',
+            'snippet':  '',
+        })
+
+    # Entropy anomaly flags (Phase 2) — CWE-506: Embedded Malicious Code
+    for eflag in entropy_flags:
+        vulnerabilities.append({
+            'line':        eflag.line_no,
+            'pattern':     f'high_entropy_{eflag.node_type.lower()}',
+            'severity':    'HIGH',
+            'description': (
+                f'High-entropy literal detected ({eflag.entropy:.2f} bits/byte) — '
+                'possible packed, base64-encoded, or encrypted payload.'
+            ),
+            'cwe':      'CWE-506',
+            'category': 'Supply Chain Attack',
+            'fix_hint': CWE_FIX_HINTS.get('CWE-506', ''),
+            'snippet':  eflag.literal_preview[:100],
+        })
+
     if vulnerabilities:
         result['vulnerabilities'] = vulnerabilities
         result['summary'] = generate_tldr_summary(vulnerabilities)
@@ -989,7 +1329,7 @@ def analyze(current_user):
 
     # Auto-save to scan history if logged in
     user_id = current_user['user_id'] if current_user else None
-    
+
     save_scan_result(
         user_id=user_id,
         language=detected_language,
@@ -1000,6 +1340,33 @@ def analyze(current_user):
         nodes_scanned=len(featuresDf.columns),
         reason=message
     )
+
+    # Populate 24h result cache
+    with _result_cache_lock:
+        _result_cache[_cache_key] = (result, time.time())
+        _now_ts = time.time()
+        for _k in [k for k, (_, ts) in _result_cache.items() if _now_ts - ts >= _RESULT_CACHE_TTL]:
+            del _result_cache[_k]
+
+    # Fire webhook if user has one configured and verdict is malicious
+    if verdict and user_id:
+        try:
+            conn = get_db_connection()
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            c.execute('SELECT webhook_url FROM user_settings WHERE user_id = ?', (user_id,))
+            row = c.fetchone()
+            conn.close()
+            if row and row['webhook_url']:
+                requests.post(row['webhook_url'], json={
+                    'event': 'malicious_scan',
+                    'risk_level': riskLabel,
+                    'confidence': confidence,
+                    'language': detected_language,
+                    'reason': message,
+                }, timeout=5)
+        except Exception:
+            pass  # webhook failures are non-fatal
 
     return jsonify(result)
 
@@ -1015,6 +1382,7 @@ def generateReport():
     language = data.get('language', 'Unknown')
     deep_scan = data.get('deep_scan', '')
     nodes_scanned = data.get('nodes_scanned', 0)
+    vulnerabilities = data.get('vulnerabilities', [])
 
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=25)
@@ -1114,12 +1482,41 @@ def generateReport():
     pdf.ln(6)
 
     # ═══════════════════════════════════
+    # VULNERABILITY FINDINGS
+    # ═══════════════════════════════════
+    if vulnerabilities:
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.set_text_color(30, 41, 59)
+        pdf.cell(0, 10, "3. Vulnerability Findings", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(2)
+
+        sev_colors = {'CRITICAL': (239, 68, 68), 'HIGH': (249, 115, 22), 'MEDIUM': (245, 158, 11), 'LOW': (34, 197, 94)}
+        for vuln in vulnerabilities[:30]:
+            sev = vuln.get('severity', 'MEDIUM')
+            col = sev_colors.get(sev, (100, 116, 139))
+            pdf.set_fill_color(*col)
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(18, 5, f" {sev}", fill=True, new_x=XPos.RIGHT, new_y=YPos.TOP)
+            pdf.set_font("Helvetica", size=8)
+            pdf.set_text_color(30, 41, 59)
+            line_info = f" Line {vuln.get('line', '?')}: {vuln.get('pattern', '')} — {vuln.get('description', '')}"
+            pdf.cell(0, 5, line_info[:120], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            if vuln.get('snippet'):
+                pdf.set_font("Courier", size=7)
+                pdf.set_text_color(71, 85, 105)
+                pdf.cell(0, 4, f"  {vuln['snippet'][:100]}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(1)
+        pdf.ln(4)
+
+    # ═══════════════════════════════════
     # AI DEEP SCAN ANALYSIS (if available)
     # ═══════════════════════════════════
     if deep_scan:
         pdf.set_font("Helvetica", "B", 14)
         pdf.set_text_color(30, 41, 59)
-        pdf.cell(0, 10, "3. AI-Powered Deep Analysis", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        _ds_section = 4 if vulnerabilities else 3
+        pdf.cell(0, 10, f"{_ds_section}. AI-Powered Deep Analysis", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(2)
         
         pdf.set_font("Helvetica", size=9)
@@ -1133,7 +1530,7 @@ def generateReport():
     # ═══════════════════════════════════
     # RECOMMENDATIONS
     # ═══════════════════════════════════
-    section_num = 4 if deep_scan else 3
+    section_num = 3 + bool(vulnerabilities) + bool(deep_scan)
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(30, 41, 59)
     pdf.cell(0, 10, f"{section_num}. Recommendations", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -1194,33 +1591,320 @@ def generateReport():
     )
 
 @app.route('/scan-history', methods=['GET'])
-def scan_history():
-    """Return scan history with optional filtering."""
+@token_required(optional=True)
+def scan_history(current_user):
+    """
+    Return paginated scan history. Admins see all scans; regular users see only their own.
+    ---
+    tags: [History]
+    security: [{Bearer: []}]
+    parameters:
+      - {in: query, name: limit, type: integer, default: 50}
+      - {in: query, name: offset, type: integer, default: 0}
+    responses:
+      200:
+        description: Paginated scan records
+        schema:
+          type: object
+          properties:
+            scans: {type: array, items: {type: object}}
+            total: {type: integer}
+            limit: {type: integer}
+            offset: {type: integer}
+    """
     limit = request.args.get('limit', 50, type=int)
     offset = request.args.get('offset', 0, type=int)
-    
+
     try:
         conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        
-        # Get total count
-        c.execute('SELECT COUNT(*) FROM scans')
-        total = c.fetchone()[0]
-        
-        # Get paginated results
-        c.execute('SELECT * FROM scans ORDER BY timestamp DESC LIMIT ? OFFSET ?', (limit, offset))
+
+        is_admin = current_user and current_user.get('is_admin')
+        if is_admin:
+            c.execute('SELECT COUNT(*) FROM scans')
+            total = c.fetchone()[0]
+            c.execute('SELECT * FROM scans ORDER BY timestamp DESC LIMIT ? OFFSET ?', (limit, offset))
+        elif current_user:
+            user_id = current_user['user_id']
+            c.execute('SELECT COUNT(*) FROM scans WHERE user_id = ?', (user_id,))
+            total = c.fetchone()[0]
+            c.execute('SELECT * FROM scans WHERE user_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?',
+                      (user_id, limit, offset))
+        else:
+            conn.close()
+            return jsonify({'scans': [], 'total': 0, 'limit': limit, 'offset': offset})
+
         rows = [dict(row) for row in c.fetchall()]
         conn.close()
-        
+        return jsonify({'scans': rows, 'total': total, 'limit': limit, 'offset': offset})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/scan-history/compare', methods=['GET'])
+@token_required(optional=False)
+def scan_history_compare(current_user):
+    """
+    Compare two scan results by ID and return a JSON diff.
+    ---
+    tags: [History]
+    security: [{Bearer: []}]
+    parameters:
+      - {in: query, name: id1, type: integer, required: true}
+      - {in: query, name: id2, type: integer, required: true}
+    responses:
+      200:
+        description: Diff of the two scans
+        schema:
+          type: object
+      403: {description: Forbidden — scan does not belong to this user}
+      404: {description: One or both scans not found}
+    """
+    id1 = request.args.get('id1', type=int)
+    id2 = request.args.get('id2', type=int)
+    if id1 is None or id2 is None:
+        return jsonify({'error': 'Both id1 and id2 query parameters are required'}), 400
+
+    user_id = current_user['user_id']
+    is_admin = current_user.get('is_admin', False)
+
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute('SELECT * FROM scans WHERE id = ?', (id1,))
+        row1 = c.fetchone()
+        c.execute('SELECT * FROM scans WHERE id = ?', (id2,))
+        row2 = c.fetchone()
+        conn.close()
+
+        if row1 is None or row2 is None:
+            missing = id1 if row1 is None else id2
+            return jsonify({'error': f'Scan {missing} not found'}), 404
+
+        if not is_admin:
+            if row1['user_id'] != user_id or row2['user_id'] != user_id:
+                return jsonify({'error': 'Access denied: one or both scans do not belong to you'}), 403
+
+        def _risk_level(row):
+            try:
+                return row['risk_level']
+            except Exception:
+                return None
+
+        def _confidence(row):
+            try:
+                return float(row['confidence']) if row['confidence'] is not None else None
+            except Exception:
+                return None
+
+        def _verdict(row):
+            # stored as `malicious` (int 0/1) in the scans table
+            try:
+                return bool(row['malicious'])
+            except Exception:
+                return None
+
+        def _filename(row):
+            try:
+                return row['filename']
+            except Exception:
+                return None
+
+        risk1 = _risk_level(row1)
+        risk2 = _risk_level(row2)
+        conf1 = _confidence(row1)
+        conf2 = _confidence(row2)
+        verdict1 = _verdict(row1)
+        verdict2 = _verdict(row2)
+
+        conf_delta = None
+        if conf1 is not None and conf2 is not None:
+            conf_delta = round(conf2 - conf1, 2)
+
         return jsonify({
-            'scans': rows,
-            'total': total,
-            'limit': limit,
-            'offset': offset
+            'id1': id1,
+            'id2': id2,
+            'timestamp1': row1['timestamp'],
+            'timestamp2': row2['timestamp'],
+            'language': row1['language'],
+            'risk_level_1': risk1,
+            'risk_level_2': risk2,
+            'risk_changed': risk1 != risk2,
+            'confidence_1': conf1,
+            'confidence_2': conf2,
+            'confidence_delta': conf_delta,
+            'verdict_1': verdict1,
+            'verdict_2': verdict2,
+            'verdict_changed': verdict1 != verdict2,
+            'filename_1': _filename(row1),
+            'filename_2': _filename(row2),
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/scan-history/export', methods=['GET'])
+@token_required(optional=False)
+def scan_history_export(current_user):
+    """
+    Download the authenticated user's scan history as CSV.
+    ---
+    tags: [History]
+    security: [{Bearer: []}]
+    produces: [text/csv]
+    responses:
+      200: {description: CSV file download}
+      401: {description: Unauthorized}
+    """
+    import csv
+    from io import StringIO
+    from flask import Response as FlaskResponse
+    user_id = current_user['user_id']
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT * FROM scans WHERE user_id = ? ORDER BY timestamp DESC', (user_id,))
+        rows = c.fetchall()
+        conn.close()
+
+        si = StringIO()
+        writer = csv.writer(si)
+        writer.writerow(['id', 'user_id', 'timestamp', 'language', 'risk_level',
+                         'confidence', 'malicious', 'code_hash', 'nodes_scanned', 'reason'])
+        for row in rows:
+            writer.writerow([row['id'], row['user_id'], row['timestamp'], row['language'],
+                             row['risk_level'], row['confidence'], row['malicious'],
+                             row['code_hash'], row['nodes_scanned'], row['reason']])
+
+        filename = f"soteria_scans_{datetime.now().strftime('%Y%m%d')}.csv"
+        return FlaskResponse(
+            si.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings/webhook', methods=['GET'])
+@token_required(optional=False)
+def get_webhook_setting(current_user):
+    """
+    Get the authenticated user's webhook URL for malicious-scan notifications.
+    ---
+    tags: [Settings]
+    security: [{Bearer: []}]
+    responses:
+      200:
+        description: Webhook configuration
+        schema:
+          type: object
+          properties:
+            webhook_url: {type: string, nullable: true}
+            updated_at: {type: string, nullable: true}
+    """
+    user_id = current_user['user_id']
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT webhook_url, updated_at FROM user_settings WHERE user_id = ?', (user_id,))
+        row = c.fetchone()
+        conn.close()
+        return jsonify({'webhook_url': row['webhook_url'] if row else None,
+                        'updated_at': row['updated_at'] if row else None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/settings/webhook', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=60)
+@token_required(optional=False)
+def set_webhook_setting(current_user):
+    """
+    Save or clear the authenticated user's webhook URL.
+    ---
+    tags: [Settings]
+    security: [{Bearer: []}]
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            webhook_url: {type: string, description: "http/https URL, or empty string to clear"}
+    responses:
+      200: {description: Saved successfully}
+      400: {description: Invalid URL format}
+    """
+    user_id = current_user['user_id']
+    data = request.get_json(silent=True) or {}
+    webhook_url = data.get('webhook_url', '').strip()
+
+    # Allow empty string to clear the webhook; validate non-empty URLs
+    if webhook_url and not webhook_url.startswith(('https://', 'http://')):
+        return jsonify({'error': 'webhook_url must be a valid http/https URL'}), 400
+
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''INSERT INTO user_settings (user_id, webhook_url, updated_at)
+                     VALUES (?, ?, ?)
+                     ON CONFLICT(user_id) DO UPDATE SET webhook_url=excluded.webhook_url,
+                                                        updated_at=excluded.updated_at''',
+                  (user_id, webhook_url or None, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        return jsonify({'ok': True, 'webhook_url': webhook_url or None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/model/drift', methods=['GET'])
+@token_required(optional=False)
+def model_drift(current_user):
+    """
+    GCN model drift report: KL divergence of recent predictions vs. baseline.
+    ---
+    tags: [Model]
+    security: [{Bearer: []}]
+    responses:
+      200:
+        description: Drift metrics
+        schema:
+          type: object
+          properties:
+            status: {type: string}
+            total_samples: {type: integer}
+            kl_divergence: {type: number}
+            drift_alert: {type: boolean}
+            recent_mean: {type: number}
+            baseline_mean: {type: number}
+    """
+    with _GCN_DRIFT_LOCK:
+        buf = list(_GCN_PROB_BUFFER)
+        baseline = list(_GCN_DRIFT_BASELINE)
+
+    if len(buf) < 10:
+        return jsonify({'status': 'insufficient_data', 'samples': len(buf)})
+
+    recent = buf[-min(100, len(buf)):]
+    kl = _kl_divergence(baseline, recent) if len(baseline) >= 10 else -1.0
+    return jsonify({
+        'status': 'ok',
+        'total_samples': len(buf),
+        'baseline_samples': len(baseline),
+        'recent_window': len(recent),
+        'kl_divergence': round(kl, 4),
+        'drift_alert': kl > 0.5 if kl >= 0 else False,
+        'recent_mean': round(sum(recent) / len(recent), 4),
+        'baseline_mean': round(sum(baseline) / len(baseline), 4) if baseline else None,
+    })
 
 
 @app.route('/security-score', methods=['GET'])
@@ -1348,6 +2032,15 @@ def model_stats():
                 stats['accuracy'] = 'Trained'
     else:
         stats['status'] = 'no_model'
+
+    # Active detection engines
+    gcn_ckpt = ROOT / 'backend' / 'ML_master' / 'acidModel_gcn.pt'
+    stats['engines'] = {
+        'sklearn':  model is not None,
+        'gcn':      gcn_ckpt.exists(),
+        'entropy':  ENTROPY_ENABLED,
+        'snn':      SNN_ENABLED,
+    }
 
     return jsonify(stats)
 
@@ -2166,24 +2859,71 @@ GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
 if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
     print("⚠️ WARNING: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET not set. GitHub OAuth login will be disabled.")
 
+@app.route('/github/pkce/state', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=60)
+def github_pkce_state():
+    """Issue a signed state JWT containing the PKCE code_challenge."""
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        return jsonify({'error': 'GitHub OAuth not configured.'}), 501
+
+    data = request.get_json(silent=True) or {}
+    code_challenge = data.get('code_challenge', '')
+    # S256 code_challenge is base64url(sha256), always 43 chars without padding
+    if not isinstance(code_challenge, str) or len(code_challenge) < 43:
+        return jsonify({'error': 'Invalid code_challenge'}), 400
+
+    state_payload = {
+        'jti': uuid.uuid4().hex,
+        'code_challenge': code_challenge,
+        'exp': int(time.time()) + 300,  # 5-minute TTL
+    }
+    state_token = pyjwt.encode(state_payload, JWT_SECRET, algorithm='HS256')
+    return jsonify({'state': state_token})
+
+
 @app.route('/github/token', methods=['POST'])
 def github_token():
+    data = request.get_json(silent=True) or {}
+    code          = data.get('code')
+    state         = data.get('state')
+    code_verifier = data.get('code_verifier')
+
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+
+    # PKCE + state validation runs before the GitHub config check so that
+    # invalid/expired tokens are rejected regardless of server configuration.
+    if state and code_verifier:
+        try:
+            state_payload = pyjwt.decode(state, JWT_SECRET, algorithms=['HS256'])
+        except pyjwt.ExpiredSignatureError:
+            return jsonify({'error': 'OAuth state expired. Please restart the login flow.'}), 400
+        except pyjwt.InvalidTokenError:
+            return jsonify({'error': 'Invalid OAuth state.'}), 400
+
+        import hashlib, base64
+        computed = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()
+        ).rstrip(b'=').decode()
+        expected = state_payload.get('code_challenge', '')
+        # Constant-time compare to prevent timing attacks
+        if not hmac.compare_digest(computed, expected):
+            return jsonify({'error': 'PKCE verification failed.'}), 400
+    elif state or code_verifier:
+        # One present without the other — reject partial submissions
+        return jsonify({'error': 'Both state and code_verifier are required.'}), 400
+
     if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
         return jsonify({'error': 'GitHub OAuth login is not configured.'}), 501
 
-    data = request.get_json()
-    code = data.get('code')
-    if not code:
-        return jsonify({'error': 'No code provided'}), 400
-        
     resp = requests.post(
         'https://github.com/login/oauth/access_token',
         json={
             'client_id': GITHUB_CLIENT_ID,
             'client_secret': GITHUB_CLIENT_SECRET,
-            'code': code
+            'code': code,
         },
-        headers={'Accept': 'application/json'}
+        headers={'Accept': 'application/json'},
     )
     return jsonify(resp.json()), resp.status_code
 

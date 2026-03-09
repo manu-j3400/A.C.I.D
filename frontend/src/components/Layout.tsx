@@ -3,13 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Shield, Activity, Menu, X, Github, Brain, Home, Info, Zap, FolderOpen, LogOut, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAdminAuthenticated } = useAdmin();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -26,10 +24,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         whileHover={{ x: 5 }}
         className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all border border-transparent ${isActive(to)
           ? `bg-blue-500/[0.08] ${activeColor} border-blue-500/[0.12] shadow-lg shadow-blue-900/10`
-          : 'text-neutral-500 hover:text-white hover:bg-white/[0.03]'
+          : 'text-neutral-400 hover:text-white hover:bg-white/[0.03]'
           }`}
       >
-        <Icon className={`w-5 h-5 ${isActive(to) ? activeColor : 'text-neutral-600'}`} />
+        <Icon className={`w-5 h-5 ${isActive(to) ? activeColor : 'text-neutral-500'}`} />
         {label}
         {isActive(to) && (
           <motion.div
@@ -59,16 +57,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
 
           <div className="space-y-2">
-            <p className="px-4 text-[10px] font-black text-neutral-700 uppercase tracking-widest mb-2">Workspace</p>
+            <p className="px-4 text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">Workspace</p>
             <NavItem to="/scanner" icon={Activity} label="Code Reviewer" activeColor="text-blue-400" />
             <NavItem to="/batch" icon={FolderOpen} label="Batch Scanner" activeColor="text-purple-400" />
-            {isAdminAuthenticated && (
-              <NavItem to="/engine" icon={Brain} label="Model Lab" activeColor="text-cyan-400" />
-            )}
+            <NavItem to="/engine" icon={Brain} label="Model Lab" activeColor="text-cyan-400" />
           </div>
 
           <div className="space-y-2">
-            <p className="px-4 text-[10px] font-black text-neutral-700 uppercase tracking-widest mb-2">Resources</p>
+            <p className="px-4 text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">Resources</p>
             <NavItem to="/dashboard" icon={Home} label="Overview" />
             <NavItem to="/changelog" icon={FileText} label="Lifecycle" />
             <NavItem to="/about" icon={Info} label="About" />
@@ -117,9 +113,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black pt-20 px-6 space-y-4 md:hidden">
           <NavItem to="/scanner" icon={Activity} label="Reviewer" />
-          {isAdminAuthenticated && (
-            <NavItem to="/engine" icon={Brain} label="Model Lab" />
-          )}
+          <NavItem to="/engine" icon={Brain} label="Model Lab" />
           <div className="h-px bg-white/[0.06] my-4"></div>
           <NavItem to="/dashboard" icon={Home} label="Home" />
           <NavItem to="/features" icon={Zap} label="Features" />

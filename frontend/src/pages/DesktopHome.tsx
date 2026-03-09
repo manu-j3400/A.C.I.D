@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, Brain, Shield, Globe, Clock, Zap, AlertTriangle, ShieldCheck, ScanSearch, TrendingUp, BarChart3, FileCode2 } from 'lucide-react';
+import { Activity, Brain, Shield, Globe, Clock, Zap, AlertTriangle, ShieldCheck, ScanSearch, TrendingUp, BarChart3, FileCode2, Download, Bell, BellOff, Check, GitCompare, ArrowRight, X } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
-import { useAdmin } from '@/context/AdminContext';
+import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/lib/api';
 
 interface SecurityScoreData {
@@ -153,9 +153,94 @@ function SecurityGrade({ score, grade }: { score: number; grade: string }) {
 export default function DesktopHome() {
     const navigate = useNavigate();
     const { xp, level, streak } = useGame();
-    const { isAdminAuthenticated } = useAdmin();
+    const { token } = useAuth();
     const [scoreData, setScoreData] = useState<SecurityScoreData | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Scan comparison
+    const [compareIds, setCompareIds] = useState<number[]>([]);
+    const [compareResult, setCompareResult] = useState<any>(null);
+    const [compareLoading, setCompareLoading] = useState(false);
+    const [compareError, setCompareError] = useState<string | null>(null);
+
+    const toggleCompareSelect = (id: number) => {
+        setCompareResult(null);
+        setCompareError(null);
+        setCompareIds(prev => {
+            if (prev.includes(id)) return prev.filter(x => x !== id);
+            if (prev.length >= 2) return [prev[1], id];
+            return [...prev, id];
+        });
+    };
+
+    const handleCompare = async () => {
+        if (compareIds.length !== 2 || !token) return;
+        setCompareLoading(true);
+        setCompareResult(null);
+        setCompareError(null);
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/api/scan-history/compare?id1=${compareIds[0]}&id2=${compareIds[1]}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const data = await res.json();
+            if (!res.ok) { setCompareError(data.error || 'Compare failed'); }
+            else { setCompareResult(data); }
+        } catch (e) {
+            setCompareError('Network error');
+        } finally {
+            setCompareLoading(false);
+        }
+    };
+
+    const riskOrder: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
+    const riskBadgeClass = (level: string) => {
+        if (level === 'CRITICAL') return 'bg-red-500/20 text-red-400';
+        if (level === 'HIGH') return 'bg-orange-500/20 text-orange-400';
+        if (level === 'MEDIUM') return 'bg-yellow-500/20 text-yellow-400';
+        return 'bg-green-500/20 text-green-400';
+    };
+
+    // CSV export
+    const handleExportCSV = async () => {
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/api/scan-history/export`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `soteria_scans_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Webhook settings
+    const [webhookUrl, setWebhookUrl] = useState('');
+    const [webhookSaved, setWebhookSaved] = useState(false);
+    const [webhookLoading, setWebhookLoading] = useState(false);
+
+    useEffect(() => {
+        if (!token) return;
+        fetch(`${API_BASE_URL}/api/settings/webhook`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.json()).then(d => setWebhookUrl(d.webhook_url || '')).catch(() => {});
+    }, [token]);
+
+    const handleSaveWebhook = async () => {
+        if (!token) return;
+        setWebhookLoading(true);
+        await fetch(`${API_BASE_URL}/api/settings/webhook`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ webhook_url: webhookUrl }),
+        });
+        setWebhookLoading(false);
+        setWebhookSaved(true);
+        setTimeout(() => setWebhookSaved(false), 2000);
+    };
 
     useEffect(() => {
         fetchAnalytics();
@@ -166,14 +251,8 @@ export default function DesktopHome() {
 
     const fetchAnalytics = async () => {
         try {
-            const token = localStorage.getItem('soteria_token');
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const res = await fetch(`${API_BASE_URL}/security-score`, {
                 headers
@@ -351,11 +430,118 @@ export default function DesktopHome() {
             {/* RECENT SCANS TABLE */}
             {scoreData && scoreData.recent_scans && scoreData.recent_scans.length > 0 && (
                 <div>
-                    <h2 className="text-xs font-black text-neutral-600 uppercase tracking-widest mb-4">Recent Scans</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xs font-black text-neutral-600 uppercase tracking-widest">Recent Scans</h2>
+                        <div className="flex items-center gap-2">
+                            {compareIds.length === 2 && (
+                                <button
+                                    onClick={handleCompare}
+                                    disabled={compareLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-purple-400 hover:text-white bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-lg transition-all disabled:opacity-50"
+                                >
+                                    <GitCompare className="w-3.5 h-3.5" />
+                                    {compareLoading ? 'Comparing…' : 'Compare'}
+                                </button>
+                            )}
+                            {compareIds.length > 0 && (
+                                <button
+                                    onClick={() => { setCompareIds([]); setCompareResult(null); setCompareError(null); }}
+                                    className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-bold text-neutral-500 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all"
+                                >
+                                    <X className="w-3 h-3" />
+                                    Clear ({compareIds.length}/2)
+                                </button>
+                            )}
+                            <button
+                                onClick={handleExportCSV}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-neutral-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all"
+                            >
+                                <Download className="w-3.5 h-3.5" />
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* COMPARE RESULT CARD */}
+                    {compareResult && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                            className="mb-4 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4"
+                        >
+                            <div className="flex items-center gap-2 mb-3">
+                                <GitCompare className="w-4 h-4 text-purple-400" />
+                                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Scan Diff</span>
+                                <span className="ml-auto text-[10px] text-neutral-600 font-mono">
+                                    #{compareResult.id1} vs #{compareResult.id2}
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm">
+                                {/* Risk level diff */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-neutral-600 uppercase font-bold">Risk</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${riskBadgeClass(compareResult.risk_level_1)}`}>
+                                        {compareResult.risk_level_1}
+                                    </span>
+                                    <ArrowRight className="w-3 h-3 text-neutral-600" />
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${riskBadgeClass(compareResult.risk_level_2)}`}>
+                                        {compareResult.risk_level_2}
+                                    </span>
+                                    {compareResult.risk_changed && (
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                            (riskOrder[compareResult.risk_level_2] ?? 0) > (riskOrder[compareResult.risk_level_1] ?? 0)
+                                                ? 'bg-red-500/20 text-red-400'
+                                                : 'bg-green-500/20 text-green-400'
+                                        }`}>
+                                            {(riskOrder[compareResult.risk_level_2] ?? 0) > (riskOrder[compareResult.risk_level_1] ?? 0) ? 'Escalated' : 'Improved'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Confidence delta */}
+                                {compareResult.confidence_delta !== null && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] text-neutral-600 uppercase font-bold">Confidence</span>
+                                        <span className="text-[10px] font-mono text-neutral-300">{compareResult.confidence_1}%</span>
+                                        <ArrowRight className="w-3 h-3 text-neutral-600" />
+                                        <span className="text-[10px] font-mono text-neutral-300">{compareResult.confidence_2}%</span>
+                                        <span className={`text-[10px] font-bold font-mono ${compareResult.confidence_delta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                            {compareResult.confidence_delta > 0 ? '+' : ''}{compareResult.confidence_delta}%
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Verdict change badge */}
+                                {compareResult.verdict_changed && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] text-neutral-600 uppercase font-bold">Verdict</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${compareResult.verdict_1 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                            {compareResult.verdict_1 ? 'Threat' : 'Clean'}
+                                        </span>
+                                        <ArrowRight className="w-3 h-3 text-neutral-600" />
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${compareResult.verdict_2 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                            {compareResult.verdict_2 ? 'Threat' : 'Clean'}
+                                        </span>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">Changed</span>
+                                    </div>
+                                )}
+
+                                {!compareResult.risk_changed && !compareResult.verdict_changed && (
+                                    <span className="text-[10px] text-neutral-500">No material changes between scans.</span>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                    {compareError && (
+                        <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400 font-bold">
+                            {compareError}
+                        </div>
+                    )}
+
                     <div className="rounded-2xl border border-white/[0.06] bg-neutral-950 overflow-hidden">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-white/[0.06]">
+                                    <th className="px-3 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest w-8"></th>
                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Time</th>
                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Language</th>
                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Risk</th>
@@ -364,39 +550,55 @@ export default function DesktopHome() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.04]">
-                                {scoreData.recent_scans.map((scan, i) => (
-                                    <tr key={scan.id || i} className="hover:bg-white/[0.02] transition-colors">
-                                        <td className="px-5 py-3 text-sm text-neutral-400 font-mono">
-                                            {new Date(scan.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                        </td>
-                                        <td className="px-5 py-3">
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider">
-                                                {scan.language}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${scan.risk_level === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
-                                                scan.risk_level === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
-                                                    scan.risk_level === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        'bg-green-500/20 text-green-400'
-                                                }`}>{scan.risk_level}</span>
-                                        </td>
-                                        <td className="px-5 py-3 text-sm text-neutral-300 font-mono">{scan.confidence}%</td>
-                                        <td className="px-5 py-3">
-                                            {scan.malicious ? (
-                                                <div className="flex items-center gap-1.5">
-                                                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                                                    <span className="text-xs text-red-400 font-bold">Threat</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1.5">
-                                                    <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
-                                                    <span className="text-xs text-green-400 font-bold">Clean</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {scoreData.recent_scans.map((scan, i) => {
+                                    const isSelected = compareIds.includes(scan.id);
+                                    return (
+                                        <tr key={scan.id || i} className={`hover:bg-white/[0.02] transition-colors ${isSelected ? 'bg-purple-500/5' : ''}`}>
+                                            <td className="px-3 py-3">
+                                                <button
+                                                    onClick={() => toggleCompareSelect(scan.id)}
+                                                    title={isSelected ? 'Deselect' : 'Select for comparison'}
+                                                    className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                                        isSelected
+                                                            ? 'bg-purple-500/30 border-purple-500/60 text-purple-300'
+                                                            : 'border-white/[0.12] text-transparent hover:border-purple-500/40 hover:text-purple-500/40'
+                                                    }`}
+                                                >
+                                                    <Check className="w-3 h-3" />
+                                                </button>
+                                            </td>
+                                            <td className="px-5 py-3 text-sm text-neutral-400 font-mono">
+                                                {new Date(scan.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider">
+                                                    {scan.language}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${scan.risk_level === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
+                                                    scan.risk_level === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
+                                                        scan.risk_level === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                            'bg-green-500/20 text-green-400'
+                                                    }`}>{scan.risk_level}</span>
+                                            </td>
+                                            <td className="px-5 py-3 text-sm text-neutral-300 font-mono">{scan.confidence}%</td>
+                                            <td className="px-5 py-3">
+                                                {scan.malicious ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                                                        <span className="text-xs text-red-400 font-bold">Threat</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+                                                        <span className="text-xs text-green-400 font-bold">Clean</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -406,7 +608,7 @@ export default function DesktopHome() {
             {/* TOOLS GRID */}
             <div>
                 <h2 className="text-xs font-black text-neutral-600 uppercase tracking-widest mb-6">Quick Actions</h2>
-                <div className={`grid grid-cols-1 gap-6 ${isAdminAuthenticated ? 'md:grid-cols-2' : ''}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <QuickAction
                         to="/scanner"
                         title="Code Reviewer"
@@ -414,15 +616,39 @@ export default function DesktopHome() {
                         icon={Activity}
                         color="text-blue-400"
                     />
-                    {isAdminAuthenticated && (
-                        <QuickAction
-                            to="/engine"
-                            title="Model Lab"
-                            desc="Train and manage your local security ML model. View stats, retrain the pipeline, and monitor performance."
-                            icon={Brain}
-                            color="text-cyan-400"
-                        />
-                    )}
+                    <QuickAction
+                        to="/engine"
+                        title="Model Lab"
+                        desc="Train and manage your local security ML model. View stats, retrain the pipeline, and monitor performance."
+                        icon={Brain}
+                        color="text-cyan-400"
+                    />
+                </div>
+            </div>
+
+            {/* WEBHOOK NOTIFICATIONS */}
+            <div className="rounded-2xl bg-neutral-950 border border-white/[0.06] p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    {webhookUrl ? <Bell className="w-4 h-4 text-blue-400" /> : <BellOff className="w-4 h-4 text-neutral-600" />}
+                    <h2 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Threat Webhook</h2>
+                    <span className="ml-auto text-[10px] text-neutral-600">Notified on every malicious scan verdict</span>
+                </div>
+                <div className="flex gap-3">
+                    <input
+                        type="url"
+                        value={webhookUrl}
+                        onChange={e => setWebhookUrl(e.target.value)}
+                        placeholder="https://hooks.slack.com/… or any HTTPS endpoint"
+                        className="flex-1 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-700 focus:outline-none focus:border-blue-500/40 transition-colors"
+                    />
+                    <button
+                        onClick={handleSaveWebhook}
+                        disabled={webhookLoading}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-sm font-bold rounded-xl border border-blue-500/20 transition-all disabled:opacity-50"
+                    >
+                        {webhookSaved ? <Check className="w-4 h-4" /> : null}
+                        {webhookSaved ? 'Saved' : webhookLoading ? 'Saving…' : 'Save'}
+                    </button>
                 </div>
             </div>
 

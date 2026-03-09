@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function PublicNavbar() {
     const location = useLocation();
+    const { isAuthenticated, user, logout } = useAuth();
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -21,17 +24,41 @@ export default function PublicNavbar() {
                     <Link to="/about" className={`text-xs font-mono font-bold uppercase transition-colors duration-300 ${isActive('/about') ? 'text-cyan-400' : 'text-neutral-500 hover:text-cyan-400'}`}>About</Link>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <Link to="/login">
-                        <Button variant="ghost" className="text-xs font-mono font-bold uppercase text-neutral-400 hover:text-white rounded-md hover:bg-white/10 h-9 px-4">
-                            Sign In
-                        </Button>
-                    </Link>
-                    <Link to="/signup">
-                        <Button className="text-xs font-mono font-bold uppercase h-9 px-5 bg-blue-600 text-white hover:bg-blue-500 rounded-lg shadow-[3px_3px_0px_#1e3a5f] hover:shadow-[1px_1px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all border-0">
-                            Get Started
-                        </Button>
-                    </Link>
+                <div className="flex items-center gap-3">
+                    {isAuthenticated && user ? (
+                        <>
+                            <span className="hidden sm:block text-xs font-mono text-neutral-500 border border-neutral-800 px-3 py-1.5 rounded-md">
+                                {user.name}
+                            </span>
+                            <Link to="/dashboard">
+                                <Button className="text-xs font-mono font-bold uppercase h-9 px-4 bg-cyan-500 text-black hover:bg-cyan-400 rounded-lg shadow-[3px_3px_0px_#0e7490] hover:shadow-[1px_1px_0px_#0e7490] hover:translate-x-[2px] hover:translate-y-[2px] transition-all border-0 flex items-center gap-2">
+                                    <LayoutDashboard className="w-3.5 h-3.5" />
+                                    Dashboard
+                                </Button>
+                            </Link>
+                            <Button
+                                variant="ghost"
+                                onClick={logout}
+                                className="text-xs font-mono font-bold uppercase text-neutral-500 hover:text-red-400 rounded-md hover:bg-red-500/10 h-9 px-3"
+                                title="Sign out"
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login">
+                                <Button variant="ghost" className="text-xs font-mono font-bold uppercase text-neutral-400 hover:text-white rounded-md hover:bg-white/10 h-9 px-4">
+                                    Sign In
+                                </Button>
+                            </Link>
+                            <Link to="/signup">
+                                <Button className="text-xs font-mono font-bold uppercase h-9 px-5 bg-blue-600 text-white hover:bg-blue-500 rounded-lg shadow-[3px_3px_0px_#1e3a5f] hover:shadow-[1px_1px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all border-0">
+                                    Get Started
+                                </Button>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
         </nav>

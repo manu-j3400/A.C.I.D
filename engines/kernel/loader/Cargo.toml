@@ -1,0 +1,23 @@
+[package]
+name        = "supply-chain-sentinel"
+version     = "0.1.0"
+edition     = "2021"
+description = "User-space loader for the Supply-Chain Sentinel eBPF probe"
+
+[dependencies]
+anyhow             = { workspace = true }
+tokio              = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+clap               = { workspace = true }
+
+libbpf-rs   = "0.23"
+libc        = "0.2"
+nix         = { version = "0.28", features = ["signal", "process"] }
+ctrlc       = { version = "3", features = ["termination"] }
+
+[build-dependencies]
+# Compiles the BPF C source and generates a typed Rust skeleton.
+libbpf-cargo = "0.23"

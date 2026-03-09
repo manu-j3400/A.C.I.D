@@ -1,0 +1,26 @@
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name        = "soteria-aggregator"
+version     = "0.1.0"
+description = "Byzantine-resilient federated learning aggregation server"
+requires-python = ">=3.11"
+
+dependencies = [
+    "torch>=2.2",
+    "grpcio>=1.62",
+    "grpcio-tools>=1.62",
+    "protobuf>=4.25",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "hypothesis"]
+
+[project.scripts]
+aggregation-server = "aggregator.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["aggregator"]

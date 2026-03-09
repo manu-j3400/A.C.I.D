@@ -9,9 +9,13 @@ export default function GithubCallback() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const code = searchParams.get('code');
-        if (!code) {
-            setError('No code provided by GitHub');
+        const code         = searchParams.get('code');
+        const state        = searchParams.get('state');
+        const codeVerifier = sessionStorage.getItem('oauth_cv');
+        sessionStorage.removeItem('oauth_cv');  // consume immediately
+
+        if (!code || !state || !codeVerifier) {
+            navigate('/batch?error=oauth_missing_params', { replace: true });
             return;
         }
 
@@ -20,7 +24,7 @@ export default function GithubCallback() {
                 const res = await fetch(`${API_BASE_URL}/github/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
+                    body: JSON.stringify({ code, state, code_verifier: codeVerifier })
                 });
 
                 if (!res.ok) throw new Error('Failed to exchange token');

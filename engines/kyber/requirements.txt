@@ -1,0 +1,28 @@
+# ============================================================
+# Kyber — Advanced Program Analysis Engine Requirements
+# Python 3.11+ required (3.13 recommended)
+# ============================================================
+
+# --- Engine 1: Topological Data Analysis --------------------
+umap-learn>=0.5.6          # UMAP dimensionality reduction
+ripser>=0.6.8              # C++ Vietoris-Rips + persistent homology
+persim>=0.3.7              # Persistence diagram distances (Wasserstein, bottleneck)
+gudhi>=3.9.0               # GUDHI: Čech complex, cubical complex, simplex tree
+scikit-tda>=1.0.0          # Convenience wrappers for TDA pipelines
+
+# --- Engine 2: Siamese GCN IR Verifier ----------------------
+torch>=2.2.0
+torch-geometric>=2.5.0
+# Install scatter/sparse separately (version must match torch):
+#   pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-{VERSION}+cpu.html
+networkx>=3.2.1            # CFG construction and manipulation
+
+# --- Engine 3: SNN Micro-Temporal Profiler ------------------
+snntorch>=0.9.1            # Spiking Neural Networks with surrogate gradients
+
+# --- Shared / Utilities -------------------------------------
+numpy>=1.26.4
+scipy>=1.13.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.4          # Persistence barcode plots
+joblib>=1.4.0              # Parallel corpus processing

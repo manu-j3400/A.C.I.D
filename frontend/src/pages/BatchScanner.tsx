@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github, ChevronDown } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/api';
 interface BatchFileItem {
     filename: string;
@@ -40,6 +41,16 @@ export default function BatchScanner() {
     const [isFetchingRepos, setIsFetchingRepos] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [expandedRow, setExpandedRow] = useState<number | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const oauthError = searchParams.get('error');
+
+    useEffect(() => {
+        if (oauthError) {
+            // Clear the error param from the URL after reading it
+            const t = setTimeout(() => setSearchParams({}, { replace: true }), 4000);
+            return () => clearTimeout(t);
+        }
+    }, [oauthError, setSearchParams]);
 
     useEffect(() => {
         if (!githubToken) return;
@@ -65,10 +76,38 @@ export default function BatchScanner() {
         fetchRepos();
     }, [githubToken]);
 
-    const handleGithubConnect = () => {
-        const clientId = 'Ov23li9feGBY4uoDs8du';
-        const redirectUri = encodeURIComponent(window.location.origin);
-        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${redirectUri}`;
+    const handleGithubConnect = async () => {
+        // Generate PKCE code_verifier (RFC 7636 §4.1: 43-128 chars, base64url)
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        const codeVerifier = btoa(String.fromCharCode(...array))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+        // Compute S256 code_challenge
+        const encoder = new TextEncoder();
+        const digest = await crypto.subtle.digest('SHA-256', encoder.encode(codeVerifier));
+        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+        // Get signed state JWT from backend
+        const res = await fetch(`${API_BASE_URL}/github/pkce/state`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code_challenge: codeChallenge }),
+        });
+        if (!res.ok) { console.error('Failed to init PKCE state'); return; }
+        const { state } = await res.json();
+
+        // Store verifier for the callback — sessionStorage is tab-scoped
+        sessionStorage.setItem('oauth_cv', codeVerifier);
+
+        const redirectUri = encodeURIComponent(`${window.location.origin}/auth/github/callback`);
+        window.location.href =
+            `https://github.com/login/oauth/authorize` +
+            `?client_id=Ov23li9feGBY4uoDs8du` +
+            `&scope=repo` +
+            `&state=${encodeURIComponent(state)}` +
+            `&redirect_uri=${redirectUri}`;
     };
 
     const readFile = (file: File): Promise<BatchFileItem> => {
@@ -207,6 +246,19 @@ export default function BatchScanner() {
                 <h1 className="text-3xl font-black text-white mb-2">Batch Scanner</h1>
                 <p className="text-neutral-500">Drop multiple files or import a whole GitHub repository to scan your project.</p>
             </div>
+
+            {/* OAuth error banner */}
+            {oauthError && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-3 px-5 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm"
+                >
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    {oauthError === 'oauth_missing_params'
+                        ? 'GitHub connection failed — missing OAuth parameters. Please try connecting again.'
+                        : `GitHub connection failed: ${oauthError}`}
+                </motion.div>
+            )}
 
             {/* GitHub Import */}
             {scanState === 'idle' && files.length === 0 && (

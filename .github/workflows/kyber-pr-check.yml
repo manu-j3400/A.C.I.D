@@ -1,0 +1,84 @@
+name: Kyber PR Taint Check
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+
+jobs:
+  taint-analysis:
+    name: Differential Taint Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet torch_geometric
+          pip install --quiet -r backend/requirements.txt
+
+      - name: Run differential taint analysis on changed Python files
+        id: taint_check
+        run: |
+          set +e
+          BLOCKED=0
+          REPORTS_DIR=$(mktemp -d)
+
+          # Get list of Python files changed in this PR
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.py')
+
+          if [ -z "$CHANGED" ]; then
+            echo "No Python files changed."
+            exit 0
+          fi
+
+          for FILE in $CHANGED; do
+            # Skip deleted files
+            if [ ! -f "$FILE" ]; then
+              echo "Skipping deleted file: $FILE"
+              continue
+            fi
+
+            # Get old version from base branch (empty string if new file)
+            OLD_TMP=$(mktemp --suffix=.py)
+            git show origin/${{ github.base_ref }}:"$FILE" > "$OLD_TMP" 2>/dev/null || echo "" > "$OLD_TMP"
+
+            REPORT_FILE="$REPORTS_DIR/$(echo "$FILE" | tr '/' '_').json"
+
+            echo "Analyzing: $FILE"
+            python backend/src/diff_analyzer.py \
+              --old "$OLD_TMP" \
+              --new "$FILE" \
+              --json > "$REPORT_FILE" 2>&1
+            EXIT_CODE=$?
+
+            cat "$REPORT_FILE"
+
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "::error file=$FILE::Taint analysis BLOCKED new source->sink path in $FILE"
+              BLOCKED=1
+            fi
+
+            rm -f "$OLD_TMP"
+          done
+
+          exit $BLOCKED
+
+      - name: Upload taint analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyber-taint-reports
+          path: /tmp/tmp*/**.json
+          if-no-files-found: ignore
+          retention-days: 14

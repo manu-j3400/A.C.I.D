@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import CodeEditor from '@/components/CodeEditor';
-import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, Sparkles, Globe, Cpu, Brain, Zap, CheckCircle2, Copy, ArrowRight } from 'lucide-react';
+import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, Sparkles, Globe, Cpu, Brain, Zap, CheckCircle2, Copy, ArrowRight, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 import { Flame } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -85,6 +86,7 @@ function extractFixedCode(llmOutput: string): string | null {
 }
 
 export default function Scanner() {
+  const { token } = useAuth();
   const [code, setCode] = useState('');
   const [result, setResult] = useState<AnalysisResult>({ status: 'waiting' });
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -95,7 +97,15 @@ export default function Scanner() {
   const [activeTab, setActiveTab] = useState<ResultTab>('verdict');
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [toastError, setToastError] = useState<string | null>(null);
   const llmOutputRef = useRef('');
+
+  const showError = (msg: string) => {
+    setToastError(msg);
+    setTimeout(() => setToastError(null), 5000);
+  };
+
+  const [filename, setFilename] = useState('');
 
   const { xp, addXp } = useGame();
 
@@ -122,7 +132,8 @@ export default function Scanner() {
           reason: result.message,
           language: result.language,
           deep_scan: llmOutput || '',
-          nodes_scanned: result.metadata?.nodes_scanned || 0
+          nodes_scanned: result.metadata?.nodes_scanned || 0,
+          vulnerabilities: result.vulnerabilities || []
         })
       });
       if (!response.ok) throw new Error('Backend failed to generate PDF');
@@ -136,7 +147,7 @@ export default function Scanner() {
       link.remove();
     } catch (error) {
       console.error("Report Download Error:", error);
-      alert("Could not generate report. Check if Python backend is running on Port 5001.");
+      showError("Could not generate report. Check if the backend is running.");
     }
   };
 
@@ -155,14 +166,14 @@ export default function Scanner() {
     setResult({ status: 'loading' });
 
     try {
-      const token = localStorage.getItem('soteria_token');
+      const authToken = token;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code, filename: filename || undefined })
       });
 
       if (!response.ok) {
@@ -221,9 +232,9 @@ export default function Scanner() {
 
 
     try {
-      const token = localStorage.getItem('soteria_token');
+      const authToken = token;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
       const response = await fetch(`${API_BASE_URL}/deep-scan`, {
         method: 'POST',
@@ -302,7 +313,7 @@ export default function Scanner() {
   const hasResults = result.status === 'malicious' || result.status === 'clean';
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 py-8 px-6 overflow-x-hidden">
+    <div className="min-h-screen bg-black text-slate-200 py-8 px-6 overflow-x-hidden">
       <div className="max-w-[1600px] mx-auto">
 
         {/* HEADER — clean, minimal */}
@@ -323,6 +334,22 @@ export default function Scanner() {
             </div>
           </div>
         </motion.div>
+
+        {/* Inline error toast */}
+        <AnimatePresence>
+          {toastError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="mb-6 flex items-center gap-3 px-5 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm"
+            >
+              <ShieldX className="w-4 h-4 flex-shrink-0" />
+              {toastError}
+              <button onClick={() => setToastError(null)} className="ml-auto text-red-500/60 hover:text-red-400 transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid lg:grid-cols-12 gap-6 items-start">
 
@@ -389,6 +416,13 @@ export default function Scanner() {
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-6 space-y-4"
           >
+            <input
+              type="text"
+              value={filename}
+              onChange={e => setFilename(e.target.value)}
+              placeholder="filename (optional, e.g. main.go)"
+              className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-xs font-mono text-neutral-300 w-full mb-2 focus:outline-none focus:border-cyan-500"
+            />
             <CodeEditor
               code={code}
               setCode={setCode}
@@ -407,7 +441,7 @@ export default function Scanner() {
               size="lg"
               onClick={analyzeCode}
               disabled={!code.trim() || result.status === 'loading'}
-              className="w-full py-7 rounded-2xl bg-blue-600 hover:bg-blue-500 shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
+              className="w-full py-7 rounded-2xl bg-blue-800/80 hover:bg-blue-700/80 shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
             >
               {result.status === 'loading' ? (
                 <span className="flex items-center gap-2">
@@ -434,7 +468,7 @@ export default function Scanner() {
                     size="lg"
                     onClick={startDeepScan}
                     disabled={deepScanStatus === 'scanning'}
-                    className="w-full py-6 rounded-2xl bg-orange-600 hover:bg-orange-500 shadow-[4px_4px_0px_#7c2d12] hover:shadow-[2px_2px_0px_#7c2d12] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
+                    className="w-full py-6 rounded-2xl bg-orange-900/80 hover:bg-orange-800/80 shadow-[4px_4px_0px_#7c2d12] hover:shadow-[2px_2px_0px_#7c2d12] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
                   >
                     {deepScanStatus === 'scanning' ? (
                       <span className="flex items-center gap-2">
@@ -775,7 +809,7 @@ export default function Scanner() {
                     <div className="flex gap-2 mt-3">
                       <Button
                         onClick={applyFix}
-                        className="flex-1 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                        className="flex-1 py-5 rounded-xl bg-green-900/80 hover:bg-green-800/80 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
                         Apply Fix

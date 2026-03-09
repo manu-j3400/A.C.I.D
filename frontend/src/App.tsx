@@ -12,14 +12,12 @@ import LandingPage from './pages/LandingPage';
 import FeaturesPage from './pages/FeaturesPage';
 import HowItWorks from './pages/HowItWorks';
 import Changelog from './pages/Changelog';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
+import ForgotPassword from './pages/ForgotPassword';
 import GithubCallback from './pages/GithubCallback';
 import { AuthProvider } from './context/AuthContext';
-import { AdminProvider } from './context/AdminContext';
 import { GameProvider } from './context/GameContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -34,8 +32,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <>
+      <ThemeProvider>
       <AuthProvider>
-        <AdminProvider>
           <GameProvider>
             <Router>
               <Routes>
@@ -47,14 +45,7 @@ function App() {
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
-
-                {/* ADMIN ROUTES */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/dashboard" element={
-                  <AdminProtectedRoute>
-                    <AdminDashboard />
-                  </AdminProtectedRoute>
-                } />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
                 {/* PROTECTED ROUTES */}
                 <Route path="/dashboard" element={
@@ -75,11 +66,11 @@ function App() {
                 } />
 
                 <Route path="/engine" element={
-                  <AdminProtectedRoute>
+                  <ProtectedRoute>
                     <AuthenticatedLayout>
                       <NeuralEngine />
                     </AuthenticatedLayout>
-                  </AdminProtectedRoute>
+                  </ProtectedRoute>
                 } />
 
                 <Route path="/graph" element={
@@ -100,19 +91,13 @@ function App() {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/auth/github/callback" element={
-                  <ProtectedRoute>
-                    <AuthenticatedLayout>
-                      <GithubCallback />
-                    </AuthenticatedLayout>
-                  </ProtectedRoute>
-                } />
+                <Route path="/auth/github/callback" element={<GithubCallback />} />
 
               </Routes>
             </Router>
           </GameProvider>
-        </AdminProvider>
       </AuthProvider>
+      </ThemeProvider>
       <Analytics />
     </>
   );
