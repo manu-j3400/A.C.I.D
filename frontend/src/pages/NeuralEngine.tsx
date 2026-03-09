@@ -33,6 +33,7 @@ const ENGINE_META = [
         color: 'text-blue-400',
         bg: 'bg-blue-500/10 border-blue-500/20',
         desc: 'Random forest + gradient boosting over 52 AST features. Primary malware/clean classifier.',
+        offlineReason: 'Train the model using the button above to activate.',
     },
     {
         key: 'gcn' as const,
@@ -41,6 +42,7 @@ const ENGINE_META = [
         color: 'text-purple-400',
         bg: 'bg-purple-500/10 border-purple-500/20',
         desc: 'GATConv network over the code\'s control-flow graph. Catches structural obfuscation patterns.',
+        offlineReason: 'Requires GCN training pipeline to produce acidModel_gcn.pt.',
     },
     {
         key: 'entropy' as const,
@@ -49,6 +51,7 @@ const ENGINE_META = [
         color: 'text-cyan-400',
         bg: 'bg-cyan-500/10 border-cyan-500/20',
         desc: 'Shannon entropy per string/bytes literal. Flags encrypted payloads and base64-encoded shellcode.',
+        offlineReason: 'entropy_profiler dependency unavailable in this environment.',
     },
     {
         key: 'snn' as const,
@@ -57,6 +60,7 @@ const ENGINE_META = [
         color: 'text-yellow-400',
         bg: 'bg-yellow-500/10 border-yellow-500/20',
         desc: 'LIF neuron network profiling execution timing. Detects decryption loops and C2 beacon rhythms.',
+        offlineReason: 'Requires snn_baseline.pt — run the SNN bootstrap script to train.',
     },
 ];
 
@@ -149,9 +153,15 @@ export default function NeuralEngine() {
         }
     };
 
-    const activeEngineCount = modelStats.engines
-        ? Object.values(modelStats.engines).filter(Boolean).length
-        : 0;
+    // Infer sklearn from model status when engines field is absent (older API)
+    const resolvedEngines = {
+        sklearn: modelStats.engines?.sklearn ?? (modelStats.status === 'ready'),
+        gcn:     modelStats.engines?.gcn     ?? false,
+        entropy: modelStats.engines?.entropy ?? false,
+        snn:     modelStats.engines?.snn     ?? false,
+    };
+
+    const activeEngineCount = Object.values(resolvedEngines).filter(Boolean).length;
 
     const statusColor =
         modelStats.status === 'ready' ? 'text-green-400' :
@@ -192,8 +202,8 @@ export default function NeuralEngine() {
                 <div>
                     <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Detection Layers</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {ENGINE_META.map(({ key, label, icon: Icon, color, bg, desc }) => {
-                            const active = modelStats.engines?.[key] ?? false;
+                        {ENGINE_META.map(({ key, label, icon: Icon, color, bg, desc, offlineReason }) => {
+                            const active = resolvedEngines[key];
                             return (
                                 <motion.div
                                     key={key}
@@ -215,6 +225,9 @@ export default function NeuralEngine() {
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-neutral-400 leading-relaxed">{desc}</p>
+                                    {!active && (
+                                        <p className="text-[10px] text-neutral-600 mt-2 leading-relaxed italic">{offlineReason}</p>
+                                    )}
                                 </motion.div>
                             );
                         })}

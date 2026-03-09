@@ -2033,11 +2033,10 @@ def model_stats():
     else:
         stats['status'] = 'no_model'
 
-    # Active detection engines
-    gcn_ckpt = ROOT / 'backend' / 'ML_master' / 'acidModel_gcn.pt'
+    # Active detection engines — use runtime flags (not just file existence)
     stats['engines'] = {
-        'sklearn':  model is not None,
-        'gcn':      gcn_ckpt.exists(),
+        'sklearn':  model is not None or MODELPATH.exists(),
+        'gcn':      _GCN_ENABLED,
         'entropy':  ENTROPY_ENABLED,
         'snn':      SNN_ENABLED,
     }
