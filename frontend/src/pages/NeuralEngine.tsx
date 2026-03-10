@@ -293,7 +293,7 @@ export default function NeuralEngine() {
                                     </span>
                                 )}
                             </div>
-                            {!driftData || driftData.status === 'insufficient_data' ? (
+                            {!driftData || driftData.kl_divergence == null ? (
                                 <div className="text-sm text-neutral-400">
                                     Run Python code scans to populate drift tracking data.
                                     <span className="block text-[10px] text-neutral-500 mt-1">
