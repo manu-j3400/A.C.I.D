@@ -392,16 +392,19 @@ export default function NeuralEngine() {
                 </div>
 
                 {/* TERMINAL */}
-                <div className="h-[480px] bg-black rounded-3xl border border-neutral-800 p-1 overflow-hidden relative shadow-2xl">
-                    <div className="absolute top-4 left-5 z-10">
+                <div className="bg-black rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl">
+                    {/* Title bar */}
+                    <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800/60">
                         <span className="text-[10px] font-mono text-neutral-500 tracking-widest">TRAINING PIPELINE OUTPUT</span>
+                        <div className="flex gap-2">
+                            <div className={`w-3 h-3 rounded-full ${isTraining ? 'bg-green-500 animate-pulse' : 'bg-neutral-700'} border border-neutral-600`}></div>
+                            <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-700"></div>
+                            <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-700"></div>
+                        </div>
                     </div>
-                    <div className="absolute top-4 right-4 z-10 flex gap-2">
-                        <div className={`w-3 h-3 rounded-full ${isTraining ? 'bg-green-500 animate-pulse' : 'bg-neutral-700'} border border-neutral-600`}></div>
-                        <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-700"></div>
-                        <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-700"></div>
+                    <div className="h-[440px]">
+                        <TrainingTerminal logs={logs} />
                     </div>
-                    <TrainingTerminal logs={logs} />
                 </div>
 
             </div>
