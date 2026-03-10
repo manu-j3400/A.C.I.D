@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Component, ReactNode } from 'react';
 import Layout from './components/Layout';
 import DesktopHome from './pages/DesktopHome';
 import Scanner from './pages/Scanner';
@@ -21,6 +22,25 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import { Analytics } from '@vercel/analytics/react';
 
+class RouteErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-8">
+          <div className="max-w-lg text-center space-y-4">
+            <p className="text-xs font-mono text-red-400 uppercase tracking-widest">Page Error</p>
+            <p className="text-neutral-400 text-sm font-mono">{(this.state.error as Error).message}</p>
+            <button onClick={() => window.location.reload()} className="text-xs text-blue-400 underline">Reload</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <Layout>
@@ -36,6 +56,7 @@ function App() {
       <AuthProvider>
           <GameProvider>
             <Router>
+              <RouteErrorBoundary>
               <Routes>
                 {/* PUBLIC ROUTES */}
                 <Route path="/" element={<Navigate to="/home" replace />} />
@@ -94,6 +115,7 @@ function App() {
                 <Route path="/auth/github/callback" element={<GithubCallback />} />
 
               </Routes>
+              </RouteErrorBoundary>
             </Router>
           </GameProvider>
       </AuthProvider>
