@@ -71,9 +71,7 @@ function App() {
                 {/* PROTECTED ROUTES */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
-                    <AuthenticatedLayout>
-                      <DesktopHome />
-                    </AuthenticatedLayout>
+                    <DesktopHome />
                   </ProtectedRoute>
                 } />
 

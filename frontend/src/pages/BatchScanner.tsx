@@ -101,7 +101,8 @@ export default function BatchScanner() {
         // Store verifier for the callback — sessionStorage is tab-scoped
         sessionStorage.setItem('oauth_cv', codeVerifier);
 
-        const redirectUri = encodeURIComponent(`${window.location.origin}/auth/github/callback`);
+        const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+        const redirectUri = encodeURIComponent(`${siteUrl}/auth/github/callback`);
         window.location.href =
             `https://github.com/login/oauth/authorize` +
             `?client_id=Ov23li9feGBY4uoDs8du` +

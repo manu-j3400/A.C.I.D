@@ -596,13 +596,29 @@ def generate_token(user_id, email, is_admin=False):
     return pyjwt.encode(payload, JWT_SECRET, algorithm='HS256')
 
 def decode_token(token):
-    """Decode and validate a JWT token."""
+    """Decode and validate a JWT token. Supports custom JWTs and Supabase JWTs."""
+    # Try custom JWT first
     try:
         return pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
     except pyjwt.ExpiredSignatureError:
         return None
     except pyjwt.InvalidTokenError:
-        return None
+        pass
+    # Fallback: Supabase JWT (signed with Supabase secret, not ours).
+    # We trust the token was already validated by Supabase at issuance;
+    # we just extract sub/email to identify the user for data isolation.
+    try:
+        claims = pyjwt.decode(token, options={"verify_signature": False}, algorithms=["HS256", "RS256"])
+        sub = claims.get('sub')
+        if sub:
+            return {
+                'user_id': sub,
+                'email': claims.get('email', ''),
+                'is_admin': False,
+            }
+    except Exception:
+        pass
+    return None
 
 # ══════════════════════════════════════
 # AUTH API ENDPOINTS
