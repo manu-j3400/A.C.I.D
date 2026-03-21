@@ -22,8 +22,20 @@ backend/.env
 .DS_Store
 *.log
 
-# Local databases
+# IDE / editor configs
+.cursor/
+.idea/
+
+# Temporary generated files
+tmp-antigravity-skills/
+
+# Vercel CLI env file — contains OIDC tokens + Supabase keys, never commit
+frontend/.env.vercel
+.env.vercel
+
+# Local databases — contain real user scan data, never commit
 *.db
+middleware/scan_history.db
 
 # Automation task queue (runtime state)
 automation_queue.json

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/context/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Shield, Users, LogOut, UserPlus, Clock, Activity, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 interface UserRecord {
@@ -35,12 +36,13 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!adminToken) return;
 
-        const fetchUsers = fetch('/api/admin/users', {
+        const fetchUsers = fetch(`${API_BASE_URL}/api/admin/users`, {
             headers: { 'Authorization': `Bearer ${adminToken}` }
         }).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch users'));
 
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-        const fetchScans = fetch(`${baseUrl}/scan-history?limit=200`).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch scans'));
+        const fetchScans = fetch(`${API_BASE_URL}/scan-history?limit=200`, {
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+        }).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch scans'));
 
         Promise.all([fetchUsers, fetchScans])
             .then(([userData, scanData]) => {

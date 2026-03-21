@@ -1,0 +1,23 @@
+{
+  "name": "soteria-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing Soteria security scanning as tools for Ruflo agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "soteria-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
