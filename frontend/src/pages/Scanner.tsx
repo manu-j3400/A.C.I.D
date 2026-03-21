@@ -31,6 +31,116 @@ const SUPPORTED_EXTENSIONS = [
 ];
 const ACCEPT_STRING = SUPPORTED_EXTENSIONS.join(',');
 
+// --- LANGUAGE DETECTION ---
+
+/** Map every file extension to the Monaco language ID */
+const EXT_TO_MONACO: Record<string, string> = {
+  // Python
+  '.py': 'python', '.pyx': 'python', '.pxd': 'python',
+  // JavaScript
+  '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+  // TypeScript
+  '.ts': 'typescript', '.tsx': 'typescript',
+  // Go
+  '.go': 'go',
+  // Rust
+  '.rs': 'rust',
+  // Java
+  '.java': 'java',
+  // C / C++
+  '.c': 'c', '.h': 'c',
+  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp',
+  // C#
+  '.cs': 'csharp',
+  // PHP
+  '.php': 'php',
+  // Ruby
+  '.rb': 'ruby',
+  // Shell
+  '.sh': 'shell', '.bash': 'shell', '.zsh': 'shell',
+  // Kotlin
+  '.kt': 'kotlin', '.kts': 'kotlin',
+  // Swift
+  '.swift': 'swift',
+  // Scala
+  '.scala': 'scala',
+  // R
+  '.r': 'r',
+  // Lua
+  '.lua': 'lua',
+  // Perl
+  '.pl': 'perl', '.pm': 'perl',
+  // Misc
+  '.sql': 'sql', '.html': 'html', '.css': 'css',
+  '.json': 'json', '.yaml': 'yaml', '.yml': 'yaml', '.xml': 'xml',
+  '.md': 'markdown',
+};
+
+/** Normalize backend language names → Monaco language IDs */
+const BACKEND_TO_MONACO: Record<string, string> = {
+  python: 'python',
+  java: 'java',
+  javascript: 'javascript',
+  typescript: 'typescript',
+  c: 'c',
+  cpp: 'cpp',
+  'c++': 'cpp',
+  c_sharp: 'csharp',
+  'c#': 'csharp',
+  csharp: 'csharp',
+  go: 'go',
+  golang: 'go',
+  ruby: 'ruby',
+  php: 'php',
+  rust: 'rust',
+  kotlin: 'kotlin',
+  swift: 'swift',
+  scala: 'scala',
+  shell: 'shell',
+  bash: 'shell',
+  r: 'r',
+  lua: 'lua',
+  perl: 'perl',
+  sql: 'sql',
+};
+
+/** Code-pattern heuristics for when there's no filename */
+const CODE_PATTERNS: Array<[RegExp, string]> = [
+  [/^\s*package\s+\w+\s*\n.*import\s+"[\w/]+"/ms, 'go'],
+  [/\bfn\s+\w+\s*\(.*\)\s*(->|{)|\blet\s+mut\b|\buse\s+std::/m, 'rust'],
+  [/\bpub\s+(fn|struct|enum|impl)\b|\bprintln!\s*\(/m, 'rust'],
+  [/\bfun\s+\w+\s*\(|\bval\s+\w+|\bdata\s+class\b|\bsuspend\s+fun\b/m, 'kotlin'],
+  [/\bimport\s+(Foundation|UIKit|SwiftUI)\b|\bvar\s+body\s*:\s*some\s+View\b|@State\s+/m, 'swift'],
+  [/\bpublic\s+(class|interface|enum)\s+\w+|\bSystem\.out\.println\b|\bimport\s+java\./m, 'java'],
+  [/\busing\s+System;|\bnamespace\s+\w+|\bConsole\.Write(Line)?\s*\(/m, 'csharp'],
+  [/\bfrom\s+\w+\s+import\b|\bdef\s+\w+\s*\(|\bself\.\w+|\belif\b|\b__\w+__\b/m, 'python'],
+  [/\bconst\s+\w+\s*=\s*(require\s*\(|async\s*\()|\bexport\s+default\b|\bdocument\./m, 'javascript'],
+  [/\binterface\s+\w+\s*{|\btype\s+\w+\s*=\s*\{|\bReadonly<|<T>\s*:\s*\w+/m, 'typescript'],
+  [/\becho\s+["']|\bfunction\s+\w+\s*\(\)\s*{.*\$\w+|^\s*\$\w+=/ms, 'php'],
+  [/\bdef\s+\w+|\bputs\s+|\battr_(accessor|reader)\b|\.each\s+do\s*\|/m, 'ruby'],
+  [/^#!/m, 'shell'],  // shebang
+];
+
+/**
+ * Returns the Monaco language ID for the current editor state.
+ * Priority: post-scan result > file extension > code patterns > plaintext
+ */
+function detectEditorLang(backendLang: string | undefined, filename: string, code: string): string {
+  // 1. Use backend-detected language after a scan
+  if (backendLang) {
+    const normalized = BACKEND_TO_MONACO[backendLang.toLowerCase()];
+    if (normalized) return normalized;
+  }
+  // 2. Use file extension
+  const ext = filename.includes('.') ? '.' + filename.split('.').pop()!.toLowerCase() : '';
+  if (ext && EXT_TO_MONACO[ext]) return EXT_TO_MONACO[ext];
+  // 3. Code pattern heuristics
+  for (const [pattern, lang] of CODE_PATTERNS) {
+    if (pattern.test(code)) return lang;
+  }
+  return 'plaintext';
+}
+
 // --- TYPES ---
 interface VulnerabilityItem {
   line: number;
@@ -504,18 +614,7 @@ export default function Scanner() {
               <CodeEditor
                 code={code}
                 setCode={setCode}
-                language={
-                  result.language?.toLowerCase() ||
-                  (filename.endsWith('.ts') || filename.endsWith('.tsx') ? 'typescript' :
-                   filename.endsWith('.go') ? 'go' :
-                   filename.endsWith('.rs') ? 'rust' :
-                   filename.endsWith('.java') ? 'java' :
-                   filename.endsWith('.rb') ? 'ruby' :
-                   filename.endsWith('.php') ? 'php' :
-                   filename.endsWith('.cs') ? 'csharp' :
-                   code.includes('public class') ? 'java' :
-                   code.includes('function') ? 'javascript' : 'python')
-                }
+                language={detectEditorLang(result.language, filename, code)}
                 className="h-[540px] shadow-2xl shadow-blue-900/10"
                 vulnerabilities={result.vulnerabilities}
                 activeLine={activeLine}
