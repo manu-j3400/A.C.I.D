@@ -240,7 +240,7 @@ export default function BatchScanner() {
     };
 
     return (
-        <div className="p-10 max-w-6xl mx-auto space-y-8">
+        <div className="p-10 max-w-6xl mx-auto space-y-8 min-h-screen bg-[#08080c]">
 
             {/* Header */}
             <div>
@@ -263,7 +263,7 @@ export default function BatchScanner() {
 
             {/* GitHub Import */}
             {scanState === 'idle' && files.length === 0 && (
-                <div className="bg-neutral-950 border border-white/[0.08] p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 justify-between">
+                <div className="bg-white/[0.03] border border-white/[0.07] p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 justify-between">
                     <div>
                         <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
                             <Github className="w-5 h-5 text-neutral-400" />
@@ -321,7 +321,7 @@ export default function BatchScanner() {
                     onClick={() => inputRef.current?.click()}
                     className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-all ${dragActive
                         ? 'border-blue-500 bg-blue-500/5'
-                        : 'border-white/[0.08] bg-neutral-950/50 hover:border-white/[0.15] hover:bg-neutral-950'
+                        : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04]'
                         }`}
                 >
                     <input
@@ -360,7 +360,7 @@ export default function BatchScanner() {
                             </button>
                             <button
                                 onClick={runBatchScan}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+                                className="px-6 py-2.5 bg-white text-black text-sm font-bold rounded-xl transition-colors hover:bg-white/90 flex items-center gap-2"
                             >
                                 <Shield className="w-4 h-4" />
                                 Scan All Files
@@ -368,7 +368,7 @@ export default function BatchScanner() {
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/[0.06] bg-neutral-950 overflow-hidden divide-y divide-white/[0.04]">
+                    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden divide-y divide-white/[0.04]">
                         {files.map((file) => (
                             <div key={file.filename} className="px-5 py-3 flex items-center justify-between hover:bg-white/[0.02]">
                                 <div className="flex items-center gap-3">
@@ -402,22 +402,22 @@ export default function BatchScanner() {
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-5 rounded-2xl bg-neutral-950 border border-white/[0.06] text-center">
+                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
                             <div className={`text-4xl font-black mb-1 ${gradeColors[summary.project_grade]}`}>
                                 {summary.project_grade}
                             </div>
                             <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Project Grade</div>
                             <div className="text-xs text-neutral-500 mt-1">{summary.project_score}/100</div>
                         </div>
-                        <div className="p-5 rounded-2xl bg-neutral-950 border border-white/[0.06] text-center">
+                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
                             <div className="text-4xl font-black text-white mb-1">{summary.total_files}</div>
                             <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Files Scanned</div>
                         </div>
-                        <div className="p-5 rounded-2xl bg-neutral-950 border border-white/[0.06] text-center">
+                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
                             <div className="text-4xl font-black text-red-400 mb-1">{summary.threats}</div>
                             <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Threats Found</div>
                         </div>
-                        <div className="p-5 rounded-2xl bg-neutral-950 border border-white/[0.06] text-center">
+                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
                             <div className="text-4xl font-black text-green-400 mb-1">{summary.clean}</div>
                             <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Clean Files</div>
                         </div>
@@ -434,7 +434,7 @@ export default function BatchScanner() {
                                 ← New Batch Scan
                             </button>
                         </div>
-                        <div className="rounded-2xl border border-white/[0.06] bg-neutral-950 overflow-hidden">
+                        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-white/[0.06]">

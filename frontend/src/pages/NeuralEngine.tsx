@@ -173,7 +173,7 @@ export default function NeuralEngine() {
         <RefreshCw className="w-4 h-4 text-yellow-500 animate-spin" />;
 
     return (
-        <div className="min-h-screen bg-black text-neutral-200 py-12 px-6">
+        <div className="min-h-screen bg-[#08080c] text-neutral-200 py-12 px-6">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
@@ -190,7 +190,7 @@ export default function NeuralEngine() {
                             This page lets you retrain the ensemble and monitor model drift.
                         </p>
                     </div>
-                    <div className="flex-shrink-0 px-4 py-2 rounded-lg border border-neutral-800 flex items-center gap-3">
+                    <div className="flex-shrink-0 px-4 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03] flex items-center gap-3">
                         <FlaskConical className="w-4 h-4 text-cyan-500" />
                         <span className="text-xs font-mono text-neutral-400">
                             Active engines: <span className="text-white font-bold">{statsLoading ? '…' : activeEngineCount}/4</span>
@@ -209,7 +209,7 @@ export default function NeuralEngine() {
                                     key={key}
                                     initial={{ opacity: 0, y: 16 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className={`p-5 rounded-2xl border backdrop-blur-xl ${active ? bg : 'bg-neutral-900/50 border-neutral-800'}`}
+                                    className={`p-5 rounded-2xl border backdrop-blur-sm ${active ? bg : 'bg-white/[0.02] border-white/[0.07]'}`}
                                 >
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2">
@@ -219,7 +219,7 @@ export default function NeuralEngine() {
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                             active
                                                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                                : 'bg-neutral-800 text-neutral-600 border border-neutral-700'
+                                                : 'bg-white/[0.04] text-neutral-600 border border-white/[0.07]'
                                         }`}>
                                             {active ? 'LIVE' : 'OFFLINE'}
                                         </span>
@@ -241,7 +241,7 @@ export default function NeuralEngine() {
                     <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
 
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                            className="p-5 rounded-2xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl">
+                            className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] backdrop-blur-sm">
                             <div className="flex items-center gap-2 mb-3 text-neutral-400">
                                 <Activity className="w-4 h-4" />
                                 <span className="text-[10px] font-bold tracking-wider uppercase">Ensemble Status</span>
@@ -258,7 +258,7 @@ export default function NeuralEngine() {
                         </motion.div>
 
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                            className="p-5 rounded-2xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl">
+                            className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] backdrop-blur-sm">
                             <div className="flex items-center gap-2 mb-3 text-neutral-400">
                                 <Database className="w-4 h-4" />
                                 <span className="text-[10px] font-bold tracking-wider uppercase">Accuracy</span>
@@ -268,7 +268,7 @@ export default function NeuralEngine() {
                         </motion.div>
 
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                            className="p-5 rounded-2xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl">
+                            className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] backdrop-blur-sm">
                             <div className="flex items-center gap-2 mb-3 text-neutral-400">
                                 <Clock className="w-4 h-4" />
                                 <span className="text-[10px] font-bold tracking-wider uppercase">Last Trained</span>
@@ -282,7 +282,7 @@ export default function NeuralEngine() {
                             className={`p-5 rounded-2xl border backdrop-blur-xl col-span-2 md:col-span-3 ${
                                 driftData?.drift_alert
                                     ? 'bg-orange-950/30 border-orange-500/30'
-                                    : 'bg-neutral-900/50 border-neutral-800'
+                                    : 'bg-white/[0.03] border-white/[0.07]'
                             }`}>
                             <div className="flex items-center gap-2 mb-3 text-neutral-400">
                                 <Activity className="w-4 h-4" />
@@ -338,7 +338,7 @@ export default function NeuralEngine() {
                         <Button
                             onClick={startTraining}
                             disabled={isTraining}
-                            className="flex-1 min-h-[140px] rounded-2xl bg-cyan-900/80 hover:bg-cyan-800/80 text-white font-black text-lg tracking-tight transition-all border border-cyan-700/40 flex flex-col items-center justify-center gap-2"
+                            className="flex-1 min-h-[140px] rounded-2xl bg-white text-black hover:bg-white/90 font-black text-lg tracking-tight transition-all border border-white/20 flex flex-col items-center justify-center gap-2"
                         >
                             {isTraining ? (
                                 <>
@@ -371,7 +371,7 @@ export default function NeuralEngine() {
                             </div>
                         )}
 
-                        <div className="p-4 rounded-2xl bg-neutral-950 border border-neutral-800">
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
                             <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">What retraining does</p>
                             <ul className="space-y-1">
                                 {[
@@ -392,9 +392,9 @@ export default function NeuralEngine() {
                 </div>
 
                 {/* TERMINAL */}
-                <div className="bg-black rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl">
+                <div className="bg-black/60 rounded-3xl border border-white/[0.07] overflow-hidden shadow-2xl">
                     {/* Title bar */}
-                    <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800/60">
+                    <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
                         <span className="text-[10px] font-mono text-neutral-500 tracking-widest">TRAINING PIPELINE OUTPUT</span>
                         <div className="flex gap-2">
                             <div className={`w-3 h-3 rounded-full ${isTraining ? 'bg-green-500 animate-pulse' : 'bg-neutral-700'} border border-neutral-600`}></div>

@@ -365,7 +365,7 @@ export default function Scanner() {
   const hasResults = result.status === 'malicious' || result.status === 'clean';
 
   return (
-    <div className="min-h-screen bg-black text-slate-200 py-8 px-6 overflow-x-hidden">
+    <div className="min-h-screen bg-[#08080c] text-slate-200 py-8 px-6 overflow-x-hidden">
       <div className="max-w-[1600px] mx-auto">
 
         {/* HEADER — clean, minimal */}
@@ -411,7 +411,7 @@ export default function Scanner() {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-2 h-[680px] sticky top-6"
           >
-            <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-4 h-full flex flex-col backdrop-blur-xl">
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4 h-full flex flex-col backdrop-blur-sm">
               <div className="flex items-center justify-between mb-4 px-1">
                 <h3 className="text-[9px] font-black text-slate-600 tracking-[0.15em] uppercase">History</h3>
                 {history.length > 0 && (
@@ -442,7 +442,7 @@ export default function Scanner() {
                         exit={{ opacity: 0, scale: 0.95 }}
                         key={item.id}
                         onClick={() => setCode(item.fullCode)}
-                        className="group p-3 bg-slate-950/40 border border-slate-800/40 rounded-xl hover:border-blue-500/30 transition-all cursor-pointer hover:bg-slate-900/30"
+                        className="group p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:border-white/[0.12] hover:bg-white/[0.04] transition-all cursor-pointer"
                       >
                         <div className="flex justify-between items-center mb-1.5">
                           <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded tracking-widest ${item.riskLevel === 'CRITICAL' ? 'bg-red-500 text-white' :
@@ -475,12 +475,12 @@ export default function Scanner() {
                 value={filename}
                 onChange={e => setFilename(e.target.value)}
                 placeholder="filename (optional, e.g. main.go)"
-                className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-xs font-mono text-neutral-300 focus:outline-none focus:border-cyan-500"
+                className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-2 text-xs font-mono text-neutral-300 focus:outline-none focus:border-white/20"
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 title="Upload a code file"
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-neutral-400 bg-neutral-900 border border-neutral-700 rounded-lg hover:border-cyan-500/50 hover:text-cyan-400 transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-neutral-400 bg-white/[0.03] border border-white/[0.07] rounded-lg hover:border-white/20 hover:text-white transition-all"
               >
                 <Upload className="w-3.5 h-3.5" />
                 Upload
@@ -540,7 +540,7 @@ export default function Scanner() {
               size="lg"
               onClick={analyzeCode}
               disabled={!code.trim() || result.status === 'loading'}
-              className="w-full py-7 rounded-2xl bg-blue-800/80 hover:bg-blue-700/80 shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
+              className="w-full py-7 rounded-2xl bg-white text-black hover:bg-white/90 transition-all text-sm font-bold tracking-wide"
             >
               {result.status === 'loading' ? (
                 <span className="flex items-center gap-2">
@@ -567,7 +567,7 @@ export default function Scanner() {
                     size="lg"
                     onClick={startDeepScan}
                     disabled={deepScanStatus === 'scanning'}
-                    className="w-full py-6 rounded-2xl bg-orange-900/80 hover:bg-orange-800/80 shadow-[4px_4px_0px_#7c2d12] hover:shadow-[2px_2px_0px_#7c2d12] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm font-bold tracking-wide"
+                    className="w-full py-6 rounded-2xl bg-white/[0.08] border border-white/[0.10] hover:bg-white/[0.12] transition-all text-sm font-bold tracking-wide"
                   >
                     {deepScanStatus === 'scanning' ? (
                       <span className="flex items-center gap-2">
@@ -598,11 +598,11 @@ export default function Scanner() {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-4 h-[680px]"
           >
-            <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-5 h-full flex flex-col backdrop-blur-xl relative overflow-hidden">
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 h-full flex flex-col backdrop-blur-sm relative overflow-hidden">
 
               {/* Tab Switcher */}
               {hasResults && (
-                <div className="flex gap-1 mb-4 p-1 bg-slate-950/60 rounded-xl">
+                <div className="flex gap-1 mb-4 p-1 bg-black/40 rounded-xl">
                   {([
                     { key: 'verdict', label: 'Verdict', icon: <ShieldCheck className="w-3 h-3" /> },
                     { key: 'analysis', label: 'Analysis', icon: <Brain className="w-3 h-3" />, disabled: deepScanStatus === 'idle' },
@@ -613,7 +613,7 @@ export default function Scanner() {
                       onClick={() => !tab.disabled && setActiveTab(tab.key)}
                       disabled={tab.disabled}
                       className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${activeTab === tab.key
-                        ? 'bg-slate-800 text-white shadow-lg'
+                        ? 'bg-white/[0.10] border border-white/[0.12] text-white shadow-lg'
                         : tab.disabled
                           ? 'text-slate-700 cursor-not-allowed'
                           : 'text-slate-500 hover:text-slate-300'
@@ -649,7 +649,7 @@ export default function Scanner() {
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                           className="text-center"
                         >
-                          <div className="w-16 h-16 rounded-full border-2 border-slate-800 border-t-blue-500 animate-spin mx-auto mb-6" />
+                          <div className="w-16 h-16 rounded-full border-2 border-white/[0.07] border-t-white/60 animate-spin mx-auto mb-6" />
                           <p className="text-blue-400 text-[9px] font-bold tracking-widest animate-pulse">Analyzing...</p>
                         </motion.div>
                       )}
@@ -696,7 +696,7 @@ export default function Scanner() {
                                 <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest">Confidence</span>
                                 <span className="text-[9px] font-bold text-white">{result.confidence}%</span>
                               </div>
-                              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                              <div className="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${result.confidence}%` }}
@@ -707,7 +707,7 @@ export default function Scanner() {
                             </div>
                           )}
 
-                          <p className="text-slate-400 text-xs leading-relaxed mb-4 font-mono px-3 border-l-2 border-slate-800 h-10 overflow-y-auto text-left">
+                          <p className="text-slate-400 text-xs leading-relaxed mb-4 font-mono px-3 border-l-2 border-white/[0.07] h-10 overflow-y-auto text-left">
                             {result.message && <TypewriterText text={result.message} />}
                           </p>
 
@@ -718,10 +718,7 @@ export default function Scanner() {
                           <div className="flex gap-2">
                             <Button
                               onClick={handleDownloadReport}
-                              className={`flex-1 py-5 rounded-xl font-bold transition-all uppercase tracking-widest text-[9px] bg-slate-800 border-2 border-slate-600 shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] ${result.status === 'malicious'
-                                ? 'hover:bg-red-600 hover:border-red-500 text-white'
-                                : 'hover:bg-slate-700 text-white'
-                                }`}
+                              className={`flex-1 py-5 rounded-xl font-bold transition-all uppercase tracking-widest text-[9px] bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] text-white`}
                             >
                               <Download className="w-3 h-3 mr-1.5" /> Export
                             </Button>
@@ -869,7 +866,7 @@ export default function Scanner() {
                       )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto rounded-xl bg-slate-950/60 border border-slate-800/40 p-4">
+                    <div className="flex-1 overflow-y-auto rounded-xl bg-black/40 border border-white/[0.07] p-4">
                       <pre className="whitespace-pre-wrap text-[11px] text-slate-300 font-mono leading-relaxed">
                         {llmOutput || (deepScanStatus === 'scanning' ? 'Waiting for AI response...' : '')}
                         {deepScanStatus === 'scanning' && (
@@ -881,7 +878,7 @@ export default function Scanner() {
                     {deepScanStatus === 'done' && fixedCode && (
                       <Button
                         onClick={() => setActiveTab('fix')}
-                        className="mt-3 py-5 rounded-xl bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                        className="mt-3 py-5 rounded-xl bg-white/[0.08] border border-white/[0.10] hover:bg-white/[0.12] font-bold uppercase tracking-widest text-[10px] transition-all"
                       >
                         <Code2 className="w-3.5 h-3.5 mr-2" />
                         View Fixed Code
@@ -899,7 +896,7 @@ export default function Scanner() {
                       <span className="text-[9px] font-bold text-green-400 uppercase tracking-widest">Suggested Fix</span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto rounded-xl bg-slate-950/60 border border-green-500/10 p-4">
+                    <div className="flex-1 overflow-y-auto rounded-xl bg-black/40 border border-green-500/10 p-4">
                       <pre className="text-[11px] text-green-300 font-mono leading-relaxed whitespace-pre-wrap">
                         {fixedCode}
                       </pre>
@@ -908,7 +905,7 @@ export default function Scanner() {
                     <div className="flex gap-2 mt-3">
                       <Button
                         onClick={applyFix}
-                        className="flex-1 py-5 rounded-xl bg-green-900/80 hover:bg-green-800/80 font-bold uppercase tracking-widest text-[10px] shadow-[4px_4px_0px_#14532d] hover:shadow-[2px_2px_0px_#14532d] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                        className="flex-1 py-5 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 font-bold uppercase tracking-widest text-[10px] transition-all text-green-400"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
                         Apply Fix
@@ -919,7 +916,7 @@ export default function Scanner() {
                           setIsCopied(true);
                           setTimeout(() => setIsCopied(false), 2000);
                         }}
-                        className="py-5 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-xs shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                        className="py-5 rounded-xl border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] font-bold text-xs transition-all"
                       >
                         {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                       </Button>
