@@ -1,13 +1,35 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import CodeEditor from '@/components/CodeEditor';
-import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, Sparkles, Globe, Cpu, Brain, Zap, CheckCircle2, Copy, ArrowRight, X } from 'lucide-react';
+import { ShieldX, ShieldCheck, AlertTriangle, Download, History, Trash2, Code2, Sparkles, Globe, Cpu, Brain, Zap, CheckCircle2, Copy, ArrowRight, X, Upload, FileCode } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { Flame } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
+
+// Supported code file extensions
+const SUPPORTED_EXTENSIONS = [
+  '.py','.pyx','.pxd',                        // Python
+  '.js','.jsx','.mjs','.cjs',                 // JavaScript
+  '.ts','.tsx',                                // TypeScript
+  '.go',                                       // Go
+  '.rs',                                       // Rust
+  '.java',                                     // Java
+  '.c','.cpp','.cc','.cxx','.h','.hpp',       // C/C++
+  '.cs',                                       // C#
+  '.php',                                      // PHP
+  '.rb',                                       // Ruby
+  '.sh','.bash','.zsh',                        // Shell
+  '.kt','.kts',                                // Kotlin
+  '.swift',                                    // Swift
+  '.scala',                                    // Scala
+  '.r',                                        // R
+  '.lua',                                      // Lua
+  '.pl','.pm',                                 // Perl
+];
+const ACCEPT_STRING = SUPPORTED_EXTENSIONS.join(',');
 
 // --- TYPES ---
 interface VulnerabilityItem {
@@ -106,6 +128,36 @@ export default function Scanner() {
   };
 
   const [filename, setFilename] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadFile = useCallback((file: File) => {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+      showError(`Unsupported file type: ${ext}. Supported: ${SUPPORTED_EXTENSIONS.join(', ')}`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      setCode(e.target?.result as string ?? '');
+      setFilename(file.name);
+      setResult({ status: 'waiting' });
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const handleFileDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  }, [loadFile]);
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) loadFile(file);
+    e.target.value = '';
+  };
 
   const { xp, addXp } = useGame();
 
@@ -416,26 +468,73 @@ export default function Scanner() {
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-6 space-y-4"
           >
-            <input
-              type="text"
-              value={filename}
-              onChange={e => setFilename(e.target.value)}
-              placeholder="filename (optional, e.g. main.go)"
-              className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-xs font-mono text-neutral-300 w-full mb-2 focus:outline-none focus:border-cyan-500"
-            />
-            <CodeEditor
-              code={code}
-              setCode={setCode}
-              language={
-                result.language?.toLowerCase() ||
-                (code.includes('import ') ? 'python' :
-                  code.includes('public class') ? 'java' :
-                    code.includes('function') ? 'javascript' : 'python')
-              }
-              className="h-[540px] shadow-2xl shadow-blue-900/10"
-              vulnerabilities={result.vulnerabilities}
-              activeLine={activeLine}
-            />
+            {/* Filename row + upload button */}
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={filename}
+                onChange={e => setFilename(e.target.value)}
+                placeholder="filename (optional, e.g. main.go)"
+                className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-xs font-mono text-neutral-300 focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload a code file"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-neutral-400 bg-neutral-900 border border-neutral-700 rounded-lg hover:border-cyan-500/50 hover:text-cyan-400 transition-all"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPT_STRING}
+                onChange={handleFileInput}
+                className="hidden"
+              />
+            </div>
+
+            {/* Editor with drag-and-drop overlay */}
+            <div
+              className="relative"
+              onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleFileDrop}
+            >
+              <CodeEditor
+                code={code}
+                setCode={setCode}
+                language={
+                  result.language?.toLowerCase() ||
+                  (filename.endsWith('.ts') || filename.endsWith('.tsx') ? 'typescript' :
+                   filename.endsWith('.go') ? 'go' :
+                   filename.endsWith('.rs') ? 'rust' :
+                   filename.endsWith('.java') ? 'java' :
+                   filename.endsWith('.rb') ? 'ruby' :
+                   filename.endsWith('.php') ? 'php' :
+                   filename.endsWith('.cs') ? 'csharp' :
+                   code.includes('public class') ? 'java' :
+                   code.includes('function') ? 'javascript' : 'python')
+                }
+                className="h-[540px] shadow-2xl shadow-blue-900/10"
+                vulnerabilities={result.vulnerabilities}
+                activeLine={activeLine}
+              />
+
+              {/* Drag overlay */}
+              <AnimatePresence>
+                {isDragging && (
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 rounded-xl border-2 border-dashed border-cyan-500/70 bg-cyan-500/5 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-10 pointer-events-none"
+                  >
+                    <FileCode className="w-10 h-10 text-cyan-400" />
+                    <p className="text-sm font-semibold text-cyan-400">Drop file to load</p>
+                    <p className="text-xs text-cyan-600">{SUPPORTED_EXTENSIONS.slice(0, 8).join('  ')} + more</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <Button
               size="lg"
