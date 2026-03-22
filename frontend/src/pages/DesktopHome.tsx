@@ -251,7 +251,7 @@ export default function DesktopHome() {
             </AnimatePresence>
 
             {/* ══ MAIN CONTENT ════════════════════════════════════════════════ */}
-            <main className="relative z-10 flex-1 p-6 grid grid-cols-12 gap-4 auto-rows-min">
+            <main className="relative z-10 flex-1 p-4 sm:p-6 grid grid-cols-12 gap-4 auto-rows-min">
 
                 {/* ── Security Score card ── */}
                 <Card className="col-span-12 md:col-span-4 p-6 flex flex-col gap-5">
@@ -283,16 +283,20 @@ export default function DesktopHome() {
                                 <div key={label}>
                                     <div className="flex justify-between items-center mb-1">
                                         <span className="text-[11px] text-neutral-500">{label}</span>
-                                        <span className="text-sm font-bold" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>
-                                            {loading ? '—' : value}
-                                        </span>
+                                        {loading
+                                            ? <div className="h-3 w-6 rounded bg-white/[0.07] animate-pulse" />
+                                            : <span className="text-sm font-bold" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>{value}</span>
+                                        }
                                     </div>
                                     <div className="h-0.5 rounded-full bg-white/[0.05] overflow-hidden">
-                                        <motion.div className="h-full rounded-full"
-                                            style={{ background: color }}
-                                            initial={{ width: 0 }}
-                                            animate={{ width: scoreData?.total_scans ? `${(value / scoreData.total_scans) * 100}%` : '0%' }}
-                                            transition={{ duration: 1, ease: 'easeOut' }} />
+                                        {loading
+                                            ? <div className="h-full rounded-full bg-white/[0.07] animate-pulse w-1/2" />
+                                            : <motion.div className="h-full rounded-full"
+                                                style={{ background: color }}
+                                                initial={{ width: 0 }}
+                                                animate={{ width: scoreData?.total_scans ? `${(value / scoreData.total_scans) * 100}%` : '0%' }}
+                                                transition={{ duration: 1, ease: 'easeOut' }} />
+                                        }
                                     </div>
                                 </div>
                             ))}
@@ -313,7 +317,7 @@ export default function DesktopHome() {
                 </Card>
 
                 {/* ── Stats column ── */}
-                <div className="col-span-12 md:col-span-4 grid grid-rows-3 gap-4">
+                <div className="col-span-12 md:col-span-4 grid sm:grid-cols-3 md:grid-cols-1 md:grid-rows-3 gap-4">
 
                     {/* Clean Rate */}
                     <Card className="p-5 flex flex-col justify-between">
@@ -322,14 +326,18 @@ export default function DesktopHome() {
                             <Spark data={scoreData?.daily_trend?.map(d => d.total > 0 ? ((d.total - d.threats) / d.total) * 100 : 0) ?? []} color="#22c55e" />
                         </div>
                         <div className="flex items-end gap-3">
-                            <span className="text-3xl font-black" style={{ color: '#22c55e', fontFamily: "'IBM Plex Mono', monospace" }}>
-                                {loading ? '—' : `${cleanRate}%`}
-                            </span>
+                            {loading
+                                ? <div className="h-9 w-16 rounded-lg bg-white/[0.07] animate-pulse" />
+                                : <span className="text-3xl font-black" style={{ color: '#22c55e', fontFamily: "'IBM Plex Mono', monospace" }}>{cleanRate}%</span>
+                            }
                             <div className="mb-1 flex-1">
                                 <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-                                    <motion.div className="h-full rounded-full bg-emerald-500"
-                                        initial={{ width: 0 }} animate={{ width: `${cleanRate}%` }}
-                                        transition={{ duration: 1.2, ease: 'easeOut' }} />
+                                    {loading
+                                        ? <div className="h-full rounded-full bg-white/[0.07] animate-pulse w-2/3" />
+                                        : <motion.div className="h-full rounded-full bg-emerald-500"
+                                            initial={{ width: 0 }} animate={{ width: `${cleanRate}%` }}
+                                            transition={{ duration: 1.2, ease: 'easeOut' }} />
+                                    }
                                 </div>
                                 <p className="text-[10px] text-neutral-600 mt-1">of scans returned clean</p>
                             </div>
@@ -353,18 +361,25 @@ export default function DesktopHome() {
                     <Card className="p-5">
                         <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-3">Languages</p>
                         <div className="flex flex-wrap gap-1.5">
-                            {scoreData && Object.entries(scoreData.languages).slice(0, 8).map(([lang, count]) => (
-                                <span key={lang} className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-neutral-300">
-                                    {lang} <span className="text-neutral-600">{count}</span>
-                                </span>
-                            ))}
-                            {!scoreData && <span className="text-xs text-neutral-700">Scan code to populate</span>}
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <div key={i} className="h-5 rounded-lg bg-white/[0.07] animate-pulse" style={{ width: `${48 + i * 12}px` }} />
+                                ))
+                            ) : scoreData && Object.keys(scoreData.languages).length > 0 ? (
+                                Object.entries(scoreData.languages).slice(0, 8).map(([lang, count]) => (
+                                    <span key={lang} className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-neutral-300">
+                                        {lang} <span className="text-neutral-600">{count}</span>
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="text-xs text-neutral-700">Scan code to populate</span>
+                            )}
                         </div>
                     </Card>
                 </div>
 
                 {/* ── Live Feed ── */}
-                <Card className="col-span-12 md:col-span-4 flex flex-col overflow-hidden" style={{ maxHeight: 420 }}>
+                <Card className="col-span-12 md:col-span-4 flex flex-col overflow-hidden" style={{ maxHeight: 'min(420px, 80vw)' }}>
                     <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
                         <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -484,7 +499,7 @@ export default function DesktopHome() {
                     { to: '/engine',  icon: Brain,     label: 'Model Lab',      desc: 'View engine health + metrics',   color: '#06b6d4', bg: '#06b6d418' },
                 ].map(({ to, icon: Icon, label, desc, color, bg }) => (
                     <Card key={to} onClick={() => navigate(to)}
-                        className="col-span-12 md:col-span-4 p-5 flex items-center gap-4">
+                        className="col-span-12 sm:col-span-6 md:col-span-4 p-5 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
                             <Icon className="w-5 h-5" style={{ color }} />
                         </div>

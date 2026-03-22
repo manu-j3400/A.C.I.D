@@ -6,6 +6,7 @@ import {
     GitCommit,
     Terminal,
     Brain,
+    Sparkles,
 } from 'lucide-react';
 import PublicNavbar from '@/components/PublicNavbar';
 import { Link } from 'react-router-dom';
@@ -25,13 +26,39 @@ interface Release {
 
 const RELEASES: Release[] = [
     {
+        version: 'v2.5.0',
+        date: 'March 22, 2026',
+        title: 'Dashboard Redesign, UX Polish & Ruflo MCP Integration',
+        icon: Sparkles,
+        iconColor: 'text-violet-400',
+        iconBg: 'bg-violet-400/10',
+        badge: 'Latest',
+        badgeColor: 'bg-violet-400/10 text-violet-400 border-violet-400/20',
+        description: 'Complete visual overhaul of the authenticated experience — new immersive card-grid dashboard, unified design system across all pages, multi-language code editor, and the Ruflo MCP server for AI agent orchestration of security workflows.',
+        features: [
+            'Rebuilt the dashboard from a 3-column radar layout into a full-screen immersive card grid: ScoreArc SVG, IBM Plex Mono data values, animated progress bars, sparklines, and a live scan feed with compare/export.',
+            'Replaced the sidebar navigation with a top nav bar; consistent font, active-state pill, and inline Overview/Scanner/Batch/Model Lab links across all authenticated pages.',
+            'Unified Scanner, Batch Scanner, and Model Lab pages to the new design system (bg-white/[0.03] cards, bg-[#08080c] backgrounds, clean white action buttons).',
+            'Added file upload + drag-and-drop to the Code Reviewer — 30+ extensions accepted (.py, .go, .rs, .ts, .java, .c, .cpp, .cs, .sh, .kt, .swift, .scala, .lua, .pl, .r, and more).',
+            'Fixed multi-language syntax highlighting in the Monaco editor: full EXT_TO_MONACO map (30+ extensions), BACKEND_TO_MONACO normalization (c_sharp→csharp, golang→go, c++→cpp), and 12 regex code-pattern heuristics for language detection without a filename.',
+            'Built the Ruflo MCP server (engines/ruflo/soteria-mcp): TypeScript MCP exposing soteria_scan, soteria_batch_scan, soteria_security_score, soteria_scan_history as agent tools for Claude/Ruflo orchestration.',
+            'Added PR Reviewer agent (engines/ruflo/agents/pr-reviewer): triage → scan → analyze → remediate → report workflow with PASS/WARN/BLOCK verdicts.',
+            'Fixed Supabase JWT compatibility: decode_token() now falls back to no-verify decode extracting sub as user_id, so scans are correctly attributed to Supabase-authenticated users.',
+            'Fixed dashboard not refreshing after scans: added location.key to the useEffect dependency array so data re-fetches on every navigation.',
+            'Fixed GitHub and Google OAuth redirecting to localhost in production: OAuth flows now use VITE_SITE_URL env var with window.location.origin fallback.',
+            'Added card-shaped loading skeletons across the dashboard (Score arc, stat bars, clean rate fill, language pills) replacing raw — dashes.',
+            'Improved mobile layout: stats column stacks to 3-col grid on sm screens, quick-nav cards are 2-col on sm, main padding and live feed height are responsive.',
+            'Security audit: removed frontend/.env.vercel (contained live OIDC token + Supabase anon key) and scan_history.db (real user data) from git tracking; both added to .gitignore.',
+        ]
+    },
+    {
         version: 'v2.4.0',
         date: 'March 9, 2026',
         title: 'Kyber ML Engine Suite & Auth Overhaul',
         icon: Brain,
         iconColor: 'text-cyan-400',
         iconBg: 'bg-cyan-400/10',
-        badge: 'Latest',
+        badge: 'Stable',
         badgeColor: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20',
         description: 'Launched four independent detection engines under the Kyber architecture, each analysing a different dimension of code behaviour. Simultaneously overhauled the auth flow, removed admin-only barriers, and redesigned the Model Lab to surface live engine status.',
         features: [
