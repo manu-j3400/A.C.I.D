@@ -6,14 +6,16 @@
 // with a cache-thrashing side-channel attack is detected.
 
 mod anomaly;
+mod calibration;
 mod fft;
 mod telemetry;
 
 use anomaly::{AnomalyAlert, AnomalyConfig, SideChannelDetector};
 use anyhow::Result;
+use calibration::{CalibrationConfig, calibrate};
 use clap::Parser;
 use telemetry::GpuPoller;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -56,6 +58,26 @@ struct Cli {
     /// Minimum frequency (Hz) to monitor. Below this is thermal noise.
     #[arg(long, default_value_t = 10.0)]
     min_freq: f32,
+
+    /// Run adaptive noise-floor calibration at startup (recommended).
+    #[arg(long, default_value_t = true)]
+    calibrate: bool,
+
+    /// Skip calibration and use the static --threshold / --flatness values.
+    #[arg(long)]
+    no_calibrate: bool,
+
+    /// Calibration observation window in seconds.
+    #[arg(long, default_value_t = 30)]
+    cal_secs: u64,
+
+    /// Sigma multiplier for calibrated threshold (mean + k*std).
+    #[arg(long, default_value_t = 5.0)]
+    cal_k_sigma: f32,
+
+    /// Optional path to write the calibration report JSON.
+    #[arg(long)]
+    cal_report: Option<String>,
 
     /// Optional webhook URL to POST JSON alerts to.
     #[cfg(feature = "webhook")]
@@ -105,6 +127,23 @@ async fn main() -> Result<()> {
         min_suspicious_freq_hz:       cli.min_freq,
         ..Default::default()
     };
+    // Adaptive noise-floor calibration (skip with --no-calibrate).
+    if cli.calibrate && !cli.no_calibrate {
+        let cal_cfg = CalibrationConfig {
+            observation_secs: cli.cal_secs,
+            k_sigma:          cli.cal_k_sigma,
+            report_path:      cli.cal_report.clone(),
+            ..Default::default()
+        };
+        match calibrate(cli.device, &poller, &mut config, &cal_cfg) {
+            Ok(report) => info!(
+                calibrated_threshold = report.calibrated_threshold,
+                calibrated_flatness  = report.calibrated_flatness_threshold,
+                "Adaptive calibration complete"
+            ),
+            Err(e) => warn!(error = %e, "Calibration failed — using static threshold"),
+        }
+    }
     let mut detector = SideChannelDetector::new(config);
 
     info!(

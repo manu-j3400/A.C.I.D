@@ -9,6 +9,7 @@
 //   6. On SIGINT/SIGTERM: cleanly detach all probes and exit
 
 mod maps;
+mod hotreload;
 
 // The typed skeleton is generated at build time by libbpf-cargo.
 // It lives at src/bpf/probe.skel.rs and is included verbatim.
@@ -103,6 +104,16 @@ fn main() -> Result<()> {
     }
     info!(entries = policy.len(), "Policy loaded. Default-deny posture active.");
 
+    // Populate IP/port allowlist (if rules are defined in policy).
+    {
+        let mut bpf_maps = skel.maps_mut();
+        maps::populate_ip_port_allowlist(
+            bpf_maps.ip_port_allowlist(),
+            bpf_maps.ip_port_count(),
+            &policy,
+        )?;
+    }
+
     // Graceful shutdown on SIGINT / SIGTERM.
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
@@ -111,6 +122,10 @@ fn main() -> Result<()> {
         r.store(false, Ordering::SeqCst);
     })
     .context("Failed to register signal handler")?;
+
+    // Spawn inotify hot-reload watcher.
+    let reload_rx = hotreload::spawn_policy_watcher(cli.policy.clone(), running.clone())
+        .context("Failed to start policy hot-reload watcher")?;
 
     // Build the ring buffer consumer.
     let mut rb_builder = RingBufferBuilder::new();
@@ -124,6 +139,19 @@ fn main() -> Result<()> {
     while running.load(Ordering::SeqCst) {
         ring.poll(std::time::Duration::from_millis(cli.poll_ms))
             .context("Ring buffer poll failed")?;
+
+        // Drain any pending hot-reload events.
+        while let Ok(event) = reload_rx.try_recv() {
+            let mut bpf_maps = skel.maps_mut();
+            if let Err(e) = hotreload::apply_policy_reload(bpf_maps.pid_policy_map(), &event.new_policy) {
+                warn!(error = %e, "Failed to apply hot-reloaded PID policy");
+            }
+            if let Err(e) = maps::clear_ip_port_allowlist(bpf_maps.ip_port_allowlist(), bpf_maps.ip_port_count()) {
+                warn!(error = %e, "Failed to clear old IP/port allowlist");
+            } else if let Err(e) = maps::populate_ip_port_allowlist(bpf_maps.ip_port_allowlist(), bpf_maps.ip_port_count(), &event.new_policy) {
+                warn!(error = %e, "Failed to reload IP/port allowlist");
+            }
+        }
     }
 
     info!("Sentinel shut down. All BPF programs detached.");

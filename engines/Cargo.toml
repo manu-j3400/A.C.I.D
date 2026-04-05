@@ -1,5 +1,5 @@
 [workspace]
-members  = ["kernel/loader", "hardware/sentinel"]
+members  = ["kernel/loader", "hardware/sentinel", "agentshield"]
 resolver = "2"
 
 [workspace.dependencies]

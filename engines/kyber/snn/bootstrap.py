@@ -34,8 +34,11 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import os
 import random
 import sys
+import tempfile
+import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -132,13 +135,46 @@ def bootstrap_from_csv(
     )
     rng.shuffle(all_samples)   # interleave classes for stable stats
 
+    # Per-sample execution limits:
+    #   - stdin redirected to empty StringIO (prevents input() blocking)
+    #   - 5-second wall-clock timeout per sample (daemon thread abandoned on timeout)
+    #   - cwd changed to a throwaway temp dir so file-system ops in malware
+    #     samples cannot affect the project directory
+    _SAMPLE_TIMEOUT_S = 5
+
+    _orig_cwd   = os.getcwd()
+    _safe_dir   = tempfile.mkdtemp(prefix="soteria_bootstrap_")
+    _orig_stdin = sys.stdin
+
     for code, label in all_samples:
-        try:
-            profiler.record_baseline(code, label=label)
-        except Exception as e:
+        sys.stdin = io.StringIO('')
+        os.chdir(_safe_dir)
+
+        result_exc: List[Optional[Exception]] = [None]
+
+        def _run(c: str = code, l: float = label) -> None:
+            try:
+                profiler.record_baseline(c, label=l)
+            except Exception as exc:
+                result_exc[0] = exc
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join(timeout=_SAMPLE_TIMEOUT_S)
+
+        # Restore cwd and stdin regardless of outcome.
+        os.chdir(_orig_cwd)
+        sys.stdin = _orig_stdin
+
+        if t.is_alive():
             n_failed += 1
             if verbose and n_failed <= 5:
-                print(f"[Bootstrap] record_baseline error (showing first 5): {e}")
+                print(f"[Bootstrap] record_baseline timeout >{_SAMPLE_TIMEOUT_S}s (showing first 5)")
+        elif result_exc[0] is not None:
+            n_failed += 1
+            if verbose and n_failed <= 5:
+                print(f"[Bootstrap] record_baseline error (showing first 5): {result_exc[0]}")
+
         n_done += 1
         if verbose and n_done % 50 == 0:
             print(f"[Bootstrap]   {n_done}/{n_total} samples recorded ...")

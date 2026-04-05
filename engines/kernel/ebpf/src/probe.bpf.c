@@ -33,6 +33,19 @@
 #define AUTH_EXEC_SPAWN   (1ULL << 1)   // may execve a new binary
 
 // ---------------------------------------------------------------------------
+// Per-IP/port allowlist key (8 bytes, mirrored as IpPortKey in maps.rs)
+//   ip4   : IPv4 address in network byte order (0 = wildcard any-IP)
+//   port  : destination port in host byte order (0 = wildcard any-port)
+//   proto : IPPROTO_TCP(6) / IPPROTO_UDP(17) / 0 = any
+// ---------------------------------------------------------------------------
+struct ip_port_key {
+    __be32 ip4;
+    __u16  port;
+    __u8   proto;
+    __u8   _pad;
+};
+
+// ---------------------------------------------------------------------------
 // Audit event structure — written to ring buffer, consumed by user-space
 // ---------------------------------------------------------------------------
 struct audit_event {
@@ -75,9 +88,54 @@ struct {
     __type(value,       __u64);
 } deny_counters SEC(".maps");
 
+// Per-IP/port allowlist. Presence in map = allowed. Empty = bypass L3/L4 gate.
+struct {
+    __uint(type,        BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 4096);
+    __type(key,         struct ip_port_key);
+    __type(value,       __u8);
+} ip_port_allowlist SEC(".maps");
+
+// Entry count for ip_port_allowlist (maintained by user-space).
+// 0 = no allowlist configured → bypass L3/L4 filtering entirely.
+struct {
+    __uint(type,        BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key,         __u32);
+    __type(value,       __u32);
+} ip_port_count SEC(".maps");
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+// Returns 1 if (ip4, port, proto) is in the allowlist or allowlist is empty.
+static __always_inline int check_ip_port(__be32 ip4, __u16 port, __u8 proto) {
+    __u32 idx = 0;
+    __u32 *cnt = bpf_map_lookup_elem(&ip_port_count, &idx);
+    if (!cnt || *cnt == 0)
+        return 1;   // no allowlist configured → bypass
+
+    struct ip_port_key k;
+    __u8 *hit;
+
+    // Tier 1: exact match
+    k.ip4 = ip4; k.port = port; k.proto = proto; k._pad = 0;
+    hit = bpf_map_lookup_elem(&ip_port_allowlist, &k);
+    if (hit) return 1;
+
+    // Tier 2: any-IP wildcard
+    k.ip4 = 0;
+    hit = bpf_map_lookup_elem(&ip_port_allowlist, &k);
+    if (hit) return 1;
+
+    // Tier 3: any-port wildcard
+    k.ip4 = ip4; k.port = 0; k.proto = 0;
+    hit = bpf_map_lookup_elem(&ip_port_allowlist, &k);
+    if (hit) return 1;
+
+    return 0;
+}
 
 static __always_inline int check_auth(__u32 tgid, __u64 required) {
     __u64 *mask = bpf_map_lookup_elem(&pid_policy_map, &tgid);
@@ -125,9 +183,21 @@ int BPF_PROG(sc_sentinel_connect,
 {
     __u32 tgid = bpf_get_current_pid_tgid() >> 32;
 
+    // Gate 1: PID capability check.
     if (!check_auth(tgid, AUTH_NET_CONNECT)) {
         emit_audit(tgid, AUTH_NET_CONNECT, 1);
         return -EPERM;
+    }
+
+    // Gate 2: Per-IP/port allowlist (IPv4 only; IPv6 bypasses).
+    if (addrlen >= (int)sizeof(struct sockaddr_in) && address->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)address;
+        __be32 ip4  = BPF_CORE_READ(sin, sin_addr.s_addr);
+        __u16  port = bpf_ntohs(BPF_CORE_READ(sin, sin_port));
+        if (!check_ip_port(ip4, port, 0)) {
+            emit_audit(tgid, AUTH_NET_CONNECT, 1);
+            return -EPERM;
+        }
     }
 
     emit_audit(tgid, AUTH_NET_CONNECT, 0);
