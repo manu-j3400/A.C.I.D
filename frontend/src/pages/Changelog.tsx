@@ -8,16 +8,37 @@ import {
     Brain,
     Sparkles,
 } from 'lucide-react';
-import PublicNavbar from '@/components/PublicNavbar';
 import { Link } from 'react-router-dom';
+
+const C = {
+    bg: '#000000',
+    accent: '#ADFF2F',
+    danger: '#FF3131',
+    amber: '#FF8C00',
+    text: '#E5E5E5',
+    subdued: '#707070',
+    muted: '#404040',
+    border: '#1E1E1E',
+    font: "'JetBrains Mono', monospace",
+};
+
+const cellStyle: React.CSSProperties = {
+    borderRight: `1px solid ${C.border}`,
+    padding: '0 16px',
+    display: 'flex',
+    alignItems: 'center',
+    height: '36px',
+    fontFamily: C.font,
+    fontSize: '11px',
+    color: C.subdued,
+    whiteSpace: 'nowrap',
+};
 
 interface Release {
     version: string;
     date: string;
     title: string;
     icon: React.ElementType;
-    iconColor: string;
-    iconBg: string;
     badge: string;
     badgeColor: string;
     description: string;
@@ -30,10 +51,8 @@ const RELEASES: Release[] = [
         date: 'March 22, 2026',
         title: 'Dashboard Redesign, UX Polish & Ruflo MCP Integration',
         icon: Sparkles,
-        iconColor: 'text-violet-400',
-        iconBg: 'bg-violet-400/10',
         badge: 'Latest',
-        badgeColor: 'bg-violet-400/10 text-violet-400 border-violet-400/20',
+        badgeColor: C.accent,
         description: 'Complete visual overhaul of the authenticated experience — new immersive card-grid dashboard, unified design system across all pages, multi-language code editor, and the Ruflo MCP server for AI agent orchestration of security workflows.',
         features: [
             'Rebuilt the dashboard from a 3-column radar layout into a full-screen immersive card grid: ScoreArc SVG, IBM Plex Mono data values, animated progress bars, sparklines, and a live scan feed with compare/export.',
@@ -49,17 +68,15 @@ const RELEASES: Release[] = [
             'Added card-shaped loading skeletons across the dashboard (Score arc, stat bars, clean rate fill, language pills) replacing raw — dashes.',
             'Improved mobile layout: stats column stacks to 3-col grid on sm screens, quick-nav cards are 2-col on sm, main padding and live feed height are responsive.',
             'Security audit: removed frontend/.env.vercel (contained live OIDC token + Supabase anon key) and scan_history.db (real user data) from git tracking; both added to .gitignore.',
-        ]
+        ],
     },
     {
         version: 'v2.4.0',
         date: 'March 9, 2026',
         title: 'Kyber ML Engine Suite & Auth Overhaul',
         icon: Brain,
-        iconColor: 'text-cyan-400',
-        iconBg: 'bg-cyan-400/10',
         badge: 'Stable',
-        badgeColor: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20',
+        badgeColor: C.text,
         description: 'Launched four independent detection engines under the Kyber architecture, each analysing a different dimension of code behaviour. Simultaneously overhauled the auth flow, removed admin-only barriers, and redesigned the Model Lab to surface live engine status.',
         features: [
             'Added Kyber Engine 3 (SNN Micro-Temporal Profiler): 8-channel semantic LIF spike encoder, F1-maximising threshold calibrator, online adapter with background retrain, and CSV bootstrapper against the 19k-row malware corpus.',
@@ -75,17 +92,15 @@ const RELEASES: Release[] = [
             'Added file-type validation in the code editor — non-code files (PDFs, images, etc.) are rejected on drop with an inline error message.',
             'Toned down Run Scan / Deep Scan / Apply Fix button brightness and brightened sidebar inactive nav text for improved readability.',
             'Added GH Actions kyber-pr-check workflow for automated CI taint analysis on pull requests.',
-        ]
+        ],
     },
     {
         version: 'v2.3.0',
         date: 'March 2, 2026',
         title: 'Supply Chain Patterns, GCN Pipeline & Drift Detection',
         icon: Zap,
-        iconColor: 'text-yellow-400',
-        iconBg: 'bg-yellow-400/10',
         badge: 'Stable',
-        badgeColor: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/20',
+        badgeColor: C.text,
         description: 'Expanded the vulnerability pattern library with 100+ supply chain attack signatures, wired the GCN graph model and entropy pre-scanner into the live analysis pipeline, and added model drift monitoring with KL-divergence alerting.',
         features: [
             'Extended vulnerability_db.py from 450 to 509+ patterns: dependency confusion, typosquatting, exfiltration hooks, backdoor indicators; Go patterns 8→58, Rust 5→68.',
@@ -98,17 +113,15 @@ const RELEASES: Release[] = [
             'Added CSV export for scan history (GET /api/scan-history/export, JWT-protected).',
             'Added OpenAPI/Swagger docs via flasgger — Swagger UI available at /apidocs.',
             'Added dark mode persistence via ThemeContext stored in localStorage.',
-        ]
+        ],
     },
     {
         version: 'v1.2.0',
         date: 'February 28, 2026',
         title: 'Full UI Overhaul & User Isolation',
         icon: Rocket,
-        iconColor: 'text-purple-400',
-        iconBg: 'bg-purple-400/10',
         badge: 'Stable',
-        badgeColor: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
+        badgeColor: C.text,
         description: 'Complete UI overhaul inspired by Neo-Brutalism and PostHog, plus critical fixes for user data isolation, Google Sign-In, GitHub OAuth, and structured request logging.',
         features: [
             'Redesigned landing page and hero section with a live Monaco Editor demo that dynamically scores code snippets in real-time.',
@@ -117,17 +130,15 @@ const RELEASES: Release[] = [
             'Added structured JSON logging with request IDs on every request for production observability.',
             'Fixed SQLite race condition with WAL mode, busy timeout, and write lock.',
             'Resolved deployment errors by migrating to standard dependencies and removing Next.js shims.',
-        ]
+        ],
     },
     {
         version: 'v1.1.0',
         date: 'February 20, 2026',
         title: 'Generative AI Pipeline & API Hardening',
         icon: Brain,
-        iconColor: 'text-blue-400',
-        iconBg: 'bg-blue-400/10',
         badge: 'Stable',
-        badgeColor: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+        badgeColor: C.text,
         description: 'Migrated the AI explainer engine to Gemini 2.5 Pro and hardened the API layer with rate limiting, security headers, and a full SQL injection audit.',
         features: [
             'Migrated AI analysis pipeline to Gemini 2.5 Pro REST API for deeper structural code understanding and reduced OOM pressure.',
@@ -135,151 +146,184 @@ const RELEASES: Release[] = [
             'Engineered sliding-window rate limiters: 20 req/min/IP for analysis, 5 req/min/IP for auth.',
             'Injected Helmet-equivalent HTTP security headers (X-Frame-Options, HSTS, X-Content-Type-Options) via Flask after_request.',
             'SQL injection audit: verified all SQLite3 queries use parameterized ? bindings.',
-        ]
+        ],
     },
     {
         version: 'v1.0.0',
         date: 'Initial Release',
         title: 'Core Architecture Deployment',
         icon: Rocket,
-        iconColor: 'text-neutral-400',
-        iconBg: 'bg-neutral-400/10',
         badge: 'Foundation',
-        badgeColor: 'bg-neutral-400/10 text-neutral-400 border-neutral-400/20',
+        badgeColor: C.subdued,
         description: 'Initial deployment of the Soteria hybrid classification architecture — custom ML model over AST features with stateless JWT auth and a batch scan pipeline.',
         features: [
             'Trained and deployed a custom Random Forest ensemble (acidModel.pkl) on Python/JS malicious syntax datasets for sub-millisecond threat detection.',
             'Built the primary feature extraction pipeline: raw code → AST → cyclomatic complexity, entropy, dangerous function frequencies (52 features).',
             'Engineered a scalable SQLite3 schema with thread-safe WAL mode for asynchronous batch scan insertions.',
             'Implemented stateless authentication using Bcrypt + PyJWT HS256 signatures.',
-        ]
+        ],
     },
 ];
 
 export default function Changelog() {
     return (
-        <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-blue-600 selection:text-white">
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden' }}>
 
-            {/* ─── SHARED PUBLIC NAVBAR ─── */}
-            <PublicNavbar />
-
-            {/* ─── BACKGROUND GLOW ─── */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full mix-blend-screen" />
-                <div className="absolute top-[40%] right-[-10%] w-[40%] h-[60%] bg-blue-800/5 blur-[120px] rounded-full mix-blend-screen" />
+            {/* ─── NAV STRIP ─── */}
+            <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
+                    <Link to="/" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em' }}>SOTERIA</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/home" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOME ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/features" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ FEATURES ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/how-it-works" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOW IT WORKS ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/changelog" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ CHANGELOG ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ ABOUT ]</Link>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/login" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ LOGIN ]</Link>
+                </div>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/signup" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700 }}>[ START FREE ]</Link>
+                </div>
             </div>
 
-            <div className="relative z-10 max-w-4xl mx-auto px-6 pt-32 pb-24">
+            {/* ─── PAGE TITLE STRIP ─── */}
+            <div style={{ borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'stretch', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, color: C.text, fontWeight: 700, letterSpacing: '0.1em', fontSize: '11px' }}>
+                    DEVELOPER LOGS — SYSTEM LIFECYCLE
+                </div>
+                <div style={{ ...cellStyle, color: C.accent }}>[ LIVE ]</div>
+                <div style={{ ...cellStyle }}>{RELEASES.length} RELEASES</div>
+                <div style={{ ...cellStyle }}>LATEST: {RELEASES[0].version}</div>
+                <div style={{ flex: 1, borderRight: `1px solid ${C.border}` }} />
+                <div style={{ ...cellStyle, borderRight: 'none' }}>UTC {new Date().toISOString().slice(11, 19)}</div>
+            </div>
 
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-16"
-                >
-                    <p className="font-mono text-sm font-bold text-blue-400 uppercase tracking-[0.2em] mb-4 
-                                  brutalist-border inline-block px-4 py-2 bg-black brutalist-shadow-cyan">
-                        <GitCommit className="w-3.5 h-3.5 inline mr-2" />
-                        Developer Logs
-                    </p>
-                    <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight uppercase">System Lifecycle</h1>
-                    <p className="text-neutral-400 text-lg max-w-2xl leading-relaxed font-mono">
+            {/* ─── HEADER ─── */}
+            <section style={{ padding: '80px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ maxWidth: '800px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+                        <GitCommit size={14} style={{ color: C.accent }} />
+                        <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.2em', fontWeight: 700 }}>// DEVELOPER LOGS</span>
+                    </div>
+                    <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px', textTransform: 'uppercase', fontFamily: C.font }}>
+                        SYSTEM LIFECYCLE
+                    </h1>
+                    <p style={{ fontSize: '13px', color: C.subdued, lineHeight: 1.8 }}>
                         Every architectural upgrade, security patch, and feature release mapped across the Soteria lifecycle.
                     </p>
-                </motion.div>
-
-                {/* Timeline */}
-                <div className="relative before:absolute before:top-0 before:bottom-0 before:left-8 md:before:left-[120px] before:w-px before:bg-blue-500/30">
-                    {RELEASES.map((release, index) => (
-                        <motion.div
-                            key={release.version}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                            className="relative flex mb-16 last:mb-0"
-                        >
-                            {/* Left Date (Desktop) */}
-                            <div className="hidden md:block w-[120px] flex-shrink-0 pt-1.5 pr-8 text-right">
-                                <span className="text-sm font-mono text-neutral-500">{release.date}</span>
-                                <div className="text-xs font-bold text-neutral-300 mt-1 font-mono">{release.version}</div>
-                            </div>
-
-                            {/* Timeline Node */}
-                            <div className="absolute left-8 md:left-[120px] top-1.5 w-6 h-6 -ml-3 bg-black border-2 border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                                <div className="w-2 h-2 bg-cyan-400" />
-                            </div>
-
-                            {/* Content Card */}
-                            <div className="ml-16 md:ml-10 flex-1">
-                                {/* Mobile Date */}
-                                <div className="md:hidden flex items-center gap-3 mb-2">
-                                    <span className="text-sm font-bold text-neutral-300 font-mono">{release.version}</span>
-                                    <span className="text-xs font-mono text-neutral-500">{release.date}</span>
-                                </div>
-
-                                <div className="bg-neutral-900 border-2 border-neutral-800 p-6 md:p-8 transition-all duration-300 hover:border-neutral-700 hover:-translate-y-1 group">
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 ${release.iconBg} border border-neutral-800 flex-shrink-0 ${release.iconColor}`}>
-                                                <release.icon className="w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight">{release.title}</h2>
-                                            </div>
-                                        </div>
-                                        {release.badge && (
-                                            <span className={`px-3 py-1 ${release.badgeColor} border text-xs font-bold font-mono uppercase whitespace-nowrap self-start`}>
-                                                {release.badge}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <p className="text-neutral-400 text-sm leading-relaxed mb-6 font-mono">
-                                        {release.description}
-                                    </p>
-
-                                    <ul className="space-y-3">
-                                        {release.features.map((feature, i) => (
-                                            <li key={i} className="flex items-start gap-3 text-sm text-neutral-300 group/item">
-                                                <Terminal className="w-4 h-4 text-cyan-500/50 mt-0.5 flex-shrink-0 group-hover/item:text-blue-400 transition-colors" />
-                                                <span className="leading-relaxed font-mono">{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
                 </div>
+            </section>
 
-                {/* Footer Prompt */}
+            {/* ─── TIMELINE ─── */}
+            <div style={{ padding: '0 48px 80px', maxWidth: '1200px' }}>
+                {RELEASES.map((release, index) => (
+                    <motion.div
+                        key={release.version}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ borderBottom: `1px solid ${C.border}` }}
+                    >
+                        {/* Release header row */}
+                        <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${C.border}`, height: '36px' }}>
+                            <div style={{ ...cellStyle, borderRight: `1px solid ${C.border}`, color: index === 0 ? C.accent : C.text, fontWeight: 700, minWidth: '90px' }}>
+                                {release.version}
+                            </div>
+                            <div style={{ ...cellStyle, borderRight: `1px solid ${C.border}`, color: C.subdued, minWidth: '160px' }}>
+                                {release.date}
+                            </div>
+                            <div style={{ ...cellStyle, flex: 1, color: C.text, fontWeight: 600 }}>
+                                {release.title}
+                            </div>
+                            <div style={{
+                                ...cellStyle,
+                                borderLeft: `1px solid ${C.border}`,
+                                borderRight: 'none',
+                                color: release.badgeColor,
+                                fontWeight: 700,
+                                minWidth: '90px',
+                                justifyContent: 'center',
+                            }}>
+                                [ {release.badge.toUpperCase()} ]
+                            </div>
+                        </div>
+
+                        {/* Release body */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr' }}>
+                            {/* Left: description + icon */}
+                            <div style={{ borderRight: `1px solid ${C.border}`, padding: '24px 20px' }}>
+                                <div style={{ color: index === 0 ? C.accent : C.subdued, marginBottom: '12px' }}>
+                                    <release.icon size={20} />
+                                </div>
+                                <p style={{ fontSize: '11px', color: C.subdued, lineHeight: 1.8 }}>
+                                    {release.description}
+                                </p>
+                            </div>
+
+                            {/* Right: feature list */}
+                            <div style={{ padding: '24px 28px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0' }}>
+                                    {release.features.map((feature, i) => (
+                                        <div
+                                            key={i}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: '10px',
+                                                padding: '8px 0',
+                                                borderBottom: i < release.features.length - 1 ? `1px solid ${C.border}` : 'none',
+                                            }}
+                                        >
+                                            <Terminal size={10} style={{ color: C.muted, marginTop: '3px', flexShrink: 0 }} />
+                                            <span style={{ fontSize: '11px', color: C.subdued, lineHeight: 1.7 }}>{feature}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                ))}
+
+                {/* Bottom status */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.3 }}
-                    className="mt-24 text-center pb-8"
+                    style={{ paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}
                 >
-                    <div className="inline-flex items-center justify-center p-1 px-4 bg-neutral-900 border border-neutral-800">
-                        <span className="text-xs text-neutral-500 font-mono flex items-center gap-2">
-                            <Zap className="w-3 h-3 text-yellow-500/70" /> Updates automatically synchronized
-                        </span>
-                    </div>
+                    <Zap size={12} style={{ color: C.accent }} />
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.12em' }}>UPDATES AUTOMATICALLY SYNCHRONIZED — LAST SYNC: {new Date().toISOString().slice(0, 10)}</span>
                 </motion.div>
             </div>
 
             {/* ─── FOOTER ─── */}
-            <footer className="border-t-2 border-neutral-800 bg-black text-neutral-400 py-16 text-sm font-mono relative">
-                <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <Link to="/" className="flex items-center gap-3 group">
-                        <img src="/soteria-logo.png" alt="Soteria" className="h-8 w-8 rounded-none object-cover transition-transform group-hover:-translate-y-[2px]" />
-                        <span className="text-xl font-mono font-bold tracking-[0.15em] uppercase text-white">SOTERIA</span>
-                    </Link>
-                    <div className="text-neutral-500 text-[10px] tracking-widest uppercase">
-                        © {new Date().getFullYear()} Soteria. Built for builders.
-                    </div>
+            <footer style={{ borderTop: `1px solid ${C.border}`, padding: '0', display: 'flex', alignItems: 'stretch', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
+                    <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <span style={{ color: C.muted }}>© {new Date().getFullYear()} SOTERIA. BUILT FOR BUILDERS.</span>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>ABOUT</Link>
+                </div>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>OPEN SOURCE</a>
                 </div>
             </footer>
         </div>

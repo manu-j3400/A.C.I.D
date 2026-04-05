@@ -19,6 +19,9 @@ import { AuthProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -111,6 +114,17 @@ function App() {
                 } />
 
                 <Route path="/auth/github/callback" element={<GithubCallback />} />
+
+                {/* ADMIN ROUTES */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={
+                  <AdminProtectedRoute>
+                    <AdminDashboard />
+                  </AdminProtectedRoute>
+                } />
+
+                {/* FALLBACK */}
+                <Route path="*" element={<Navigate to="/home" replace />} />
 
               </Routes>
               </RouteErrorBoundary>

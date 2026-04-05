@@ -1,52 +1,54 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileCode2, ShieldCheck, AlertTriangle, Loader2, FolderOpen, X, BarChart3, Shield, Github, ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/api';
-interface BatchFileItem {
-    filename: string;
-    code: string;
-    size: number;
-}
 
+interface BatchFileItem { filename: string; code: string; size: number; }
 interface ScanResult {
-    filename: string;
-    status: 'malicious' | 'clean' | 'error';
-    message: string;
-    risk_level: string;
-    confidence: number;
-    language: string;
-    nodes_scanned?: number;
+    filename: string; status: 'malicious' | 'clean' | 'error';
+    message: string; risk_level: string; confidence: number;
+    language: string; nodes_scanned?: number;
 }
-
 interface BatchSummary {
-    total_files: number;
-    threats: number;
-    clean: number;
-    project_score: number;
-    project_grade: string;
+    total_files: number; threats: number; clean: number;
+    project_score: number; project_grade: string;
 }
-
 type ScanState = 'idle' | 'scanning' | 'done';
 
+const C = {
+    acid:   '#ADFF2F',
+    red:    '#FF3131',
+    amber:  '#FF8C00',
+    dim:    '#0D0D0D',
+    border: '#1E1E1E',
+    muted:  '#404040',
+    text:   '#E5E5E5',
+    sub:    '#707070',
+};
+
+const riskColor = (r: string) =>
+    r === 'CRITICAL' ? C.red : r === 'HIGH' ? C.amber : r === 'MEDIUM' ? '#FFD700' : C.acid;
+
+const gradeColor = (g: string) =>
+    g === 'A' ? C.acid : g === 'B' ? '#5AE65A' : g === 'C' ? '#FFD700' : g === 'D' ? C.amber : C.red;
+
 export default function BatchScanner() {
-    const [files, setFiles] = useState<BatchFileItem[]>([]);
-    const [results, setResults] = useState<ScanResult[]>([]);
-    const [summary, setSummary] = useState<BatchSummary | null>(null);
-    const [scanState, setScanState] = useState<ScanState>('idle');
+    const [files, setFiles]           = useState<BatchFileItem[]>([]);
+    const [results, setResults]       = useState<ScanResult[]>([]);
+    const [summary, setSummary]       = useState<BatchSummary | null>(null);
+    const [scanState, setScanState]   = useState<ScanState>('idle');
     const [dragActive, setDragActive] = useState(false);
-    const [repoUrl, setRepoUrl] = useState('');
+    const [repoUrl, setRepoUrl]       = useState('');
     const [githubToken, setGithubToken] = useState<string | null>(localStorage.getItem('github_token'));
-    const [repos, setRepos] = useState<any[]>([]);
+    const [repos, setRepos]           = useState<any[]>([]);
     const [isFetchingRepos, setIsFetchingRepos] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
     const [expandedRow, setExpandedRow] = useState<number | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
+    const inputRef = useRef<HTMLInputElement>(null);
     const oauthError = searchParams.get('error');
 
     useEffect(() => {
         if (oauthError) {
-            // Clear the error param from the URL after reading it
             const t = setTimeout(() => setSearchParams({}, { replace: true }), 4000);
             return () => clearTimeout(t);
         }
@@ -57,512 +59,438 @@ export default function BatchScanner() {
         const fetchRepos = async () => {
             setIsFetchingRepos(true);
             try {
-                const res = await fetch(`${API_BASE_URL}/github/repos`, {
-                    headers: { 'Authorization': `Bearer ${githubToken}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setRepos(data);
-                } else if (res.status === 401) {
-                    localStorage.removeItem('github_token');
-                    setGithubToken(null);
-                }
-            } catch (e) {
-                console.error('Failed to fetch repos', e);
-            } finally {
-                setIsFetchingRepos(false);
-            }
+                const res = await fetch(`${API_BASE_URL}/github/repos`, { headers: { Authorization: `Bearer ${githubToken}` } });
+                if (res.ok) setRepos(await res.json());
+                else if (res.status === 401) { localStorage.removeItem('github_token'); setGithubToken(null); }
+            } catch { /* silent */ }
+            finally { setIsFetchingRepos(false); }
         };
         fetchRepos();
     }, [githubToken]);
 
     const handleGithubConnect = async () => {
-        // Generate PKCE code_verifier (RFC 7636 §4.1: 43-128 chars, base64url)
         const array = new Uint8Array(32);
         crypto.getRandomValues(array);
-        const codeVerifier = btoa(String.fromCharCode(...array))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-        // Compute S256 code_challenge
+        const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         const encoder = new TextEncoder();
         const digest = await crypto.subtle.digest('SHA-256', encoder.encode(codeVerifier));
-        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-        // Get signed state JWT from backend
+        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         const res = await fetch(`${API_BASE_URL}/github/pkce/state`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code_challenge: codeChallenge }),
         });
-        if (!res.ok) { console.error('Failed to init PKCE state'); return; }
+        if (!res.ok) return;
         const { state } = await res.json();
-
-        // Store verifier for the callback — sessionStorage is tab-scoped
         sessionStorage.setItem('oauth_cv', codeVerifier);
-
         const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
         const redirectUri = encodeURIComponent(`${siteUrl}/auth/github/callback`);
-        window.location.href =
-            `https://github.com/login/oauth/authorize` +
-            `?client_id=Ov23li9feGBY4uoDs8du` +
-            `&scope=repo` +
-            `&state=${encodeURIComponent(state)}` +
-            `&redirect_uri=${redirectUri}`;
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=Ov23li9feGBY4uoDs8du&scope=repo&state=${encodeURIComponent(state)}&redirect_uri=${redirectUri}`;
     };
 
-    const readFile = (file: File): Promise<BatchFileItem> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                resolve({
-                    filename: file.name,
-                    code: reader.result as string,
-                    size: file.size
-                });
-            };
-            reader.onerror = reject;
-            reader.readAsText(file);
+    const readFile = (file: File): Promise<BatchFileItem> =>
+        new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve({ filename: file.name, code: r.result as string, size: file.size });
+            r.onerror = reject;
+            r.readAsText(file);
         });
-    };
 
     const handleFiles = useCallback(async (fileList: FileList | File[]) => {
-        const codeExtensions = [
-            '.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.c', '.cpp', '.h', '.hpp',
-            '.cs', '.go', '.rb', '.php', '.rs', '.swift', '.kt', '.scala', '.sh',
-            '.sql', '.html', '.css', '.vue', '.svelte'
-        ];
-
-        const validFiles = Array.from(fileList).filter(f => {
+        const validExts = ['.py','.js','.ts','.tsx','.jsx','.java','.c','.cpp','.h','.hpp','.cs','.go','.rb','.php','.rs','.swift','.kt','.scala','.sh','.sql','.html','.css','.vue','.svelte'];
+        const valid = Array.from(fileList).filter(f => {
             const ext = '.' + f.name.split('.').pop()?.toLowerCase();
-            return codeExtensions.includes(ext) && f.size < 50000;
+            return validExts.includes(ext) && f.size < 50000;
         });
-
-        const readFiles = await Promise.all(validFiles.map(readFile));
+        const read = await Promise.all(valid.map(readFile));
         setFiles(prev => {
             const existing = new Set(prev.map(f => f.filename));
-            const newFiles = readFiles.filter(f => !existing.has(f.filename));
-            return [...prev, ...newFiles];
+            return [...prev, ...read.filter(f => !existing.has(f.filename))];
         });
     }, []);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setDragActive(false);
-
-        if (e.dataTransfer.items) {
-            const items = Array.from(e.dataTransfer.items);
-            const fileItems = items.filter(item => item.kind === 'file').map(item => item.getAsFile()).filter(Boolean) as File[];
-            handleFiles(fileItems);
-        }
+        e.preventDefault(); setDragActive(false);
+        const items = Array.from(e.dataTransfer.items);
+        const fs = items.filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean) as File[];
+        handleFiles(fs);
     }, [handleFiles]);
 
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setDragActive(true);
-    }, []);
-
-    const handleDragLeave = useCallback(() => {
-        setDragActive(false);
-    }, []);
-
-    const removeFile = (filename: string) => {
-        setFiles(prev => prev.filter(f => f.filename !== filename));
-    };
+    const removeFile = (fn: string) => setFiles(prev => prev.filter(f => f.filename !== fn));
 
     const runBatchScan = async () => {
         if (files.length === 0) return;
-        setScanState('scanning');
-        setResults([]);
-        setSummary(null);
-
+        setScanState('scanning'); setResults([]); setSummary(null);
         try {
             const res = await fetch(`${API_BASE_URL}/batch-scan`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    files: files.map(f => ({ filename: f.filename, code: f.code }))
-                })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: files.map(f => ({ filename: f.filename, code: f.code })) })
             });
-
-            if (!res.ok) throw new Error('Batch scan failed');
+            if (!res.ok) throw new Error();
             const data = await res.json();
-            setResults(data.results);
-            setSummary(data.summary);
-            setScanState('done');
-        } catch (err) {
-            console.error('Batch scan error:', err);
-            setScanState('idle');
-        }
+            setResults(data.results); setSummary(data.summary); setScanState('done');
+        } catch { setScanState('idle'); }
     };
 
     const runGithubScan = async () => {
         if (!repoUrl) return;
-        setScanState('scanning');
-        setResults([]);
-        setSummary(null);
-
+        setScanState('scanning'); setResults([]); setSummary(null);
         try {
             const res = await fetch(`${API_BASE_URL}/github-scan`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ repo_url: repoUrl, access_token: githubToken })
             });
-
-            if (!res.ok) throw new Error('GitHub scan failed');
+            if (!res.ok) throw new Error();
             const data = await res.json();
-            setResults(data.results);
-            setSummary(data.summary);
-            setScanState('done');
-        } catch (err) {
-            console.error('GitHub scan error:', err);
-            setScanState('idle');
-        }
+            setResults(data.results); setSummary(data.summary); setScanState('done');
+        } catch { setScanState('idle'); }
     };
 
-    const resetScan = () => {
-        setFiles([]);
-        setResults([]);
-        setSummary(null);
-        setScanState('idle');
-    };
+    const resetScan = () => { setFiles([]); setResults([]); setSummary(null); setScanState('idle'); };
 
-    const riskColors: Record<string, string> = {
-        CRITICAL: 'bg-red-500/20 text-red-400',
-        HIGH: 'bg-orange-500/20 text-orange-400',
-        MEDIUM: 'bg-yellow-500/20 text-yellow-400',
-        LOW: 'bg-green-500/20 text-green-400',
-        INVALID: 'bg-neutral-500/20 text-neutral-400'
-    };
-
-    const gradeColors: Record<string, string> = {
-        A: 'text-green-400', B: 'text-blue-400', C: 'text-yellow-400', D: 'text-orange-400', F: 'text-red-400'
-    };
+    const threatCount  = results.filter(r => r.status === 'malicious').length;
+    const cleanCount   = results.filter(r => r.status === 'clean').length;
 
     return (
-        <div className="p-10 max-w-6xl mx-auto space-y-8 min-h-screen bg-[#08080c]">
-
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-black text-white mb-2">Batch Scanner</h1>
-                <p className="text-neutral-500">Drop multiple files or import a whole GitHub repository to scan your project.</p>
+        <div style={{
+            minHeight: '100vh', background: '#000',
+            fontFamily: "'JetBrains Mono', monospace",
+            color: C.text,
+        }}>
+            {/* ── TOP STATUS STRIP ─────────────────────────────────────────── */}
+            <div style={{
+                display: 'flex', alignItems: 'center', height: 36,
+                borderBottom: `1px solid ${C.border}`, fontSize: 10, letterSpacing: '0.08em',
+            }}>
+                <BCell style={{ minWidth: 200, fontWeight: 700 }}>BATCH SCANNER</BCell>
+                {scanState === 'idle' && files.length > 0 && (
+                    <BCell>{files.length} FILE{files.length !== 1 ? 'S' : ''} QUEUED</BCell>
+                )}
+                {scanState === 'scanning' && (
+                    <BCell style={{ color: C.amber }}>[ SCANNING{files.length > 0 ? ` ${files.length} FILES` : ' REPO'} ]</BCell>
+                )}
+                {scanState === 'done' && summary && (
+                    <>
+                        <BCell>GRADE: <span style={{ color: gradeColor(summary.project_grade), fontWeight: 700 }}>{summary.project_grade}</span></BCell>
+                        <BCell>SCORE: <span style={{ color: C.text }}>{summary.project_score}/100</span></BCell>
+                        <BCell>THREATS: <span style={{ color: threatCount > 0 ? C.red : C.acid, fontWeight: 700 }}>{threatCount}</span></BCell>
+                        <BCell>CLEAN: <span style={{ color: C.acid }}>{cleanCount}</span></BCell>
+                    </>
+                )}
+                {oauthError && (
+                    <BCell style={{ color: C.red }}>! GITHUB AUTH ERROR</BCell>
+                )}
+                {scanState === 'done' && (
+                    <BCell style={{ marginLeft: 'auto' }}>
+                        <button
+                            onClick={resetScan}
+                            style={{ color: C.sub, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, letterSpacing: '0.08em' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
+                            onMouseLeave={e => (e.currentTarget.style.color = C.sub)}
+                        >
+                            [ NEW SCAN ]
+                        </button>
+                    </BCell>
+                )}
             </div>
 
-            {/* OAuth error banner */}
-            {oauthError && (
-                <motion.div
-                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="flex items-center gap-3 px-5 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm"
-                >
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    {oauthError === 'oauth_missing_params'
-                        ? 'GitHub connection failed — missing OAuth parameters. Please try connecting again.'
-                        : `GitHub connection failed: ${oauthError}`}
-                </motion.div>
-            )}
+            <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
 
-            {/* GitHub Import */}
-            {scanState === 'idle' && files.length === 0 && (
-                <div className="bg-white/[0.03] border border-white/[0.07] p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 justify-between">
-                    <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
-                            <Github className="w-5 h-5 text-neutral-400" />
-                            GitHub Integration
-                        </h2>
-                        <p className="text-sm text-neutral-500">Connect your account to securely scan private repositories directly from your codebases.</p>
-                    </div>
-
-                    {!githubToken ? (
-                        <button
-                            onClick={handleGithubConnect}
-                            className="px-6 py-3 bg-[#24292e] hover:bg-[#2f363d] border border-white/[0.1] text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
-                        >
-                            <Github className="w-4 h-4" />
-                            Connect GitHub
-                        </button>
-                    ) : (
-                        <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
-                            {isFetchingRepos ? (
-                                <div className="px-4 py-2 text-sm text-neutral-400 flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin" /> Loading repos...
+                {/* ── IDLE STATE ─────────────────────────────────────────────── */}
+                {scanState === 'idle' && (
+                    <>
+                        {/* GitHub integration */}
+                        <div style={{ border: `1px solid ${C.border}`, marginBottom: 16, padding: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                                <div>
+                                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em', marginBottom: 4 }}>GITHUB INTEGRATION</div>
+                                    <div style={{ fontSize: 10, color: C.sub, lineHeight: 1.6 }}>
+                                        Connect to scan private repos directly from your codebases.
+                                    </div>
                                 </div>
-                            ) : (
-                                <select
-                                    className="bg-black border border-white/[0.1] text-white px-4 py-2.5 rounded-xl outline-none focus:border-blue-500 min-w-[250px] w-full"
-                                    value={repoUrl}
-                                    onChange={(e) => setRepoUrl(e.target.value)}
-                                >
-                                    <option value="">Select a repository...</option>
-                                    {repos.map((r: any) => (
-                                        <option key={r.id} value={r.clone_url}>{r.full_name} {r.private ? '🔒' : ''}</option>
-                                    ))}
-                                </select>
-                            )}
-                            <button
-                                onClick={runGithubScan}
-                                disabled={!repoUrl || isFetchingRepos}
-                                className="px-6 py-2.5 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
-                            >
-                                <Shield className="w-4 h-4" />
-                                Scan
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Drop Zone */}
-            {scanState === 'idle' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onClick={() => inputRef.current?.click()}
-                    className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-all ${dragActive
-                        ? 'border-blue-500 bg-blue-500/5'
-                        : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04]'
-                        }`}
-                >
-                    <input
-                        ref={inputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => e.target.files && handleFiles(e.target.files)}
-                        accept=".py,.js,.ts,.tsx,.jsx,.java,.c,.cpp,.h,.cs,.go,.rb,.php,.rs,.swift,.kt,.sh,.sql,.html,.css,.vue,.svelte"
-                    />
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full border border-dashed border-neutral-700 flex items-center justify-center">
-                        <Upload className={`w-7 h-7 ${dragActive ? 'text-blue-400' : 'text-neutral-600'}`} />
-                    </div>
-                    <h3 className="text-lg font-bold text-neutral-300 mb-2">
-                        {dragActive ? 'Drop files here' : 'Drag & drop code files'}
-                    </h3>
-                    <p className="text-sm text-neutral-600">
-                        Supports .py, .js, .ts, .java, .c, .cpp, .go, .rb, .php and more • Max 50 files • 50KB per file
-                    </p>
-                </motion.div>
-            )}
-
-            {/* File List */}
-            {files.length > 0 && scanState === 'idle' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xs font-black text-neutral-600 uppercase tracking-widest">
-                            {files.length} File{files.length !== 1 ? 's' : ''} Ready
-                        </h2>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={resetScan}
-                                className="px-4 py-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors"
-                            >
-                                Clear All
-                            </button>
-                            <button
-                                onClick={runBatchScan}
-                                className="px-6 py-2.5 bg-white text-black text-sm font-bold rounded-xl transition-colors hover:bg-white/90 flex items-center gap-2"
-                            >
-                                <Shield className="w-4 h-4" />
-                                Scan All Files
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden divide-y divide-white/[0.04]">
-                        {files.map((file) => (
-                            <div key={file.filename} className="px-5 py-3 flex items-center justify-between hover:bg-white/[0.02]">
-                                <div className="flex items-center gap-3">
-                                    <FileCode2 className="w-4 h-4 text-blue-400" />
-                                    <span className="text-sm text-neutral-300 font-mono">{file.filename}</span>
-                                    <span className="text-[10px] text-neutral-600">{(file.size / 1024).toFixed(1)} KB</span>
-                                </div>
-                                <button aria-label="Remove file" onClick={() => removeFile(file.filename)} className="p-1 text-neutral-700 hover:text-red-400 transition-colors">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Scanning Animation */}
-            {scanState === 'scanning' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
-                    <Loader2 className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" />
-                    <h3 className="text-lg font-bold text-white mb-2">
-                        {repoUrl && files.length === 0 ? 'Cloning & Scanning Repository...' : `Scanning ${files.length} files...`}
-                    </h3>
-                    <p className="text-sm text-neutral-500">Running through the Soteria ML pipeline</p>
-                </motion.div>
-            )}
-
-            {/* Results */}
-            {scanState === 'done' && summary && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
-                            <div className={`text-4xl font-black mb-1 ${gradeColors[summary.project_grade]}`}>
-                                {summary.project_grade}
-                            </div>
-                            <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Project Grade</div>
-                            <div className="text-xs text-neutral-500 mt-1">{summary.project_score}/100</div>
-                        </div>
-                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
-                            <div className="text-4xl font-black text-white mb-1">{summary.total_files}</div>
-                            <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Files Scanned</div>
-                        </div>
-                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
-                            <div className="text-4xl font-black text-red-400 mb-1">{summary.threats}</div>
-                            <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Threats Found</div>
-                        </div>
-                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-center">
-                            <div className="text-4xl font-black text-green-400 mb-1">{summary.clean}</div>
-                            <div className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">Clean Files</div>
-                        </div>
-                    </div>
-
-                    {/* Results Table */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xs font-black text-neutral-600 uppercase tracking-widest">Per-File Results</h2>
-                            <button
-                                onClick={resetScan}
-                                className="px-4 py-2 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                ← New Batch Scan
-                            </button>
-                        </div>
-                        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-white/[0.06]">
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">File</th>
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Language</th>
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Risk</th>
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Confidence</th>
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Verdict</th>
-                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/[0.04]">
-                                    {results.map((r, i) => (
-                                        <React.Fragment key={i}>
-                                            <tr
-                                                onClick={() => setExpandedRow(expandedRow === i ? null : i)}
-                                                className="hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                                {!githubToken ? (
+                                    <button
+                                        onClick={handleGithubConnect}
+                                        style={{
+                                            padding: '8px 20px', background: 'transparent',
+                                            border: `1px solid ${C.sub}`, color: C.text,
+                                            fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+                                            letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap',
+                                            transition: 'border-color 0.15s, color 0.15s',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = C.acid; e.currentTarget.style.color = C.acid; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.sub; e.currentTarget.style.color = C.text; }}
+                                    >
+                                        [ CONNECT GITHUB ]
+                                    </button>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {isFetchingRepos ? (
+                                            <span style={{ fontSize: 9, color: C.sub }}>LOADING REPOS...</span>
+                                        ) : (
+                                            <select
+                                                value={repoUrl}
+                                                onChange={e => setRepoUrl(e.target.value)}
+                                                style={{
+                                                    background: C.dim, border: `1px solid ${C.border}`,
+                                                    color: C.text, padding: '6px 10px', outline: 'none',
+                                                    fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
+                                                    minWidth: 240,
+                                                }}
                                             >
-                                                <td className="px-5 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <ChevronDown className={`w-3.5 h-3.5 text-neutral-600 transition-transform duration-200 ${expandedRow === i ? 'rotate-180' : ''}`} />
-                                                        <FileCode2 className="w-3.5 h-3.5 text-neutral-600" />
-                                                        <span className="text-sm text-neutral-300 font-mono">{r.filename}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-3">
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider">
-                                                        {r.language}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-3">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wider ${riskColors[r.risk_level] || riskColors.INVALID}`}>
-                                                        {r.risk_level}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-3 text-sm text-neutral-300 font-mono">{r.confidence}%</td>
-                                                <td className="px-5 py-3">
-                                                    {r.status === 'malicious' ? (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                                                            <span className="text-xs text-red-400 font-bold">Threat</span>
-                                                        </div>
-                                                    ) : r.status === 'clean' ? (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
-                                                            <span className="text-xs text-green-400 font-bold">Clean</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-xs text-neutral-500">Error</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-5 py-3 text-xs text-neutral-500 max-w-[200px] truncate">{r.message}</td>
-                                            </tr>
-                                            <AnimatePresence>
-                                                {expandedRow === i && (
-                                                    <tr>
-                                                        <td colSpan={6} className="p-0">
-                                                            <motion.div
-                                                                initial={{ height: 0, opacity: 0 }}
-                                                                animate={{ height: 'auto', opacity: 1 }}
-                                                                exit={{ height: 0, opacity: 0 }}
-                                                                transition={{ duration: 0.2 }}
-                                                                className="overflow-hidden"
-                                                            >
-                                                                <div className="px-6 py-5 bg-white/[0.02] border-t border-white/[0.04]">
-                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                                        {/* Analysis Details */}
-                                                                        <div className="md:col-span-2 space-y-3">
-                                                                            <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Analysis Details</h4>
-                                                                            <p className="text-sm text-neutral-300 leading-relaxed">{r.message}</p>
-                                                                            {r.status === 'malicious' && (
-                                                                                <div className="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/10">
-                                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                                                                                        <span className="text-xs font-bold text-red-400">Action Required</span>
-                                                                                    </div>
-                                                                                    <p className="text-xs text-neutral-400">Review and address the identified vulnerability. Consider refactoring the flagged code patterns.</p>
-                                                                                </div>
-                                                                            )}
-                                                                            {r.status === 'clean' && (
-                                                                                <div className="mt-3 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
-                                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                                        <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
-                                                                                        <span className="text-xs font-bold text-green-400">No Issues Found</span>
-                                                                                    </div>
-                                                                                    <p className="text-xs text-neutral-400">This file passed all security checks with standard safety profile.</p>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        {/* File Metadata */}
-                                                                        <div className="space-y-3">
-                                                                            <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">File Info</h4>
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-xs text-neutral-600">Language</span>
-                                                                                    <span className="text-xs text-neutral-300 font-mono">{r.language}</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-xs text-neutral-600">Confidence</span>
-                                                                                    <span className="text-xs text-neutral-300 font-mono">{r.confidence}%</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-xs text-neutral-600">Risk Level</span>
-                                                                                    <span className={`text-xs font-bold ${r.risk_level === 'CRITICAL' ? 'text-red-400' : r.risk_level === 'HIGH' ? 'text-orange-400' : r.risk_level === 'MEDIUM' ? 'text-yellow-400' : 'text-green-400'}`}>{r.risk_level}</span>
-                                                                                </div>
-                                                                                {r.nodes_scanned && (
-                                                                                    <div className="flex justify-between">
-                                                                                        <span className="text-xs text-neutral-600">Nodes Scanned</span>
-                                                                                        <span className="text-xs text-neutral-300 font-mono">{r.nodes_scanned}</span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </motion.div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </AnimatePresence>
-                                        </React.Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                <option value="">SELECT REPOSITORY...</option>
+                                                {repos.map((r: any) => (
+                                                    <option key={r.id} value={r.clone_url}>{r.full_name}{r.private ? ' [PRIVATE]' : ''}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <button
+                                            onClick={runGithubScan}
+                                            disabled={!repoUrl || isFetchingRepos}
+                                            style={{
+                                                padding: '6px 16px', background: repoUrl ? C.acid : C.dim,
+                                                border: `1px solid ${repoUrl ? C.acid : C.muted}`,
+                                                color: repoUrl ? '#000' : C.muted,
+                                                fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
+                                                letterSpacing: '0.1em', cursor: repoUrl ? 'pointer' : 'not-allowed',
+                                                fontWeight: 700, transition: 'background 0.15s',
+                                            }}
+                                        >
+                                            [ SCAN REPO ]
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </motion.div>
-            )}
+
+                        {/* Drop zone */}
+                        <div
+                            onDrop={handleDrop}
+                            onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+                            onDragLeave={() => setDragActive(false)}
+                            onClick={() => inputRef.current?.click()}
+                            style={{
+                                border: `2px dashed ${dragActive ? C.acid : C.border}`,
+                                padding: '48px 32px', textAlign: 'center', cursor: 'pointer',
+                                background: dragActive ? 'rgba(173,255,47,0.04)' : 'transparent',
+                                transition: 'border-color 0.15s, background 0.15s',
+                                marginBottom: 16,
+                            }}
+                        >
+                            <input
+                                ref={inputRef} type="file" multiple style={{ display: 'none' }}
+                                onChange={e => e.target.files && handleFiles(e.target.files)}
+                                accept=".py,.js,.ts,.tsx,.jsx,.java,.c,.cpp,.h,.cs,.go,.rb,.php,.rs,.swift,.kt,.sh,.sql,.html,.css,.vue,.svelte"
+                            />
+                            <div style={{ fontSize: 32, color: dragActive ? C.acid : C.muted, marginBottom: 12 }}>⬇</div>
+                            <div style={{ fontSize: 11, color: dragActive ? C.acid : C.text, letterSpacing: '0.1em', marginBottom: 6, fontWeight: 700 }}>
+                                {dragActive ? 'DROP FILES TO QUEUE' : 'DRAG & DROP CODE FILES'}
+                            </div>
+                            <div style={{ fontSize: 9, color: C.sub }}>
+                                .py .js .ts .java .c .cpp .go .rb .php .rs + MORE · MAX 50 FILES · 50KB/FILE
+                            </div>
+                        </div>
+
+                        {/* Queued files */}
+                        {files.length > 0 && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <span style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em' }}>
+                                        {files.length} FILE{files.length !== 1 ? 'S' : ''} QUEUED
+                                    </span>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button
+                                            onClick={resetScan}
+                                            style={{ fontSize: 9, color: C.sub, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}
+                                        >
+                                            [ CLEAR ]
+                                        </button>
+                                        <button
+                                            onClick={runBatchScan}
+                                            style={{
+                                                padding: '6px 20px', background: C.acid, border: `1px solid ${C.acid}`,
+                                                color: '#000', fontFamily: "'JetBrains Mono', monospace",
+                                                fontSize: 10, letterSpacing: '0.1em', cursor: 'pointer',
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            [ SCAN ALL FILES ]
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style={{ border: `1px solid ${C.border}` }}>
+                                    {files.map((f, i) => (
+                                        <div key={f.filename} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 14px',
+                                            borderBottom: i < files.length - 1 ? `1px solid ${C.border}` : 'none',
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <span style={{ fontSize: 9, color: C.sub }}>›</span>
+                                                <span style={{ fontSize: 10, color: C.text }}>{f.filename}</span>
+                                                <span style={{ fontSize: 8, color: C.muted }}>{(f.size / 1024).toFixed(1)} KB</span>
+                                            </div>
+                                            <button
+                                                onClick={() => removeFile(f.filename)}
+                                                style={{ color: C.muted, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }}
+                                                onMouseEnter={e => (e.currentTarget.style.color = C.red)}
+                                                onMouseLeave={e => (e.currentTarget.style.color = C.muted)}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </>
+                )}
+
+                {/* ── SCANNING STATE ─────────────────────────────────────────── */}
+                {scanState === 'scanning' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        style={{ textAlign: 'center', padding: '80px 0' }}
+                    >
+                        <div style={{ fontSize: 9, color: C.amber, letterSpacing: '0.12em', lineHeight: 2 }}>
+                            <div>{'>'} INITIALIZING BATCH PIPELINE...</div>
+                            <div>{'>'} {repoUrl && files.length === 0 ? 'CLONING REPOSITORY...' : `PROCESSING ${files.length} FILES...`}</div>
+                            <div>{'>'} RUNNING SOTERIA ML ENSEMBLE...</div>
+                            <div style={{ marginTop: 12, color: C.acid }}>
+                                {'>'} ANALYZING<span style={{ animation: 'blink 1s step-end infinite' }}>...</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* ── RESULTS STATE ──────────────────────────────────────────── */}
+                {scanState === 'done' && summary && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+
+                        {/* Summary row */}
+                        <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, marginBottom: 20 }}>
+                            <SummaryCell label="PROJECT GRADE" value={summary.project_grade} valueStyle={{ color: gradeColor(summary.project_grade), fontSize: 28, fontWeight: 700 }} />
+                            <SummaryCell label="SCORE" value={`${summary.project_score}/100`} />
+                            <SummaryCell label="FILES SCANNED" value={String(summary.total_files)} />
+                            <SummaryCell label="THREATS" value={String(summary.threats)} valueStyle={{ color: summary.threats > 0 ? C.red : C.acid, fontWeight: 700 }} />
+                            <SummaryCell label="CLEAN" value={String(summary.clean)} valueStyle={{ color: C.acid }} />
+                        </div>
+
+                        {/* Results table */}
+                        <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em', marginBottom: 10 }}>
+                            PER-FILE RESULTS — {results.length} FILES
+                        </div>
+                        <div style={{ border: `1px solid ${C.border}` }}>
+                            {/* Table header */}
+                            <div style={{
+                                display: 'grid', gridTemplateColumns: '2fr 80px 90px 80px 90px',
+                                padding: '6px 14px', borderBottom: `1px solid ${C.border}`,
+                                fontSize: 8, color: C.sub, letterSpacing: '0.1em',
+                            }}>
+                                <span>FILE</span>
+                                <span>LANG</span>
+                                <span>RISK</span>
+                                <span>CONF</span>
+                                <span>VERDICT</span>
+                            </div>
+                            {results.map((r, i) => (
+                                <React.Fragment key={i}>
+                                    <div
+                                        onClick={() => setExpandedRow(expandedRow === i ? null : i)}
+                                        style={{
+                                            display: 'grid', gridTemplateColumns: '2fr 80px 90px 80px 90px',
+                                            padding: '8px 14px', alignItems: 'center',
+                                            borderBottom: `1px solid ${C.border}`,
+                                            cursor: 'pointer', transition: 'background 0.1s',
+                                            background: expandedRow === i ? C.dim : 'transparent',
+                                        }}
+                                        onMouseEnter={e => { if (expandedRow !== i) e.currentTarget.style.background = '#080808'; }}
+                                        onMouseLeave={e => { if (expandedRow !== i) e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: C.text, overflow: 'hidden' }}>
+                                            <span style={{ color: C.sub, fontSize: 8 }}>{expandedRow === i ? '▾' : '▸'}</span>
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.filename}</span>
+                                        </div>
+                                        <span style={{ fontSize: 8, color: C.sub }}>{r.language?.toUpperCase()}</span>
+                                        <span style={{ fontSize: 8, color: riskColor(r.risk_level), fontWeight: 700, border: `1px solid ${riskColor(r.risk_level)}`, padding: '1px 4px', display: 'inline-block', opacity: 0.85 }}>
+                                            {r.risk_level}
+                                        </span>
+                                        <span style={{ fontSize: 9, color: C.text }}>{r.confidence}%</span>
+                                        <span style={{ fontSize: 9, color: r.status === 'malicious' ? C.red : r.status === 'clean' ? C.acid : C.sub, fontWeight: 700 }}>
+                                            {r.status === 'malicious' ? '[ THREAT ]' : r.status === 'clean' ? '[ CLEAN ]' : '[ ERROR ]'}
+                                        </span>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {expandedRow === i && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }}
+                                                style={{ overflow: 'hidden', borderBottom: `1px solid ${C.border}`, background: C.dim }}
+                                            >
+                                                <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 220px', gap: 20 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 8, color: C.sub, letterSpacing: '0.1em', marginBottom: 8 }}>ANALYSIS</div>
+                                                        <div style={{ fontSize: 9, color: C.sub, lineHeight: 1.7 }}>{r.message}</div>
+                                                        <div style={{
+                                                            marginTop: 10, padding: '8px 12px', fontSize: 8, lineHeight: 1.6,
+                                                            border: `1px solid ${r.status === 'malicious' ? 'rgba(255,49,49,0.3)' : 'rgba(173,255,47,0.2)'}`,
+                                                            background: r.status === 'malicious' ? 'rgba(255,49,49,0.05)' : 'rgba(173,255,47,0.03)',
+                                                            color: r.status === 'malicious' ? '#FF8080' : '#A0D080',
+                                                        }}>
+                                                            {r.status === 'malicious'
+                                                                ? '! ACTION REQUIRED — Review and address the identified vulnerability.'
+                                                                : '✓ PASSED — No security issues found in this file.'}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 8, color: C.sub, letterSpacing: '0.1em', marginBottom: 8 }}>FILE INFO</div>
+                                                        {[
+                                                            { k: 'LANGUAGE', v: r.language },
+                                                            { k: 'CONFIDENCE', v: `${r.confidence}%` },
+                                                            { k: 'RISK LEVEL', v: r.risk_level },
+                                                            ...(r.nodes_scanned ? [{ k: 'NODES', v: String(r.nodes_scanned) }] : []),
+                                                        ].map(({ k, v }) => (
+                                                            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 9 }}>
+                                                                <span style={{ color: C.sub }}>{k}</span>
+                                                                <span style={{ color: C.text }}>{v}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+
+            <style>{`
+                @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+            `}</style>
+        </div>
+    );
+}
+
+function BCell({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', height: '100%',
+            padding: '0 14px', borderRight: '1px solid #1E1E1E',
+            fontSize: 10, color: '#707070', letterSpacing: '0.08em',
+            gap: 6, whiteSpace: 'nowrap', ...style,
+        }}>
+            {children}
+        </div>
+    );
+}
+
+function SummaryCell({ label, value, valueStyle }: { label: string; value: string; valueStyle?: React.CSSProperties }) {
+    return (
+        <div style={{ flex: 1, padding: '16px 20px', borderRight: '1px solid #1E1E1E' }}>
+            <div style={{ fontSize: 8, color: '#404040', letterSpacing: '0.12em', marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 18, color: '#E5E5E5', fontFamily: "'JetBrains Mono', monospace", ...valueStyle }}>{value}</div>
         </div>
     );
 }

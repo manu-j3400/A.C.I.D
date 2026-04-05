@@ -1,144 +1,303 @@
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Globe, Cpu, Shield, Sparkles } from 'lucide-react';
+import { Github, Linkedin, Globe, Cpu, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import PublicNavbar from '@/components/PublicNavbar';
+
+const C = {
+    bg: '#000000',
+    accent: '#ADFF2F',
+    danger: '#FF3131',
+    amber: '#FF8C00',
+    text: '#E5E5E5',
+    subdued: '#707070',
+    muted: '#404040',
+    border: '#1E1E1E',
+    font: "'JetBrains Mono', monospace",
+};
+
+const cellStyle: React.CSSProperties = {
+    borderRight: `1px solid ${C.border}`,
+    padding: '0 16px',
+    display: 'flex',
+    alignItems: 'center',
+    height: '36px',
+    fontFamily: C.font,
+    fontSize: '11px',
+    color: C.subdued,
+    whiteSpace: 'nowrap',
+};
 
 export default function About() {
-  return (
-    <div className="min-h-screen bg-black text-white selection:bg-blue-600 selection:text-white overflow-x-hidden relative">
-      <PublicNavbar />
+    return (
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden' }}>
 
-      {/* Ambient Background Elements */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[150px] pointer-events-none" />
-
-      <div className="max-w-4xl mx-auto relative z-10 pt-32 pb-24 px-6">
-
-        {/* Founder Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col items-center text-center mb-24 pt-10"
-        >
-
-          {/* Profile Identifier */}
-          <div className="w-32 h-32 md:w-40 md:h-40 bg-blue-600/20 border-4 border-blue-500 flex items-center justify-center mb-8 shadow-[6px_6px_0px_#1e3a5f] rotate-[-2deg] hover:rotate-0 hover:shadow-[3px_3px_0px_#1e3a5f] transition-all duration-200">
-            <span className="text-4xl md:text-6xl font-black tracking-tighter text-white">MJ</span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-4 text-white drop-shadow-lg uppercase">
-            Manu Jawahar
-          </h1>
-
-          <div className="text-xl md:text-2xl text-blue-400 font-mono font-bold mb-10 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-            <span>Building Soteria</span>
-            <span className="hidden md:block text-neutral-600">•</span>
-            <span className="text-neutral-300">CSE @ UC Irvine (1st Year)</span>
-          </div>
-
-          {/* Social Links Row */}
-          <div className="flex flex-wrap justify-center gap-4 w-full max-w-2xl px-4">
-            <a
-              href="https://manujawahar.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 border-2 border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white transition-all duration-200 group shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px]"
-            >
-              <Globe className="w-5 h-5 text-neutral-500 group-hover:text-blue-400 transition-colors" />
-              <span className="text-sm font-mono font-bold uppercase">Personal Site</span>
-            </a>
-            <a
-              href="https://github.com/manujawahar"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 border-2 border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white transition-all duration-200 group shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px]"
-            >
-              <Github className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
-              <span className="text-sm font-mono font-bold uppercase">GitHub</span>
-            </a>
-            <a
-              href="https://linkedin.com/in/manujawahar"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-4 border-2 border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white transition-all duration-200 group shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px]"
-            >
-              <Linkedin className="w-5 h-5 text-neutral-500 group-hover:text-[#0A66C2] transition-colors" />
-              <span className="text-sm font-mono font-bold uppercase">LinkedIn</span>
-            </a>
-          </div>
-        </motion.div>
-
-        {/* Story Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative"
-        >
-          {/* Decorative line */}
-          <div className="absolute left-0 right-0 top-0 h-px bg-white/10" />
-
-          <div className="pt-20 px-4 md:px-0">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-[1.1] mb-12 text-center text-white uppercase">
-              Combating the rise of<br />
-              <span className="text-blue-400">AI-generated bugs.</span>
-            </h2>
-
-            <div className="max-w-3xl mx-auto space-y-8 text-lg text-neutral-400 font-medium leading-relaxed">
-              <p className="text-xl text-neutral-200 font-bold border-l-4 border-cyan-500 pl-6 py-2">
-                I built Soteria out of a direct frustration with modern development habits.
-              </p>
-
-              <div className="space-y-6">
-                <p>
-                  With the explosive rise of AI coding assistants like Copilot and ChatGPT, programming has become exponentially faster. But there's a serious catch: it's also become exponentially easier to ship insecure, hallucinated, or fundamentally flawed code without fully understanding it.
-                </p>
-                <p>
-                  As a CSE student, I saw this happening firsthand. Students and junior developers were blindly accepting AI suggestions—pasting SQL injections, exposing API keys, and deploying vulnerable logic because the code "looked right" and compiled successfully.
-                </p>
-                <p>
-                  I realized that while AI is great at writing code, we need better tools to <strong className="text-white">verify</strong> and <strong className="text-white">understand</strong> that code.
-                </p>
-              </div>
-
-              {/* Mission Bento */}
-              <div className="grid sm:grid-cols-2 gap-6 pt-10">
-                <div className="p-8 border-2 border-neutral-700 bg-neutral-900 shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 group">
-                  <Cpu className="w-8 h-8 text-blue-400 mb-6 group-hover:scale-110 group-hover:text-blue-300 transition-all duration-200" />
-                  <h3 className="text-xl text-white font-black mb-3 uppercase">The Problem</h3>
-                  <p className="text-base text-neutral-400 leading-relaxed font-mono">AI writes the code, but developers copy/paste it without realizing the security implications or architectural flaws.</p>
+            {/* ─── NAV STRIP ─── */}
+            <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
+                    <Link to="/" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em' }}>SOTERIA</Link>
                 </div>
-                <div className="p-8 border-2 border-neutral-700 bg-neutral-900 shadow-[4px_4px_0px_#1e293b] hover:shadow-[2px_2px_0px_#1e293b] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 group">
-                  <Shield className="w-8 h-8 text-blue-400 mb-6 group-hover:scale-110 group-hover:text-cyan-300 transition-all duration-200" />
-                  <h3 className="text-xl text-white font-black mb-3 uppercase">The Solution</h3>
-                  <p className="text-base text-neutral-400 leading-relaxed font-mono">Soteria acts as an educational firewall. It catches vulnerabilities early and explains them in plain English.</p>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/home" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOME ]</Link>
                 </div>
-              </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/features" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ FEATURES ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/how-it-works" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOW IT WORKS ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/changelog" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ CHANGELOG ]</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <Link to="/about" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ ABOUT ]</Link>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/login" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ LOGIN ]</Link>
+                </div>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/signup" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700 }}>[ START FREE ]</Link>
+                </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
 
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t-2 border-neutral-800 bg-black text-neutral-400 py-16 text-sm font-mono relative">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link to="/" className="flex items-center gap-3 group">
-            <img src="/soteria-logo.png" alt="Soteria" className="h-8 w-8 rounded-none object-cover transition-transform group-hover:-translate-y-[2px]" />
-            <span className="text-xl font-mono font-bold tracking-[0.15em] uppercase text-white">SOTERIA</span>
-          </Link>
-          <div className="flex gap-8 font-bold">
-            <Link to="/about" className="hover:text-primary transition-colors uppercase cursor-pointer">About the Creator</Link>
-            <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors uppercase flex items-center gap-2 cursor-pointer">
-              <Github className="w-4 h-4" /> Open Source
-            </a>
-          </div>
-          <div className="text-neutral-500 text-[10px] tracking-widest uppercase">
-            © {new Date().getFullYear()} Soteria. Built for builders.
-          </div>
+            {/* ─── PAGE TITLE STRIP ─── */}
+            <div style={{ borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'stretch', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, color: C.text, fontWeight: 700, letterSpacing: '0.1em', fontSize: '11px' }}>
+                    ABOUT — FOUNDER PROFILE
+                </div>
+                <div style={{ ...cellStyle, color: C.accent }}>[ ACTIVE ]</div>
+                <div style={{ ...cellStyle }}>MJ // CSE @ UC IRVINE</div>
+                <div style={{ flex: 1, borderRight: `1px solid ${C.border}` }} />
+                <div style={{ ...cellStyle, borderRight: 'none' }}>UTC {new Date().toISOString().slice(11, 19)}</div>
+            </div>
+
+            {/* ─── FOUNDER HERO ─── */}
+            <section style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr' }}>
+                    {/* Left: Identity block */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ borderRight: `1px solid ${C.border}`, padding: '48px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}
+                    >
+                        {/* Avatar */}
+                        <div style={{
+                            width: '96px',
+                            height: '96px',
+                            border: `1px solid ${C.accent}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#050505',
+                        }}>
+                            <span style={{ fontSize: '32px', fontWeight: 900, color: C.accent, letterSpacing: '-0.04em' }}>MJ</span>
+                        </div>
+
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '18px', fontWeight: 900, color: C.text, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>Manu Jawahar</div>
+                            <div style={{ fontSize: '10px', color: C.subdued, marginTop: '6px', letterSpacing: '0.1em' }}>FOUNDER — SOTERIA</div>
+                            <div style={{ fontSize: '10px', color: C.muted, marginTop: '4px', letterSpacing: '0.08em' }}>CSE @ UC IRVINE · 1ST YEAR</div>
+                        </div>
+
+                        {/* Status indicator */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: `1px solid ${C.border}`, padding: '6px 14px' }}>
+                            <motion.div
+                                animate={{ opacity: [1, 0.3, 1] }}
+                                transition={{ duration: 1.8, repeat: Infinity }}
+                                style={{ width: '6px', height: '6px', background: C.accent }}
+                            />
+                            <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.1em', fontWeight: 700 }}>BUILDING</span>
+                        </div>
+
+                        {/* Social links */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                            {[
+                                {
+                                    href: 'https://manujawahar.vercel.app/',
+                                    icon: <Globe size={13} />,
+                                    label: 'PERSONAL SITE',
+                                },
+                                {
+                                    href: 'https://github.com/manujawahar',
+                                    icon: <Github size={13} />,
+                                    label: 'GITHUB',
+                                },
+                                {
+                                    href: 'https://linkedin.com/in/manujawahar',
+                                    icon: <Linkedin size={13} />,
+                                    label: 'LINKEDIN',
+                                },
+                            ].map((link) => (
+                                <a
+                                    key={link.label}
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        border: `1px solid ${C.border}`,
+                                        padding: '8px 14px',
+                                        color: C.subdued,
+                                        textDecoration: 'none',
+                                        fontSize: '10px',
+                                        letterSpacing: '0.1em',
+                                        fontFamily: C.font,
+                                        transition: 'color 0.15s, border-color 0.15s',
+                                    }}
+                                    onMouseEnter={e => {
+                                        (e.currentTarget as HTMLAnchorElement).style.color = C.accent;
+                                        (e.currentTarget as HTMLAnchorElement).style.borderColor = C.accent;
+                                    }}
+                                    onMouseLeave={e => {
+                                        (e.currentTarget as HTMLAnchorElement).style.color = C.subdued;
+                                        (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border;
+                                    }}
+                                >
+                                    {link.icon}
+                                    {link.label}
+                                </a>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Right: Bio text */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ padding: '48px 48px' }}
+                    >
+                        <div style={{ display: 'inline-block', border: `1px solid ${C.border}`, padding: '4px 12px', marginBottom: '28px' }}>
+                            <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.2em', fontWeight: 700 }}>// ORIGIN STORY</span>
+                        </div>
+
+                        <h2 style={{ fontSize: 'clamp(24px, 3vw, 40px)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, margin: '0 0 32px', fontFamily: C.font }}>
+                            COMBATING THE RISE OF<br />
+                            <span style={{ color: C.accent }}>AI-GENERATED BUGS.</span>
+                        </h2>
+
+                        <div style={{ borderLeft: `2px solid ${C.accent}`, paddingLeft: '20px', marginBottom: '28px' }}>
+                            <p style={{ fontSize: '13px', color: C.text, lineHeight: 1.8, margin: 0, fontWeight: 600 }}>
+                                I built Soteria out of a direct frustration with modern development habits.
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
+                                With the explosive rise of AI coding assistants like Copilot and ChatGPT, programming has become exponentially faster. But there's a serious catch: it's also become exponentially easier to ship insecure, hallucinated, or fundamentally flawed code without fully understanding it.
+                            </p>
+                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
+                                As a CSE student, I saw this happening firsthand. Students and junior developers were blindly accepting AI suggestions — pasting SQL injections, exposing API keys, and deploying vulnerable logic because the code "looked right" and compiled successfully.
+                            </p>
+                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
+                                I realized that while AI is great at writing code, we need better tools to{' '}
+                                <strong style={{ color: C.text }}>verify</strong> and{' '}
+                                <strong style={{ color: C.text }}>understand</strong> that code.
+                            </p>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* ─── MISSION GRID ─── */}
+            <section style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// MISSION PARAMETERS</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                    {[
+                        {
+                            icon: <Cpu size={18} />,
+                            label: 'THE PROBLEM',
+                            tag: '[ IDENTIFIED ]',
+                            tagColor: C.danger,
+                            desc: 'AI writes the code, but developers copy/paste it without realizing the security implications or architectural flaws. The gap between "it works" and "it\'s secure" has never been wider.',
+                        },
+                        {
+                            icon: <Shield size={18} />,
+                            label: 'THE SOLUTION',
+                            tag: '[ ACTIVE ]',
+                            tagColor: C.accent,
+                            desc: 'Soteria acts as an educational firewall. It catches vulnerabilities early and explains them in plain English — so developers learn while they ship.',
+                        },
+                    ].map((item, i) => (
+                        <motion.div
+                            key={item.label}
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: i * 0.1 }}
+                            style={{
+                                borderRight: i === 0 ? `1px solid ${C.border}` : 'none',
+                                padding: '32px 48px',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                <div style={{ color: item.tagColor }}>{item.icon}</div>
+                                <span style={{ fontSize: '10px', color: item.tagColor, fontWeight: 700, letterSpacing: '0.1em' }}>{item.tag}</span>
+                            </div>
+                            <h3 style={{ fontSize: '16px', fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>{item.label}</h3>
+                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>{item.desc}</p>
+                        </motion.div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ─── STACK INFO ─── */}
+            <section style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// TECHNICAL STACK — KYBER ENGINE</span>
+                </div>
+                <div style={{ padding: '32px 48px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                        { label: 'Python / Flask', color: C.amber },
+                        { label: 'PyTorch + GATConv', color: C.accent },
+                        { label: 'snntorch SNN', color: C.accent },
+                        { label: 'Gemini 2.5 Pro', color: C.text },
+                        { label: 'React / TypeScript', color: C.text },
+                        { label: 'eBPF / libbpf-rs', color: C.danger },
+                        { label: 'Rust (GPU Sentinel)', color: C.danger },
+                        { label: 'gRPC + Proto', color: C.subdued },
+                        { label: 'SQLite3 WAL', color: C.subdued },
+                        { label: 'Supabase JWT', color: C.subdued },
+                        { label: 'GitHub OAuth PKCE', color: C.subdued },
+                    ].map((tech) => (
+                        <div
+                            key={tech.label}
+                            style={{
+                                border: `1px solid ${C.border}`,
+                                padding: '6px 14px',
+                                fontSize: '11px',
+                                color: tech.color,
+                                letterSpacing: '0.06em',
+                            }}
+                        >
+                            {tech.label}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ─── FOOTER ─── */}
+            <footer style={{ borderTop: `1px solid ${C.border}`, padding: '0', display: 'flex', alignItems: 'stretch', height: '36px' }}>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
+                    <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>
+                </div>
+                <div style={{ ...cellStyle }}>
+                    <span style={{ color: C.muted }}>© {new Date().getFullYear()} SOTERIA. BUILT FOR BUILDERS.</span>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <Link to="/about" style={{ color: C.accent, textDecoration: 'none', fontSize: '11px', fontWeight: 700 }}>ABOUT THE CREATOR</Link>
+                </div>
+                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
+                    <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Github size={12} /> OPEN SOURCE
+                    </a>
+                </div>
+            </footer>
         </div>
-      </footer>
-    </div>
-  );
+    );
 }

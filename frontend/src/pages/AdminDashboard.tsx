@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/context/AdminContext';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, LogOut, UserPlus, Clock, Activity, AlertTriangle } from 'lucide-react';
+import { Shield, Users, LogOut, UserPlus, Activity, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 

@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
 
 const GoogleIcon = () => (
-    <svg className="w-5 h-5" viewBox="0 0 24 24">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
         <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -13,146 +11,154 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const C = {
+    acid: '#ADFF2F', red: '#FF3131', amber: '#FF8C00',
+    border: '#1E1E1E', dim: '#0D0D0D', muted: '#404040',
+    text: '#E5E5E5', sub: '#707070',
+};
+
+const inputStyle: React.CSSProperties = {
+    width: '100%', background: '#000', border: `1px solid #1E1E1E`,
+    outline: 'none', padding: '9px 12px', fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 11, color: '#E5E5E5', boxSizing: 'border-box' as const,
+    transition: 'border-color 0.15s',
+};
+
 export default function Signup() {
     const { signup, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [name, setName]               = useState('');
+    const [email, setEmail]             = useState('');
+    const [password, setPassword]       = useState('');
+    const [error, setError]             = useState('');
     const [emailExists, setEmailExists] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]         = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setEmailExists(false);
-        setLoading(true);
-
-        try {
-            await signup(name, email, password);
-            navigate('/dashboard');
-        } catch (err: any) {
-            const msg: string = err.message || 'Signup failed';
-            if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || err.status === 409) {
-                setEmailExists(true);
-            } else {
-                setError(msg);
-            }
-        } finally {
-            setLoading(false);
-        }
+        e.preventDefault(); setError(''); setEmailExists(false); setLoading(true);
+        try { await signup(name, email, password); navigate('/dashboard'); }
+        catch (err: any) {
+            const msg: string = err.message || 'SIGNUP FAILED';
+            if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || err.status === 409) setEmailExists(true);
+            else setError(msg);
+        } finally { setLoading(false); }
     };
 
     const handleGoogleSignIn = async () => {
-        setError('');
-        setLoading(true);
-        try {
-            await signInWithGoogle();
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Google sign-up failed');
-        } finally {
-            setLoading(false);
-        }
+        setError(''); setLoading(true);
+        try { await signInWithGoogle(); }
+        catch (err: unknown) { setError(err instanceof Error ? err.message : 'GOOGLE SIGN-UP FAILED'); }
+        finally { setLoading(false); }
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center px-4 relative">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
-            <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-950 border border-blue-500/10 backdrop-blur-xl shadow-2xl shadow-blue-900/10">
-                <div className="text-center mb-8">
-                    <Link to="/">
-                        <img src="/soteria-logo.png" alt="Soteria" className="mx-auto w-14 h-14 rounded-xl object-cover mb-4" />
-                    </Link>
-                    <h1 className="text-2xl font-black text-white tracking-tight">Create Account</h1>
-                    <p className="text-neutral-500 text-sm mt-1">Start your security journey</p>
+        <div style={{
+            minHeight: '100vh', background: '#000', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'JetBrains Mono', monospace", color: C.text,
+        }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+                SOTERIA / REGISTER
+            </div>
+            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+                [ NEW ACCOUNT ]
+            </div>
+
+            <div style={{ width: '100%', maxWidth: 400, border: `1px solid ${C.border}`, background: C.dim }}>
+                {/* Header */}
+                <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em' }}>CREATE OPERATOR ACCOUNT</div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 block">Name</label>
-                        <input
-                            type="text"
-                            placeholder="Your name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-blue-500/30 focus:ring-1 focus:ring-blue-500/20 transition-colors"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 block">Email</label>
-                        <input
-                            type="email"
-                            placeholder="you@university.edu"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-blue-500/30 focus:ring-1 focus:ring-blue-500/20 transition-colors"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 block">Password</label>
-                        <input
-                            type="password"
-                            placeholder="Min. 6 characters"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            minLength={6}
-                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-blue-500/30 focus:ring-1 focus:ring-blue-500/20 transition-colors"
-                        />
-                    </div>
+                {/* Logo */}
+                <div style={{ padding: '28px 20px 20px', textAlign: 'center', borderBottom: `1px solid ${C.border}` }}>
+                    <Link to="/home">
+                        <img src="/soteria-logo.png" alt="Soteria" style={{ width: 48, height: 48, objectFit: 'cover', margin: '0 auto 12px', display: 'block' }} />
+                    </Link>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
+                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.1em' }}>SECURITY INTELLIGENCE PLATFORM</div>
+                </div>
 
-                    {error && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
+                {/* Form */}
+                <form onSubmit={handleSubmit} style={{ padding: 20 }}>
+                    {[
+                        { label: 'OPERATOR NAME', type: 'text', val: name, set: setName, placeholder: 'Your name', required: true },
+                        { label: 'EMAIL ADDRESS', type: 'email', val: email, set: setEmail, placeholder: 'operator@domain.com', required: true },
+                        { label: 'PASSWORD', type: 'password', val: password, set: setPassword, placeholder: 'Min. 6 characters', required: true, minLength: 6 },
+                    ].map(({ label, type, val, set, placeholder, required, minLength }) => (
+                        <div key={label} style={{ marginBottom: 12 }}>
+                            <label style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>{label}</label>
+                            <input
+                                type={type} value={val} onChange={e => set(e.target.value)}
+                                placeholder={placeholder} required={required}
+                                minLength={minLength}
+                                style={inputStyle}
+                                onFocus={e => (e.target.style.borderColor = C.acid)}
+                                onBlur={e => (e.target.style.borderColor = C.border)}
+                            />
+                        </div>
+                    ))}
 
-                    {emailExists && (
-                        <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-3 space-y-1">
-                            <p className="text-amber-400 font-semibold">An account with this email already exists.</p>
-                            <p className="text-neutral-400">
-                                <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold underline">Sign in instead</Link>
-                                {' '}or{' '}
-                                <Link to="/login?forgot=1" className="text-blue-400 hover:text-blue-300 font-bold underline">reset your password</Link>.
-                            </p>
+                    {error && (
+                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 9, color: C.red, letterSpacing: '0.06em' }}>
+                            ! {error}
                         </div>
                     )}
 
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 text-white hover:bg-blue-500 py-6 rounded-xl font-bold shadow-[4px_4px_0px_#1e3a5f] hover:shadow-[2px_2px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-                    >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        {loading ? 'Creating Account...' : 'Create Account'}
-                    </Button>
+                    {emailExists && (
+                        <div style={{ marginBottom: 12, padding: '10px 12px', background: 'rgba(255,140,0,0.06)', border: `1px solid rgba(255,140,0,0.3)`, fontSize: 9, color: C.amber, lineHeight: 1.8 }}>
+                            ! EMAIL ALREADY REGISTERED.{' '}
+                            <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>SIGN IN</Link>
+                            {' '}OR{' '}
+                            <Link to="/forgot-password" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>RESET PASSWORD</Link>
+                        </div>
+                    )}
 
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-white/10" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-neutral-950 px-2 text-neutral-500">or</span>
-                        </div>
+                    <button
+                        type="submit" disabled={loading}
+                        style={{
+                            width: '100%', padding: '11px 0',
+                            background: loading ? C.dim : C.acid,
+                            border: `1px solid ${loading ? C.muted : C.acid}`,
+                            color: loading ? C.sub : '#000',
+                            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                            fontWeight: 700, letterSpacing: '0.1em', cursor: loading ? 'not-allowed' : 'pointer',
+                            marginBottom: 12, transition: 'background 0.15s',
+                        }}
+                    >
+                        {loading ? '[ CREATING ACCOUNT... ]' : '[ CREATE ACCOUNT ]'}
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0', color: C.muted }}>
+                        <div style={{ flex: 1, height: 1, background: C.border }} />
+                        <span style={{ fontSize: 8, letterSpacing: '0.1em' }}>OR</span>
+                        <div style={{ flex: 1, height: 1, background: C.border }} />
                     </div>
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={loading}
-                        onClick={handleGoogleSignIn}
-                        className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white py-6 rounded-xl font-bold"
+                    <button
+                        type="button" onClick={handleGoogleSignIn} disabled={loading}
+                        style={{
+                            width: '100%', padding: '10px 0', background: 'transparent',
+                            border: `1px solid ${C.border}`, color: C.text,
+                            fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+                            letterSpacing: '0.08em', cursor: loading ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                            transition: 'border-color 0.15s',
+                        }}
+                        onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.borderColor = C.sub; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; }}
                     >
                         <GoogleIcon />
-                        <span className="ml-2">Sign up with Google</span>
-                    </Button>
+                        SIGN UP WITH GOOGLE
+                    </button>
                 </form>
 
-                <p className="text-center text-neutral-600 text-sm mt-6">
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold">
-                        Log in
-                    </Link>
-                </p>
+                <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 9, color: C.sub }}>
+                        HAVE AN ACCOUNT?{' '}
+                        <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>SIGN IN</Link>
+                    </span>
+                </div>
             </div>
         </div>
     );

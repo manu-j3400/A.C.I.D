@@ -1,97 +1,131 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+
+const C = {
+    acid: '#ADFF2F', red: '#FF3131',
+    border: '#1E1E1E', dim: '#0D0D0D', muted: '#404040',
+    text: '#E5E5E5', sub: '#707070',
+};
 
 export default function ForgotPassword() {
-    const [email, setEmail] = useState('');
-    const [sent, setSent] = useState(false);
-    const [error, setError] = useState('');
+    const [email, setEmail]     = useState('');
+    const [sent, setSent]       = useState(false);
+    const [error, setError]     = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
-
+        e.preventDefault(); setError(''); setLoading(true);
         const { error: sbError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
             redirectTo: `${window.location.origin}/reset-password`,
         });
-
         setLoading(false);
-
-        if (sbError) {
-            setError(sbError.message);
-        } else {
-            setSent(true);
-        }
+        if (sbError) setError(sbError.message);
+        else setSent(true);
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center px-4 relative">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
-            <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-950 border border-blue-500/10 backdrop-blur-xl shadow-2xl shadow-blue-900/10">
+        <div style={{
+            minHeight: '100vh', background: '#000', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'JetBrains Mono', monospace", color: C.text,
+        }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+                SOTERIA / RESET PASSWORD
+            </div>
 
-                <div className="text-center mb-8">
-                    <Link to="/">
-                        <img src="/soteria-logo.png" alt="Soteria" className="mx-auto w-14 h-14 rounded-xl object-cover mb-4" />
-                    </Link>
-                    <h1 className="text-2xl font-black text-white tracking-tight">Reset Password</h1>
-                    <p className="text-neutral-500 text-sm mt-1">
-                        {sent ? 'Check your inbox' : "Enter your email and we'll send a reset link"}
-                    </p>
+            <div style={{ width: '100%', maxWidth: 400, border: `1px solid ${C.border}`, background: C.dim }}>
+                {/* Header */}
+                <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em' }}>PASSWORD RESET</div>
                 </div>
 
-                {sent ? (
-                    <div className="text-center space-y-4">
-                        <div className="flex justify-center">
-                            <CheckCircle2 className="w-12 h-12 text-green-500" />
-                        </div>
-                        <p className="text-neutral-300 text-sm">
-                            A password reset link has been sent to <span className="text-white font-semibold">{email}</span>.
-                            Check your spam folder if it doesn't arrive within a few minutes.
-                        </p>
-                        <Link to="/login">
-                            <Button className="w-full mt-4 bg-blue-800/80 hover:bg-blue-700/80 py-6 rounded-xl font-bold transition-all">
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back to Sign In
-                            </Button>
-                        </Link>
+                {/* Logo */}
+                <div style={{ padding: '28px 20px 20px', textAlign: 'center', borderBottom: `1px solid ${C.border}` }}>
+                    <Link to="/home">
+                        <img src="/soteria-logo.png" alt="Soteria" style={{ width: 48, height: 48, objectFit: 'cover', margin: '0 auto 12px', display: 'block' }} />
+                    </Link>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
+                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.1em' }}>
+                        {sent ? 'CHECK YOUR INBOX' : 'ENTER YOUR EMAIL TO RECEIVE A RESET LINK'}
                     </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 block">Email</label>
-                            <input
-                                type="email"
-                                placeholder="you@university.edu"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-blue-500/30 focus:ring-1 focus:ring-blue-500/20 transition-colors"
-                            />
+                </div>
+
+                <div style={{ padding: 20 }}>
+                    {sent ? (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 32, color: C.acid, marginBottom: 16 }}>✓</div>
+                            <div style={{ fontSize: 9, color: C.sub, lineHeight: 2, marginBottom: 20 }}>
+                                RESET LINK SENT TO{' '}
+                                <span style={{ color: C.text }}>{email}</span>.
+                                CHECK YOUR SPAM FOLDER IF IT DOESN'T ARRIVE.
+                            </div>
+                            <Link to="/login" style={{
+                                display: 'block', padding: '10px 0', textAlign: 'center',
+                                background: 'transparent', border: `1px solid ${C.border}`,
+                                color: C.sub, textDecoration: 'none',
+                                fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+                                letterSpacing: '0.1em', transition: 'color 0.15s, border-color 0.15s',
+                            }}
+                            onMouseEnter={e => { (e.target as HTMLElement).style.color = C.text; (e.target as HTMLElement).style.borderColor = C.sub; }}
+                            onMouseLeave={e => { (e.target as HTMLElement).style.color = C.sub; (e.target as HTMLElement).style.borderColor = C.border; }}
+                            >
+                                ← BACK TO SIGN IN
+                            </Link>
                         </div>
+                    ) : (
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>EMAIL ADDRESS</label>
+                                <input
+                                    type="email" value={email} onChange={e => setEmail(e.target.value)}
+                                    placeholder="operator@domain.com" required
+                                    style={{
+                                        width: '100%', background: '#000', border: `1px solid ${C.border}`,
+                                        outline: 'none', padding: '9px 12px',
+                                        fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                                        color: C.text, boxSizing: 'border-box' as const,
+                                        transition: 'border-color 0.15s',
+                                    }}
+                                    onFocus={e => (e.target.style.borderColor = C.acid)}
+                                    onBlur={e => (e.target.style.borderColor = C.border)}
+                                />
+                            </div>
 
-                        {error && (
-                            <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
-                        )}
+                            {error && (
+                                <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 9, color: C.red }}>
+                                    ! {error}
+                                </div>
+                            )}
 
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-blue-800/80 hover:bg-blue-700/80 py-6 rounded-xl font-bold transition-all"
-                        >
-                            <Mail className="w-4 h-4 mr-2" />
-                            {loading ? 'Sending...' : 'Send Reset Link'}
-                        </Button>
+                            <button
+                                type="submit" disabled={loading}
+                                style={{
+                                    width: '100%', padding: '11px 0', marginBottom: 12,
+                                    background: loading ? C.dim : C.acid,
+                                    border: `1px solid ${loading ? C.muted : C.acid}`,
+                                    color: loading ? C.sub : '#000',
+                                    fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                                    fontWeight: 700, letterSpacing: '0.1em', cursor: loading ? 'not-allowed' : 'pointer',
+                                    transition: 'background 0.15s',
+                                }}
+                            >
+                                {loading ? '[ SENDING... ]' : '[ SEND RESET LINK ]'}
+                            </button>
 
-                        <Link to="/login" className="flex items-center justify-center gap-1 text-neutral-500 hover:text-white text-sm transition-colors mt-2">
-                            <ArrowLeft className="w-3.5 h-3.5" />
-                            Back to Sign In
-                        </Link>
-                    </form>
-                )}
+                            <Link to="/login" style={{
+                                display: 'block', textAlign: 'center', fontSize: 9, color: C.sub,
+                                textDecoration: 'none', letterSpacing: '0.08em',
+                                transition: 'color 0.15s',
+                            }}
+                            onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
+                            onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}
+                            >
+                                ← BACK TO SIGN IN
+                            </Link>
+                        </form>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,7 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, LayoutDashboard } from 'lucide-react';
+
+const ACCENT = '#ADFF2F';
+const FONT = "'JetBrains Mono', 'Courier New', monospace";
+
+const NAV_LINKS = [
+    { path: '/features',    label: 'FEATURES'    },
+    { path: '/how-it-works',label: 'HOW IT WORKS' },
+    { path: '/changelog',   label: 'LIFECYCLE'    },
+    { path: '/about',       label: 'ABOUT'        },
+];
 
 export default function PublicNavbar() {
     const location = useLocation();
@@ -10,52 +18,263 @@ export default function PublicNavbar() {
     const isActive = (path: string) => location.pathname === path;
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-black border-b-2 border-neutral-800">
-            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-                <Link to="/" className="flex items-center gap-3 group">
-                    <img src="/soteria-logo.png" alt="Soteria" className="h-9 w-9 rounded-none object-cover transition-transform group-hover:-translate-y-[2px]" />
-                    <span className="text-xl font-mono font-bold tracking-[0.15em] uppercase text-white">SOTERIA</span>
-                </Link>
-
-                <div className="hidden md:flex items-center gap-8">
-                    <Link to="/features" className={`text-xs font-mono font-bold uppercase transition-colors duration-300 ${isActive('/features') ? 'text-cyan-400' : 'text-neutral-500 hover:text-cyan-400'}`}>Features</Link>
-                    <Link to="/how-it-works" className={`text-xs font-mono font-bold uppercase transition-colors duration-300 ${isActive('/how-it-works') ? 'text-cyan-400' : 'text-neutral-500 hover:text-cyan-400'}`}>How It Works</Link>
-                    <Link to="/changelog" className={`text-xs font-mono font-bold uppercase transition-colors duration-300 ${isActive('/changelog') ? 'text-cyan-400' : 'text-neutral-500 hover:text-cyan-400'}`}>Lifecycle</Link>
-                    <Link to="/about" className={`text-xs font-mono font-bold uppercase transition-colors duration-300 ${isActive('/about') ? 'text-cyan-400' : 'text-neutral-500 hover:text-cyan-400'}`}>About</Link>
+        <nav style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            backgroundColor: '#000',
+            fontFamily: FONT,
+        }}>
+            {/* Top Status Strip */}
+            <div style={{
+                borderBottom: '1px solid #1E1E1E',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 24px',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <span style={{ fontSize: '9px', color: ACCENT, letterSpacing: '0.14em' }}>
+                        ● SOTERIA
+                    </span>
+                    <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                        SECURITY ANALYSIS PLATFORM v2.5
+                    </span>
                 </div>
-
-                <div className="flex items-center gap-3">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     {isAuthenticated && user ? (
                         <>
-                            <span className="hidden sm:block text-xs font-mono text-neutral-500 border border-neutral-800 px-3 py-1.5 rounded-md">
-                                {user.name}
+                            <span style={{ fontSize: '9px', color: ACCENT, letterSpacing: '0.12em' }}>
+                                [ CONNECTED ] {user.name}
                             </span>
-                            <Link to="/dashboard">
-                                <Button className="text-xs font-mono font-bold uppercase h-9 px-4 bg-cyan-500 text-black hover:bg-cyan-400 rounded-lg shadow-[3px_3px_0px_#0e7490] hover:shadow-[1px_1px_0px_#0e7490] hover:translate-x-[2px] hover:translate-y-[2px] transition-all border-0 flex items-center gap-2">
-                                    <LayoutDashboard className="w-3.5 h-3.5" />
-                                    Dashboard
-                                </Button>
-                            </Link>
-                            <Button
-                                variant="ghost"
-                                onClick={logout}
-                                className="text-xs font-mono font-bold uppercase text-neutral-500 hover:text-red-400 rounded-md hover:bg-red-500/10 h-9 px-3"
-                                title="Sign out"
-                            >
-                                <LogOut className="w-3.5 h-3.5" />
-                            </Button>
+                            <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                                SESSION::ACTIVE
+                            </span>
                         </>
                     ) : (
                         <>
-                            <Link to="/login">
-                                <Button variant="ghost" className="text-xs font-mono font-bold uppercase text-neutral-400 hover:text-white rounded-md hover:bg-white/10 h-9 px-4">
-                                    Sign In
-                                </Button>
+                            <span style={{ fontSize: '9px', color: '#555', letterSpacing: '0.12em' }}>
+                                [ LIVE ]
+                            </span>
+                            <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                                AUTH::NONE
+                            </span>
+                        </>
+                    )}
+                    <span style={{ fontSize: '9px', color: '#222', letterSpacing: '0.1em' }}>
+                        KRN::5.15.0-LTS
+                    </span>
+                </div>
+            </div>
+
+            {/* Main Nav Bar */}
+            <div style={{
+                borderBottom: '1px solid #1E1E1E',
+                height: '52px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 24px',
+                maxWidth: '1280px',
+                margin: '0 auto',
+                width: '100%',
+            }}>
+                {/* Logo */}
+                <Link to="/" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    textDecoration: 'none',
+                }}>
+                    <img
+                        src="/soteria-logo.png"
+                        alt="Soteria"
+                        style={{
+                            height: '30px',
+                            width: '30px',
+                            borderRadius: '0px',
+                            objectFit: 'cover',
+                        }}
+                    />
+                    <span style={{
+                        fontSize: '13px',
+                        fontFamily: FONT,
+                        fontWeight: 700,
+                        letterSpacing: '0.2em',
+                        color: '#fff',
+                        textTransform: 'uppercase',
+                    }}>
+                        SOTERIA
+                    </span>
+                    <span style={{
+                        fontSize: '9px',
+                        color: ACCENT,
+                        letterSpacing: '0.1em',
+                        borderLeft: '1px solid #1E1E1E',
+                        paddingLeft: '10px',
+                        marginLeft: '2px',
+                    }}>
+                        [ LIVE ]
+                    </span>
+                </Link>
+
+                {/* Nav Links */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0px',
+                }}>
+                    {NAV_LINKS.map(({ path, label }) => {
+                        const active = isActive(path);
+                        return (
+                            <Link
+                                key={path}
+                                to={path}
+                                style={{
+                                    fontSize: '10px',
+                                    fontFamily: FONT,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.14em',
+                                    textDecoration: 'none',
+                                    color: active ? ACCENT : '#555',
+                                    padding: '0 16px',
+                                    height: '52px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderRight: '1px solid #1E1E1E',
+                                    borderBottom: active ? `2px solid ${ACCENT}` : '2px solid transparent',
+                                    transition: 'color 0.15s',
+                                }}
+                                onMouseEnter={e => {
+                                    if (!active) (e.currentTarget as HTMLAnchorElement).style.color = ACCENT;
+                                }}
+                                onMouseLeave={e => {
+                                    if (!active) (e.currentTarget as HTMLAnchorElement).style.color = '#555';
+                                }}
+                            >
+                                {label}
                             </Link>
-                            <Link to="/signup">
-                                <Button className="text-xs font-mono font-bold uppercase h-9 px-5 bg-blue-600 text-white hover:bg-blue-500 rounded-lg shadow-[3px_3px_0px_#1e3a5f] hover:shadow-[1px_1px_0px_#1e3a5f] hover:translate-x-[2px] hover:translate-y-[2px] transition-all border-0">
-                                    Get Started
-                                </Button>
+                        );
+                    })}
+                </div>
+
+                {/* Auth Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {isAuthenticated && user ? (
+                        <>
+                            <span style={{
+                                fontSize: '10px',
+                                fontFamily: FONT,
+                                color: '#444',
+                                border: '1px solid #1E1E1E',
+                                padding: '5px 12px',
+                                letterSpacing: '0.08em',
+                            }}>
+                                {user.name}
+                            </span>
+                            <Link
+                                to="/dashboard"
+                                style={{
+                                    fontSize: '10px',
+                                    fontFamily: FONT,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.14em',
+                                    textDecoration: 'none',
+                                    color: '#000',
+                                    backgroundColor: ACCENT,
+                                    border: `1px solid ${ACCENT}`,
+                                    padding: '6px 16px',
+                                    textTransform: 'uppercase',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    borderRadius: '0px',
+                                    transition: 'opacity 0.15s',
+                                }}
+                                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85'}
+                                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
+                            >
+                                ▶ DASHBOARD
+                            </Link>
+                            <button
+                                onClick={logout}
+                                title="Sign out"
+                                style={{
+                                    fontFamily: FONT,
+                                    fontSize: '10px',
+                                    letterSpacing: '0.12em',
+                                    color: '#555',
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid #1E1E1E',
+                                    padding: '6px 12px',
+                                    cursor: 'pointer',
+                                    borderRadius: '0px',
+                                    transition: 'color 0.15s, border-color 0.15s',
+                                }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.color = '#FF4444';
+                                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#FF4444';
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.color = '#555';
+                                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#1E1E1E';
+                                }}
+                            >
+                                ✕ LOGOUT
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link
+                                to="/login"
+                                style={{
+                                    fontSize: '10px',
+                                    fontFamily: FONT,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.14em',
+                                    textDecoration: 'none',
+                                    color: '#555',
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid #1E1E1E',
+                                    padding: '6px 16px',
+                                    textTransform: 'uppercase',
+                                    borderRadius: '0px',
+                                    transition: 'color 0.15s, border-color 0.15s',
+                                }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLAnchorElement).style.color = '#fff';
+                                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#555';
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLAnchorElement).style.color = '#555';
+                                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#1E1E1E';
+                                }}
+                            >
+                                SIGN IN
+                            </Link>
+                            <Link
+                                to="/signup"
+                                style={{
+                                    fontSize: '10px',
+                                    fontFamily: FONT,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.14em',
+                                    textDecoration: 'none',
+                                    color: '#000',
+                                    backgroundColor: ACCENT,
+                                    border: `1px solid ${ACCENT}`,
+                                    padding: '6px 18px',
+                                    textTransform: 'uppercase',
+                                    borderRadius: '0px',
+                                    transition: 'opacity 0.15s',
+                                }}
+                                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85'}
+                                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
+                            >
+                                GET STARTED →
                             </Link>
                         </>
                     )}
