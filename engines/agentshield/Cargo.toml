@@ -1,0 +1,23 @@
+[package]
+name        = "agentshield"
+version     = "0.1.0"
+edition     = "2021"
+description = "DOM Merkle-hash TOCTOU mitigation for browser-use agents"
+
+[dependencies]
+anyhow             = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+clap               = { workspace = true }
+
+sha2    = "0.10"
+hex     = "0.4"
+chrono  = { version = "0.4", features = ["serde"] }
+scraper = "0.20"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+
+[features]
+default = ["webhook"]
+webhook = []
