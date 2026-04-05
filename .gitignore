@@ -53,3 +53,21 @@ frontend/vite.config.d.ts
 frontend/pnpm-lock.yaml
 .vercel/
 LOGO/
+
+# GCN/SNN training artifacts (generated, not source-controlled)
+backend/GCN_master/
+backend/ML_master/acidModel_gcn.pt
+engines/kyber/snn/snn_baseline.pt
+
+# Sandbox execution artifacts (from SNN bootstrap malware corpus)
+malicious.dat
+pickled_exploit
+myfile.txt
+
+# MCP server build artifacts
+engines/ruflo/soteria-mcp/node_modules/
+engines/ruflo/soteria-mcp/dist/
+engines/ruflo/soteria-mcp/package-lock.json
+
+# Claude Code local config
+.claude/

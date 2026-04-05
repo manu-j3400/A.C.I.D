@@ -15,19 +15,37 @@ Tasks marked `[ ]` are available. `[~]` means in progress. `[x]` means done.
 - [x] Add new vulnerability detection patterns for supply chain attacks (dependency confusion, typosquatting)
 - [x] Implement structured error logging with request IDs for production debugging
 - [x] Add model performance metrics tracking (precision, recall, F1) after each retrain
-- [ ] Harden GitHub OAuth flow with PKCE and state parameter validation
+- [x] Harden GitHub OAuth flow with PKCE and state parameter validation
 
 ## P2 — Medium
 
-- [ ] Add rate limiting per authenticated user (not just IP-based)
-- [ ] Implement scan result caching to avoid re-scanning identical code within 24h
-- [ ] Add support for scanning Go and Rust codebases via tree-sitter
-- [ ] Create automated model drift detection (alert when prediction distribution shifts)
-- [ ] Add webhook notifications for completed scans (Slack/Discord integration)
+- [x] Add rate limiting per authenticated user (not just IP-based)
+- [x] Implement scan result caching to avoid re-scanning identical code within 24h
+- [x] Add support for scanning Go and Rust codebases via tree-sitter
+- [x] Create automated model drift detection (alert when prediction distribution shifts)
+- [x] Add webhook notifications for completed scans (Slack/Discord integration)
 
 ## P3 — Low
 
-- [ ] Add dark mode persistence across sessions in frontend
-- [ ] Improve PDF report layout and add executive summary section
-- [ ] Add bulk export of scan history as CSV
-- [ ] Create API documentation with OpenAPI/Swagger spec
+- [x] Add dark mode persistence across sessions in frontend
+- [x] Improve PDF report layout and add executive summary section
+- [x] Add bulk export of scan history as CSV
+- [x] Create API documentation with OpenAPI/Swagger spec
+
+## Engines — Production
+
+- [x] Module 1 scaffold: eBPF kernel probe (C/LSM hooks) + Rust loader (libbpf-rs)
+- [x] Module 1 production: eBPF policy hot-reload via inotify + per-IP/port allowlist filtering
+- [x] Module 2 scaffold: Multi-Krum PyTorch aggregator + gRPC server
+- [x] Module 3 scaffold: GPU sentinel (nvml-wrapper + rustfft + FFT anomaly detection)
+- [x] Module 3 production: Adaptive noise-floor calibration per GPU model (5σ threshold)
+- [x] SNN baseline bootstrap: sandboxed execution (chdir + stdin redirect + 5s timeout per sample)
+- [x] AgentShield (Project #9): Real-time TOCTOU mitigation engine for browser-use agents (DOM Merkle-hash + plan-validate-act cycle)
+- [ ] DeceptiNet (Project #10): Adaptive honeypot orchestrator using hypergame-theoretic DRL (PPO + belief-state particle filter)
+- [ ] SymbAPT (Project #11): Neurosymbolic APT hunter with differentiable MITRE ATT&CK logic rules + Kafka streaming pipeline
+- [ ] RLShield (Project #12): Multi-agent RL SOC response orchestrator (MAPPO + particle-filter belief tracker + Wazuh integration)
+- [x] PhishGraph (Project #4): DOM-structural phishing detector integrated into middleware
+- [x] DualSentinel / PromptCFI (Project #8): Prompt CFI + entropy lull detection in middleware
+- [x] TrustBoundary (Project #3): Zero-trust multi-agent orchestration (engines/ruflo/trust-boundary/)
+- [x] RAGGuard (Project #2): Multimodal RAG knowledge-base poisoning scanner (engines/ragguard/)
+- [x] PR Reviewer Agent: Soteria-powered automated PR security review (engines/ruflo/agents/pr-reviewer/)

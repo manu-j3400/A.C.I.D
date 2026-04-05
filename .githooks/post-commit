@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Soteria post-commit hook — async drift check after commits to main/master
+# Runs in background, never blocks the commit.
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  REPO_ROOT="$(git rev-parse --show-toplevel)"
+  echo "[soteria] Scheduling async drift check for $BRANCH..."
+  (
+    claude \
+      --dangerously-skip-permissions \
+      -p "Run a drift check: read middleware/app.py to find the KL_DRIFT_THRESHOLD and _GCN_PROB_BUFFER config, check if engines/kyber/snn/snn_baseline.pt exists and its age, then report a brief drift status (NOMINAL or ACTION NEEDED with what to run)." \
+      > /tmp/soteria_drift_$(date +%s).txt 2>&1
+    echo "[soteria] Drift check complete. See /tmp/soteria_drift_*.txt"
+  ) &
+  disown
+fi
+
+exit 0

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Soteria pre-push hook — runs security review on changed files before push
+# Install: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+REVIEWER="$REPO_ROOT/engines/ruflo/agents/pr-reviewer"
+
+# Get files changed vs upstream (or last commit if no upstream)
+UPSTREAM="${1:-origin}"
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+# Files staged in the last commit that are scannable
+CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
+  | grep -E '\.(py|js|ts|go|rs|rb|sh|php|java|cs|cpp|c)$' \
+  | grep -v -E '(package-lock|yarn\.lock|poetry\.lock|Cargo\.lock|go\.sum)' \
+  || true)
+
+if [[ -z "$CHANGED" ]]; then
+  echo "[soteria] No scannable files in last commit — skipping security check."
+  exit 0
+fi
+
+FILE_COUNT=$(echo "$CHANGED" | wc -l | tr -d ' ')
+echo "[soteria] Pre-push: running security review on $FILE_COUNT changed file(s)..."
+
+# Build file list for agent prompt
+FILE_LIST=$(echo "$CHANGED" | head -20 | tr '\n' ' ')
+
+# Run security reviewer headlessly — blocking (no & background)
+RESULT=$(claude \
+  --dangerously-skip-permissions \
+  -p "Security review these recently changed files before push to $BRANCH. Check each for new vulnerabilities, secrets, or regressions in auth/injection controls. Files: $FILE_LIST. Read each file and report findings. If any CRITICAL or HIGH severity issues are found, end your response with the exact string: BLOCK_PUSH" \
+  --system-prompt "$REVIEWER/CLAUDE.md" \
+  --mcp-server "soteria:node $REPO_ROOT/engines/ruflo/soteria-mcp/dist/index.js" \
+  2>/dev/null || echo "REVIEW_FAILED")
+
+echo "$RESULT"
+
+if echo "$RESULT" | grep -q "BLOCK_PUSH"; then
+  echo ""
+  echo "┌─────────────────────────────────────────────────┐"
+  echo "│  SOTERIA: PUSH BLOCKED — critical findings above │"
+  echo "│  Fix issues or use: git push --no-verify         │"
+  echo "└─────────────────────────────────────────────────┘"
+  exit 1
+fi
+
+echo "[soteria] Security check passed. Proceeding with push."
+exit 0
