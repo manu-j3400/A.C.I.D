@@ -22,6 +22,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import PublicRoute from './components/PublicRoute';
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -63,12 +64,12 @@ function App() {
               <Routes>
                 {/* PUBLIC ROUTES */}
                 <Route path="/" element={<Navigate to="/home" replace />} />
-                <Route path="/home" element={<LandingPage />} />
+                <Route path="/home" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/features" element={<FeaturesPage />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/changelog" element={<Changelog />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+                <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
                 {/* PROTECTED ROUTES */}
