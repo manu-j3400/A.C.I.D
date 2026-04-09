@@ -41,9 +41,9 @@ Tasks marked `[ ]` are available. `[~]` means in progress. `[x]` means done.
 - [x] Module 3 production: Adaptive noise-floor calibration per GPU model (5σ threshold)
 - [x] SNN baseline bootstrap: sandboxed execution (chdir + stdin redirect + 5s timeout per sample)
 - [x] AgentShield (Project #9): Real-time TOCTOU mitigation engine for browser-use agents (DOM Merkle-hash + plan-validate-act cycle)
-- [ ] DeceptiNet (Project #10): Adaptive honeypot orchestrator using hypergame-theoretic DRL (PPO + belief-state particle filter)
-- [ ] SymbAPT (Project #11): Neurosymbolic APT hunter with differentiable MITRE ATT&CK logic rules + Kafka streaming pipeline
-- [ ] RLShield (Project #12): Multi-agent RL SOC response orchestrator (MAPPO + particle-filter belief tracker + Wazuh integration)
+- [x] DeceptiNet (Project #10): Adaptive honeypot orchestrator using hypergame-theoretic DRL (PPO + belief-state particle filter)
+- [x] SymbAPT (Project #11): Neurosymbolic APT hunter with differentiable MITRE ATT&CK logic rules + Kafka streaming pipeline
+- [x] RLShield (Project #12): Multi-agent RL SOC response orchestrator (MAPPO + particle-filter belief tracker + Wazuh integration)
 - [x] PhishGraph (Project #4): DOM-structural phishing detector integrated into middleware
 - [x] DualSentinel / PromptCFI (Project #8): Prompt CFI + entropy lull detection in middleware
 - [x] TrustBoundary (Project #3): Zero-trust multi-agent orchestration (engines/ruflo/trust-boundary/)

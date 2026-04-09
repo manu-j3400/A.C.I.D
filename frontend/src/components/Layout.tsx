@@ -7,9 +7,9 @@ import AppSidebar from './AppSidebar';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex" style={{ background: '#000', fontFamily: "'JetBrains Mono', monospace" }}>
+    <div className="h-screen flex overflow-hidden" style={{ background: '#000', fontFamily: "'JetBrains Mono', monospace" }}>
       <AppSidebar />
-      <main className="flex-1 min-h-screen overflow-auto" style={{ marginLeft: '12rem' }}>
+      <main className="flex-1 overflow-y-auto" style={{ marginLeft: '12rem' }}>
         {children}
       </main>
     </div>

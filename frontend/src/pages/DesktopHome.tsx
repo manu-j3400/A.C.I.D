@@ -290,11 +290,11 @@ export default function DesktopHome() {
   const trendData = data?.daily_trend?.map(d => d.total) ?? [];
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#000', ...MONO, color: C.text }}>
+    <div className="h-screen flex overflow-hidden" style={{ background: '#000', ...MONO, color: C.text }}>
       <AppSidebar />
 
       {/* ── Main content area ── */}
-      <div className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: '12rem' }}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: '12rem' }}>
 
         {/* ══ STATUS STRIP ══════════════════════════════════════════════════ */}
         <header className="flex items-center h-9 flex-shrink-0 sticky top-0 z-40"
