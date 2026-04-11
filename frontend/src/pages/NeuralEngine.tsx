@@ -14,6 +14,19 @@ interface ModelStats {
     engines?: { sklearn: boolean; gcn: boolean; entropy: boolean; snn: boolean; };
 }
 
+interface EngineEntry {
+    label: string;
+    description: string;
+    loaded: boolean;
+    checkpoint?: boolean | null;
+    error?: string | null;
+}
+
+interface EnginesStatus {
+    engines: Record<string, EngineEntry>;
+    summary: { total: number; loaded: number; vulnerability_patterns: number; };
+}
+
 interface DriftData {
     kl_divergence: number;
     drift_alert: boolean;
@@ -33,6 +46,14 @@ const C = {
     sub:    '#707070',
 };
 
+// Short labels for the status strip chips
+const ENGINE_SHORT: Record<string, string> = {
+    sklearn_ensemble: 'SKL', gcn: 'GCN', entropy: 'ENT', snn: 'SNN',
+    deceptinet: 'DCN', symbapt: 'SYM', rlshield: 'RLS',
+    memshield: 'MEM', containerguard: 'CGD', agentshield: 'AGS',
+};
+
+// Legacy 4-engine map used by model-stats endpoint
 const ENGINE_META = [
     {
         key: 'sklearn' as const,
@@ -74,14 +95,23 @@ export default function NeuralEngine() {
     const [logs, setLogs] = useState<string[]>([]);
     const [statsLoading, setStatsLoading] = useState(true);
     const [driftData, setDriftData] = useState<DriftData | null>(null);
+    const [enginesStatus, setEnginesStatus] = useState<EnginesStatus | null>(null);
 
     useEffect(() => {
         fetchModelStats();
+        fetchEnginesStatus();
         if (token) {
             fetch(`${API_BASE_URL}/api/model/drift`, { headers: { Authorization: `Bearer ${token}` } })
                 .then(r => r.json()).then(setDriftData).catch(() => {});
         }
     }, [token]);
+
+    const fetchEnginesStatus = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/engines/status`);
+            if (res.ok) setEnginesStatus(await res.json());
+        } catch { /* middleware offline */ }
+    };
 
     const fetchModelStats = async () => {
         setStatsLoading(true);
@@ -156,9 +186,10 @@ export default function NeuralEngine() {
                 <EngCell style={{ color: sysColor, fontWeight: 700, minWidth: 200 }}>
                     KYBER ENGINE — {statsLoading ? 'LOADING...' : sysStatus}
                 </EngCell>
-                <EngCell>ENGINES: <span style={{ color: C.text }}>{statsLoading ? '—' : activeCount}/4 ACTIVE</span></EngCell>
+                <EngCell>ML ENGINES: <span style={{ color: C.text }}>{statsLoading ? '—' : activeCount}/4 ACTIVE</span></EngCell>
+                <EngCell>ALL ENGINES: <span style={{ color: enginesStatus ? C.acid : C.sub }}>{enginesStatus ? `${enginesStatus.summary.loaded}/${enginesStatus.summary.total}` : '—'}</span></EngCell>
+                <EngCell>PATTERNS: <span style={{ color: C.text }}>{enginesStatus?.summary.vulnerability_patterns ?? '—'}</span></EngCell>
                 <EngCell>ACCURACY: <span style={{ color: C.text }}>{statsLoading ? '—' : modelStats.accuracy}</span></EngCell>
-                <EngCell>FEATURES: <span style={{ color: C.text }}>{statsLoading ? '—' : modelStats.features_count} AST</span></EngCell>
                 {driftData?.drift_alert && (
                     <EngCell style={{ color: C.amber, fontWeight: 700 }}>[ DRIFT ALERT ]</EngCell>
                 )}
@@ -215,6 +246,40 @@ export default function NeuralEngine() {
                             );
                         })}
                     </div>
+
+                    {/* Extended engine fleet */}
+                    {enginesStatus && (
+                        <div style={{ borderBottom: `1px solid ${C.border}`, padding: '12px 0' }}>
+                            <div style={{ fontSize: 8, color: C.sub, letterSpacing: '0.14em', padding: '0 16px', marginBottom: 8 }}>ENGINE FLEET</div>
+                            {Object.entries(enginesStatus.engines).map(([key, eng]) => (
+                                <div key={key} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '5px 16px', borderLeft: `2px solid ${eng.loaded ? C.acid : C.border}`,
+                                    marginBottom: 1, background: eng.loaded ? 'rgba(173,255,47,0.02)' : 'transparent',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{
+                                            fontSize: 7, border: `1px solid ${eng.loaded ? C.acid : C.muted}`,
+                                            color: eng.loaded ? C.acid : C.muted, padding: '1px 3px', fontWeight: 700,
+                                        }}>
+                                            {ENGINE_SHORT[key] ?? key.slice(0, 3).toUpperCase()}
+                                        </span>
+                                        <span style={{ fontSize: 8, color: eng.loaded ? C.text : C.sub }}>{eng.label}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        {eng.checkpoint !== undefined && eng.checkpoint !== null && (
+                                            <span style={{ fontSize: 7, color: eng.checkpoint ? C.acid : C.amber }}>
+                                                {eng.checkpoint ? '✓ PT' : '✗ PT'}
+                                            </span>
+                                        )}
+                                        <span style={{ fontSize: 7, color: eng.loaded ? C.acid : C.red, fontWeight: 700 }}>
+                                            {eng.loaded ? 'LIVE' : 'OFF'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Model metadata */}
                     <div style={{ borderBottom: `1px solid ${C.border}`, padding: '12px 0' }}>

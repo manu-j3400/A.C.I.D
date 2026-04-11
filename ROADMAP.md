@@ -49,3 +49,7 @@ Tasks marked `[ ]` are available. `[~]` means in progress. `[x]` means done.
 - [x] TrustBoundary (Project #3): Zero-trust multi-agent orchestration (engines/ruflo/trust-boundary/)
 - [x] RAGGuard (Project #2): Multimodal RAG knowledge-base poisoning scanner (engines/ragguard/)
 - [x] PR Reviewer Agent: Soteria-powered automated PR security review (engines/ruflo/agents/pr-reviewer/)
+- [x] MemShield (Engine #13): Memory-exploit detection — taint tracking + ROP chain detection + heap spray analysis
+- [x] ContainerGuard (Engine #14): Container escape detection via eBPF syscall GNN (CTDE + escape classifier)
+- [x] Vulnerability DB expansion: 509 → 739 patterns; Java (+70), JS/TS (+60), C/C++ (+50), PHP (+30), secrets/cloud (+20)
+- [x] /api/engines/status endpoint: live status of all 10 detection engines + vulnerability pattern count

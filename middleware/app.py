@@ -3012,6 +3012,100 @@ def github_scan():
     return jsonify(result), status
 
 
+@app.route('/api/engines/status', methods=['GET'])
+@token_required(optional=True)
+def engines_status(current_user=None):
+    """
+    Return the live status of all Kyber detection engines.
+    Checks file existence and importability without running inference.
+    ---
+    tags: [Engines]
+    responses:
+      200:
+        description: Engine status map
+    """
+    import importlib, os
+
+    def _check_engine(module_path: str, checkpoint: str = None) -> dict:
+        status = {"loaded": False, "checkpoint": None, "error": None}
+        try:
+            importlib.import_module(module_path)
+            status["loaded"] = True
+        except Exception as e:
+            status["error"] = str(e)[:120]
+        if checkpoint:
+            cp = os.path.join(ROOT, checkpoint) if not os.path.isabs(checkpoint) else checkpoint
+            status["checkpoint"] = os.path.exists(cp)
+        return status
+
+    engines = {
+        "sklearn_ensemble": {
+            "label": "Ensemble Classifier",
+            "description": "Random forest + gradient boosting over 52 AST features",
+            "checkpoint_exists": os.path.exists(ROOT / "backend" / "ML_master" / "acidModel.pkl"),
+            **_check_engine("backend.src.trainerModel_AST"),
+        },
+        "gcn": {
+            "label": "Graph Neural Net (GATConv)",
+            "description": "Control-flow graph analysis for structural obfuscation",
+            "checkpoint_exists": os.path.exists(ROOT / "backend" / "ML_master" / "acidModel_gcn.pt"),
+            **_check_engine("backend.src.trainerModel_GCN"),
+        },
+        "entropy": {
+            "label": "Entropy Scanner",
+            "description": "Shannon entropy per string/bytes literal — flags shellcode/base64",
+            **_check_engine("backend.src.entropy_profiler"),
+        },
+        "snn": {
+            "label": "Spiking Neural Net (Kyber Engine 3)",
+            "description": "Micro-temporal anomaly profiler over execution traces",
+            "checkpoint_exists": os.path.exists(ROOT / "engines" / "kyber" / "snn" / "snn_baseline.pt"),
+            **_check_engine("engines.kyber.snn.profiler"),
+        },
+        "deceptinet": {
+            "label": "DeceptiNet (Engine #10)",
+            "description": "Hypergame-theoretic DRL honeypot orchestrator",
+            **_check_engine("engines.deceptinet"),
+        },
+        "symbapt": {
+            "label": "SymbAPT (Engine #11)",
+            "description": "Differentiable MITRE ATT&CK rules + Kafka APT detection",
+            **_check_engine("engines.symbapt"),
+        },
+        "rlshield": {
+            "label": "RLShield (Engine #12)",
+            "description": "MAPPO multi-agent SOC orchestrator + Wazuh",
+            **_check_engine("engines.rlshield"),
+        },
+        "memshield": {
+            "label": "MemShield (Engine #13)",
+            "description": "Taint tracking + ROP chain + heap spray detection",
+            **_check_engine("engines.memshield"),
+        },
+        "containerguard": {
+            "label": "ContainerGuard (Engine #14)",
+            "description": "eBPF syscall GNN — container escape detection",
+            **_check_engine("engines.containerguard"),
+        },
+        "agentshield": {
+            "label": "AgentShield (Engine #9)",
+            "description": "DOM Merkle-hash TOCTOU mitigation for browser agents",
+            **_check_engine("engines.agentshield"),
+        },
+    }
+
+    n_loaded = sum(1 for e in engines.values() if e.get("loaded"))
+    return jsonify({
+        "engines": engines,
+        "summary": {
+            "total": len(engines),
+            "loaded": n_loaded,
+            "vulnerability_patterns": len(VULNERABILITY_PATTERNS),
+        },
+        "timestamp": time.time(),
+    })
+
+
 if __name__ == "__main__":
     print("Backend running at port 500")
     app.run(host='0.0.0.0', port=5001)
