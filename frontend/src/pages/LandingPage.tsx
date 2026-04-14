@@ -1,541 +1,552 @@
 /**
- * Soteria Landing Page — Revamp
- * Design: Cyberpunk/HUD dark · Share Tech Mono + Fira Code
- * Components: 21stDev bento grid · blurred marquee · digit-scroll counters
- * Palette: #000000 bg · #22D3EE cyan · #22C55E green CTA · #0EA5E9 blue
+ * Soteria Landing Page — Weaponized Minimalism
+ * Design: Pure black · #ADFF2F acid green · JetBrains Mono
+ * No gradients · No rounded corners · No framer-motion
  */
-import React from 'react';
-import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Shield, Code2, Brain, Zap, GitBranch, ArrowRight,
-  Github, Eye, Terminal, Activity,
-  Cpu, Network, CheckCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import PublicNavbar from '@/components/PublicNavbar';
-import { HeroMiniDemo } from '@/components/HeroMiniDemo';
-import { useState, useEffect, useRef } from 'react';
 
-/* ─────────────────── FONTS ─────────────────── */
-const FontImport = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
-    .font-display { font-family: 'Space Grotesk', sans-serif; }
-    .font-mono-tech { font-family: 'Share Tech Mono', monospace; }
-    .font-code { font-family: 'Fira Code', monospace; }
-    @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    @keyframes scan-line { 0%,100% { top: 0%; } 50% { top: 100%; } }
-    @keyframes glow-pulse { 0%,100% { opacity:0.4; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.08); } }
-    @keyframes border-spin { to { --angle: 360deg; } }
-    @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-    .gradient-border {
-      border: 1px solid transparent;
-      background: linear-gradient(#000, #000) padding-box,
-                  conic-gradient(from var(--angle), #22D3EE, #0EA5E9, #22C55E, #22D3EE) border-box;
-      animation: border-spin 4s linear infinite;
-    }
-    .scanline::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.3), transparent);
-      animation: scan-line 6s ease-in-out infinite;
-      pointer-events: none;
-    }
-  `}</style>
-);
+const C = {
+    acid:   '#ADFF2F',
+    bg:     '#000000',
+    dim:    '#0D0D0D',
+    border: '#1E1E1E',
+    muted:  '#404040',
+    sub:    '#707070',
+    text:   '#E5E5E5',
+};
 
-/* ─────────────────── ANIMATED BACKGROUND ─────────────────── */
-function HeroBackground() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Grid */}
-      <div className="absolute inset-0 opacity-[0.06]"
-        style={{ backgroundImage: 'linear-gradient(rgba(34,211,238,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.5) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
-      {/* Orbs */}
-      <motion.div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)' }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
-      <motion.div className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%)' }}
-        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }} />
-      <motion.div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.06) 0%, transparent 70%)' }}
-        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 4 }} />
-      {/* Scan line */}
-      <motion.div className="absolute left-0 right-0 h-px bg-cyan-500/20"
-        animate={{ top: ['0%', '100%', '0%'] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} />
-    </div>
-  );
-}
+const MONO: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
 
-/* ─────────────────── ROTATING TEXT ─────────────────── */
-const rotatingWords = ['SECURITY', 'CONFIDENCE', 'TRUST', 'SPEED', 'ZERO BUGS', 'PEACE'];
-function RotatingText() {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => (i + 1) % rotatingWords.length), 2800);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span className="inline-block relative h-[1.1em] overflow-hidden align-bottom">
-      <AnimatePresence mode="wait">
-        <motion.span key={rotatingWords[idx]}
-          className="inline-block text-cyan-400 whitespace-nowrap font-display"
-          style={{ textShadow: '0 0 30px rgba(34,211,238,0.6)' }}
-          initial={{ y: '100%', opacity: 0 }}
-          animate={{ y: '0%', opacity: 1 }}
-          exit={{ y: '-100%', opacity: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
-          {rotatingWords[idx]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
-
-/* ─────────────────── MARQUEE ─────────────────── */
-const marqueeItems = [
-  { label: '509 Vulnerability Patterns', icon: <Shield className="w-3.5 h-3.5" /> },
-  { label: 'Sub-second AST Scans', icon: <Zap className="w-3.5 h-3.5" /> },
-  { label: 'Python · Go · Rust · JS · TS · PHP', icon: <Code2 className="w-3.5 h-3.5" /> },
-  { label: 'GCN Neural Engine', icon: <Brain className="w-3.5 h-3.5" /> },
-  { label: 'Zero Configuration', icon: <CheckCircle className="w-3.5 h-3.5" /> },
-  { label: 'GitHub PR Integration', icon: <GitBranch className="w-3.5 h-3.5" /> },
-  { label: 'AI-Powered Fix Suggestions', icon: <Cpu className="w-3.5 h-3.5" /> },
-  { label: 'SNN Temporal Profiler', icon: <Activity className="w-3.5 h-3.5" /> },
+/* ─── TICKER ─── */
+const tickerItems = [
+    '739 VULNERABILITY PATTERNS',
+    'PYTHON · GO · RUST · JS · TS · PHP · JAVA · C/C++',
+    'SUB-SECOND AST SCANS',
+    'GCN NEURAL ENGINE · F1 ≥ 0.70',
+    'eBPF KERNEL RUNTIME',
+    'GITHUB PR INTEGRATION',
+    'SNN TEMPORAL PROFILER',
+    'ZERO CONFIGURATION',
 ];
-function Marquee() {
-  const doubled = [...marqueeItems, ...marqueeItems];
-  return (
-    <div className="border-y border-white/[0.06] bg-black/60 backdrop-blur-sm py-3 overflow-hidden relative"
-      style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
-      <div className="flex gap-10 w-max"
-        style={{ animation: 'marquee-scroll 32s linear infinite' }}>
-        {doubled.map((item, i) => (
-          <div key={i} className="flex items-center gap-2.5 text-xs font-code text-neutral-400 whitespace-nowrap px-2">
-            <span className="text-cyan-500/70">{item.icon}</span>
-            <span>{item.label}</span>
-            <span className="text-white/20 ml-2">·</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-/* ─────────────────── ANIMATED COUNTER ─────────────────── */
-function AnimatedStat({ value, suffix = '', label, color }: { value: number; suffix?: string; label: string; color: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const motionVal = useMotionValue(0);
-  const spring = useSpring(motionVal, { stiffness: 80, damping: 20 });
-  const display = useTransform(spring, v => `${Math.round(v)}${suffix}`);
-
-  useEffect(() => {
-    if (isInView) motionVal.set(value);
-  }, [isInView, motionVal, value]);
-
-  return (
-    <motion.div ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="text-center p-6 border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] transition-all duration-300 group cursor-default">
-      <div className={`text-4xl md:text-5xl font-display font-black tracking-tight mb-2 tabular-nums ${color}`}
-        style={{ textShadow: `0 0 20px currentColor` }}>
-        <motion.span>{display}</motion.span>
-      </div>
-      <div className="text-[11px] font-mono-tech text-neutral-500 uppercase tracking-[0.2em]">{label}</div>
-    </motion.div>
-  );
-}
-
-/* ─────────────────── BENTO GRID ─────────────────── */
-interface BentoCardProps {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-  meta?: string;
-  tag: string;
-  colSpan?: boolean;
-  accent: string;
-  glow: string;
-  delay?: number;
-}
-function BentoCard({ icon, title, desc, meta, tag, colSpan, accent, glow, delay = 0 }: BentoCardProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      className={`group relative p-6 border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm
-        hover:border-white/[0.15] hover:-translate-y-1 hover:bg-white/[0.05]
-        transition-all duration-300 overflow-hidden cursor-default
-        ${colSpan ? 'md:col-span-2' : ''}`}>
-      {/* Glow on hover */}
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}
-        style={{ background: `radial-gradient(ellipse 60% 50% at 30% 20%, ${glow}, transparent)` }} />
-      {/* Corner marks — HUD aesthetic */}
-      <span className={`absolute top-2 left-2 w-2.5 h-2.5 border-t border-l ${accent} opacity-50 group-hover:opacity-100 transition-opacity`} />
-      <span className={`absolute bottom-2 right-2 w-2.5 h-2.5 border-b border-r ${accent} opacity-50 group-hover:opacity-100 transition-opacity`} />
-
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-10 h-10 flex items-center justify-center border ${accent} bg-black/40`}>
-            {icon}
-          </div>
-          <span className={`text-[10px] font-mono-tech uppercase tracking-widest px-2 py-1 border ${accent} bg-black/60`}>
-            {tag}
-          </span>
-        </div>
-        <h3 className="font-display font-bold text-white text-lg mb-2 tracking-tight">{title}</h3>
-        {meta && <div className={`text-xs font-mono-tech mb-2 ${accent.replace('border-', 'text-')}`}>{meta}</div>}
-        <p className="text-sm text-neutral-400 font-code leading-relaxed">{desc}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─────────────────── HOW IT WORKS STEP ─────────────────── */
-function Step({ num, title, desc, delay }: { num: string; title: string; desc: string; delay: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6, delay }}
-      className="flex flex-col items-center text-center relative">
-      <div className="w-14 h-14 border-2 border-cyan-500/40 bg-cyan-500/[0.08] flex items-center justify-center mb-5 relative"
-        style={{ boxShadow: '0 0 20px rgba(34,211,238,0.15)' }}>
-        <span className="font-mono-tech text-cyan-400 text-xl">{num}</span>
-      </div>
-      <h3 className="font-display font-bold text-white text-lg mb-2">{title}</h3>
-      <p className="text-sm text-neutral-400 font-code leading-relaxed max-w-[220px]">{desc}</p>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════ MAIN COMPONENT ═══════════════════ */
-export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-cyan-600/40">
-      <FontImport />
-      <PublicNavbar />
-
-      {/* ─── HERO ─── */}
-      <section className="relative pt-36 pb-24 px-6 scanline overflow-hidden">
-        <HeroBackground />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-
-            {/* Left */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
-
-              {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 mb-7 px-3 py-1.5 border border-cyan-500/30 bg-cyan-500/[0.06] backdrop-blur-sm">
-                <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-400" style={{ boxShadow: '0 0 8px rgba(34,211,238,0.8)' }} />
-                <span className="font-mono-tech text-[11px] text-cyan-400/80 uppercase tracking-widest">Soteria Engine v2.0 · Live</span>
-              </motion.div>
-
-              {/* Headline */}
-              <h1 className="font-display font-black leading-[1.04] tracking-tight mb-3 uppercase">
-                <span className="block text-4xl md:text-5xl lg:text-6xl text-white/90 mb-1">Deploy Code With</span>
-                <span className="block text-[3.2rem] md:text-[4.5rem] lg:text-[5.5rem]">
-                  <RotatingText />
-                </span>
-              </h1>
-
-              <p className="font-code text-[15px] text-neutral-400 leading-relaxed mb-9 max-w-[500px]">
-                AI-powered code security that identifies vulnerabilities in milliseconds.
-                Understand why they matter. Ship secure code — without slowing down.
-              </p>
-
-              {/* CTAs */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <Link to="/signup">
-                  <Button size="lg"
-                    className="h-12 px-8 font-display font-bold text-sm bg-cyan-500 text-black hover:bg-cyan-400 transition-all duration-200 rounded-none border-0 uppercase tracking-wider"
-                    style={{ boxShadow: '0 0 20px rgba(34,211,238,0.35)' }}>
-                    Start Free <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </Link>
-                <Link to="/how-it-works">
-                  <Button size="lg" variant="ghost"
-                    className="h-12 px-7 font-display font-bold text-sm text-neutral-300 hover:text-white hover:bg-white/[0.06] border border-white/10 rounded-none uppercase tracking-wider transition-all duration-200">
-                    See How It Works
-                  </Button>
-                </Link>
-                <motion.a
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  href="https://www.producthunt.com/products/soteria?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-soteria"
-                  target="_blank" rel="noopener noreferrer">
-                  <img alt="Soteria on Product Hunt"
-                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1088107&theme=dark&t=1772448063610"
-                    className="h-11 w-auto opacity-80 hover:opacity-100 transition-opacity" />
-                </motion.a>
-              </div>
-            </motion.div>
-
-            {/* Right: Demo */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="hidden lg:block relative">
-              {/* Try it label */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.4 }}
-                className="absolute -top-8 -left-10 z-20 flex items-center gap-2 -rotate-6">
-                <span className="font-mono-tech text-xs bg-amber-400 text-black px-2 py-1 border border-black">
-                  Try it!
-                </span>
-                <ArrowRight className="w-4 h-4 text-amber-400" />
-              </motion.div>
-              {/* Glow frame */}
-              <div className="absolute inset-0 -m-4 rounded-sm pointer-events-none"
-                style={{ boxShadow: 'inset 0 0 60px rgba(34,211,238,0.06)' }} />
-              <HeroMiniDemo />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── MARQUEE ─── */}
-      <Marquee />
-
-      {/* ─── BENTO FEATURES ─── */}
-      <section className="relative py-24 px-6 bg-black">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="font-mono-tech text-[11px] text-cyan-500 uppercase tracking-[0.3em] mb-4">
-              // capability_matrix
-            </motion.p>
-            <motion.h2
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="font-display font-black text-4xl md:text-5xl uppercase tracking-tight">
-              Everything You Need To{' '}
-              <span className="text-cyan-400" style={{ textShadow: '0 0 30px rgba(34,211,238,0.4)' }}>
-                Ship Safe
-              </span>
-            </motion.h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <BentoCard
-              colSpan
-              icon={<Terminal className="w-5 h-5 text-cyan-400" />}
-              title="Real-time AST Scanner"
-              meta="// avg_scan_time: &lt;2000ms"
-              desc="Hybrid AST engine parses your code's syntax tree structurally — identifying injection vectors, taint flows, and unsafe patterns before your CI/CD pipeline even starts."
-              tag="Core"
-              accent="border-cyan-500/40"
-              glow="rgba(34,211,238,0.08)"
-              delay={0}
-            />
-            <BentoCard
-              icon={<Shield className="w-5 h-5 text-emerald-400" />}
-              title="509 Vulnerability Patterns"
-              meta="// langs: py · go · rs · js · ts · php"
-              desc="Hand-crafted detection rules covering OWASP Top 10, supply chain attacks, and language-specific CVEs."
-              tag="Detection"
-              accent="border-emerald-500/40"
-              glow="rgba(34,197,94,0.08)"
-              delay={0.05}
-            />
-            <BentoCard
-              icon={<Brain className="w-5 h-5 text-violet-400" />}
-              title="GCN + SNN Neural Engine"
-              meta="// model: GATConv · F1 ≥ 0.70"
-              desc="Graph Convolutional Network blended with a Spiking Neural Network temporal profiler for deep structural malware detection."
-              tag="AI"
-              accent="border-violet-500/40"
-              glow="rgba(139,92,246,0.08)"
-              delay={0.1}
-            />
-            <BentoCard
-              icon={<Eye className="w-5 h-5 text-amber-400" />}
-              title="Zero-BS Explanations"
-              desc="No cryptic CWE codes. Soteria explains what's wrong, why it matters, and hands you patched code — in plain English."
-              tag="UX"
-              accent="border-amber-500/40"
-              glow="rgba(245,158,11,0.08)"
-              delay={0.15}
-            />
-            <BentoCard
-              icon={<GitBranch className="w-5 h-5 text-sky-400" />}
-              title="GitHub PR Reviews"
-              desc="Automated PR security reviewer runs on every pull request — flags CRITICAL findings before merge, posts GitHub-ready comments."
-              tag="CI/CD"
-              accent="border-sky-500/40"
-              glow="rgba(14,165,233,0.08)"
-              delay={0.2}
-            />
-            <BentoCard
-              icon={<Network className="w-5 h-5 text-rose-400" />}
-              title="eBPF Kernel Engine"
-              desc="Module 1 production runtime — LSM hooks, per-IP/port policy enforcement, and hot-reload via inotify."
-              tag="Runtime"
-              accent="border-rose-500/40"
-              glow="rgba(244,63,94,0.08)"
-              delay={0.25}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── STATS ─── */}
-      <section className="py-20 px-6 border-y border-white/[0.04] bg-black">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3">
-          <AnimatedStat value={509} suffix="+" label="Vulnerability Patterns" color="text-cyan-400" />
-          <AnimatedStat value={2} suffix="s" label="Avg Scan Time" color="text-emerald-400" />
-          <AnimatedStat value={6} suffix="+" label="Languages" color="text-sky-400" />
-          <AnimatedStat value={100} suffix="%" label="Free & Open Source" color="text-amber-400" />
-        </div>
-      </section>
-
-      {/* ─── HOW IT WORKS ─── */}
-      <section className="py-28 px-6 bg-black">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="font-mono-tech text-[11px] text-emerald-500 uppercase tracking-[0.3em] mb-4">
-              // execution_flow
-            </motion.p>
-            <motion.h2
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="font-display font-black text-4xl md:text-5xl uppercase tracking-tight">
-              Three Steps to{' '}
-              <span className="text-emerald-400" style={{ textShadow: '0 0 30px rgba(34,197,94,0.4)' }}>
-                Secure Code
-              </span>
-            </motion.h2>
-          </div>
-
-          <div className="relative grid md:grid-cols-3 gap-8">
-            {/* Connector line */}
-            <div className="hidden md:block absolute top-7 left-[calc(16.7%+28px)] right-[calc(16.7%+28px)] h-px bg-gradient-to-r from-cyan-500/20 via-emerald-500/20 to-cyan-500/20" />
-
-            <Step num="01" title="Paste Your Code"
-              desc="Drop any snippet or file — Python, Go, Rust, JS, TS, PHP. No install required."
-              delay={0} />
-            <Step num="02" title="Kyber Engine Analyzes"
-              desc="AST parsing + GCN neural model + 509 pattern rules run in under 2 seconds."
-              delay={0.15} />
-            <Step num="03" title="Fix & Ship"
-              desc="Get the exact vulnerable line, CWE reference, and AI-generated patched code."
-              delay={0.3} />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── CTA ─── */}
-      <section className="py-28 px-6 bg-black">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="gradient-border p-px">
-            <div className="bg-black px-10 py-16 text-center relative overflow-hidden">
-              {/* Inner glow */}
-              <div className="absolute inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 0%, rgba(34,211,238,0.06), transparent)' }} />
-
-              <p className="font-mono-tech text-[11px] text-cyan-500 uppercase tracking-[0.3em] mb-5">
-                // ready_to_deploy
-              </p>
-              <h2 className="font-display font-black text-4xl md:text-6xl uppercase tracking-tight text-white mb-5 leading-tight">
-                Stop Guessing.<br />
-                <span className="text-cyan-400" style={{ textShadow: '0 0 40px rgba(34,211,238,0.5)' }}>
-                  Start Knowing.
-                </span>
-              </h2>
-              <p className="font-code text-neutral-400 text-base mb-10 max-w-xl mx-auto">
-                Scan your first project in seconds. No credit card. No bloated SDK. No 14-day trial.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to="/signup">
-                  <Button size="lg"
-                    className="h-12 px-10 text-base font-display font-bold bg-emerald-500 text-black hover:bg-emerald-400 rounded-none border-0 uppercase tracking-wider transition-all duration-200"
-                    style={{ boxShadow: '0 0 30px rgba(34,197,94,0.4)' }}>
-                    Start Free — No Sign Up Required
-                  </Button>
-                </Link>
-                <Link to="/scanner">
-                  <Button size="lg" variant="ghost"
-                    className="h-12 px-8 text-base font-display font-bold text-neutral-400 hover:text-white border border-white/10 rounded-none uppercase tracking-wider transition-all duration-200">
-                    <Terminal className="w-4 h-4 mr-2" /> Open Scanner
-                  </Button>
-                </Link>
-              </div>
+function Ticker() {
+    const doubled = [...tickerItems, ...tickerItems];
+    return (
+        <div style={{
+            borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+            padding: '10px 0', overflow: 'hidden', background: C.dim,
+            maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+        }}>
+            <style>{`
+                @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+            `}</style>
+            <div style={{
+                display: 'flex', gap: '60px', width: 'max-content',
+                animation: 'ticker-scroll 40s linear infinite',
+            }}>
+                {doubled.map((item, i) => (
+                    <span key={i} style={{
+                        ...MONO, fontSize: 9, color: C.sub, letterSpacing: '0.15em',
+                        whiteSpace: 'nowrap',
+                    }}>
+                        <span style={{ color: C.acid, marginRight: 10 }}>▸</span>
+                        {item}
+                    </span>
+                ))}
             </div>
-          </motion.div>
         </div>
-      </section>
+    );
+}
 
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t border-white/[0.05] bg-black py-12">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link to="/" className="flex items-center gap-3 group">
-            <img src="/soteria-logo.png" alt="Soteria" className="h-8 w-8 object-cover" />
-            <span className="font-mono-tech text-lg tracking-[0.2em] uppercase text-white">SOTERIA</span>
-          </Link>
+/* ─── ROTATING WORD ─── */
+const words = ['SECURITY', 'CONFIDENCE', 'TRUST', 'SPEED', 'PRECISION'];
+function RotatingWord() {
+    const [idx, setIdx] = useState(0);
+    const [visible, setVisible] = useState(true);
 
-          <div className="flex gap-8 font-mono-tech text-xs">
-            {[
-              { to: '/about', label: 'About' },
-              { to: '/features', label: 'Features' },
-              { to: '/changelog', label: 'Changelog' },
-            ].map(link => (
-              <Link key={link.to} to={link.to}
-                className="text-neutral-500 hover:text-cyan-400 transition-colors uppercase tracking-widest">
-                {link.label}
-              </Link>
-            ))}
-            <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer"
-              className="text-neutral-500 hover:text-cyan-400 transition-colors uppercase tracking-widest flex items-center gap-1.5">
-              <Github className="w-3.5 h-3.5" /> GitHub
-            </a>
-          </div>
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setVisible(false);
+            setTimeout(() => {
+                setIdx(i => (i + 1) % words.length);
+                setVisible(true);
+            }, 200);
+        }, 2800);
+        return () => clearInterval(interval);
+    }, []);
 
-          <div className="font-mono-tech text-[10px] text-neutral-600 uppercase tracking-widest">
-            © {new Date().getFullYear()} Soteria · Built for builders
-          </div>
+    return (
+        <span style={{
+            color: C.acid,
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.2s',
+            display: 'inline-block',
+            minWidth: '10ch',
+        }}>
+            {words[idx]}
+        </span>
+    );
+}
+
+/* ─── FEATURE CARD ─── */
+interface FeatureCardProps {
+    tag: string;
+    title: string;
+    meta?: string;
+    desc: string;
+    wide?: boolean;
+}
+function FeatureCard({ tag, title, meta, desc, wide }: FeatureCardProps) {
+    const [hovered, setHovered] = useState(false);
+    return (
+        <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                border: `1px solid ${hovered ? C.muted : C.border}`,
+                background: hovered ? '#0A0A0A' : C.bg,
+                padding: '24px',
+                transition: 'border-color 0.15s, background 0.15s',
+                gridColumn: wide ? 'span 2' : undefined,
+                cursor: 'default',
+            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <span style={{
+                    ...MONO, fontSize: 8, letterSpacing: '0.15em', color: hovered ? C.acid : C.sub,
+                    border: `1px solid ${hovered ? C.acid : C.border}`,
+                    padding: '3px 7px', transition: 'color 0.15s, border-color 0.15s',
+                }}>
+                    {tag}
+                </span>
+                <span style={{ ...MONO, fontSize: 8, color: C.muted, letterSpacing: '0.1em' }}>
+                    {hovered ? '●' : '○'}
+                </span>
+            </div>
+            <div style={{ ...MONO, fontSize: 14, fontWeight: 700, color: C.text, marginBottom: meta ? 6 : 10, letterSpacing: '0.03em' }}>
+                {title}
+            </div>
+            {meta && (
+                <div style={{ ...MONO, fontSize: 9, color: C.acid, marginBottom: 10, letterSpacing: '0.06em' }}>
+                    {meta}
+                </div>
+            )}
+            <div style={{ ...MONO, fontSize: 10, color: C.sub, lineHeight: 1.7, letterSpacing: '0.02em' }}>
+                {desc}
+            </div>
         </div>
-      </footer>
-    </div>
-  );
+    );
+}
+
+/* ─── STEP ─── */
+function Step({ num, title, desc }: { num: string; title: string; desc: string }) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12 }}>
+            <div style={{
+                width: 48, height: 48, border: `1px solid ${C.acid}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                ...MONO, fontSize: 13, fontWeight: 700, color: C.acid,
+            }}>
+                {num}
+            </div>
+            <div style={{ ...MONO, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: '0.04em' }}>{title}</div>
+            <div style={{ ...MONO, fontSize: 10, color: C.sub, lineHeight: 1.7, maxWidth: 200 }}>{desc}</div>
+        </div>
+    );
+}
+
+/* ─── STAT ─── */
+function Stat({ value, label }: { value: string; label: string }) {
+    return (
+        <div style={{
+            border: `1px solid ${C.border}`, padding: '20px 24px', textAlign: 'center',
+        }}>
+            <div style={{ ...MONO, fontSize: 32, fontWeight: 700, color: C.acid, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                {value}
+            </div>
+            <div style={{ ...MONO, fontSize: 8, color: C.sub, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                {label}
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════ MAIN PAGE ══════════════════ */
+export default function LandingPage() {
+    return (
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, ...MONO, overflowX: 'hidden' }}>
+            <PublicNavbar />
+
+            {/* ─── HERO ─── */}
+            <section style={{ padding: '100px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+
+                {/* Status badge */}
+                <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    border: `1px solid ${C.border}`, padding: '5px 12px', marginBottom: 32,
+                }}>
+                    <span style={{
+                        width: 6, height: 6, borderRadius: '50%', background: C.acid,
+                        display: 'inline-block', boxShadow: `0 0 6px ${C.acid}`,
+                    }} />
+                    <span style={{ fontSize: 9, color: C.sub, letterSpacing: '0.15em' }}>
+                        SOTERIA ENGINE v2.5 · LIVE
+                    </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 64, alignItems: 'center' }}>
+
+                    {/* Left: headline + CTAs */}
+                    <div>
+                        <h1 style={{
+                            fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 900,
+                            lineHeight: 1.05, letterSpacing: '-0.02em', textTransform: 'uppercase',
+                            margin: '0 0 20px',
+                        }}>
+                            <span style={{ display: 'block', color: C.text }}>DEPLOY CODE</span>
+                            <span style={{ display: 'block', color: C.text }}>WITH</span>
+                            <span style={{ display: 'block' }}>
+                                <RotatingWord />
+                            </span>
+                        </h1>
+
+                        <p style={{
+                            fontSize: 12, color: C.sub, lineHeight: 1.8,
+                            maxWidth: 440, marginBottom: 36, letterSpacing: '0.02em',
+                        }}>
+                            AI-powered code security that identifies vulnerabilities in milliseconds.
+                            Understand why they matter. Ship secure code — without slowing down.
+                        </p>
+
+                        {/* CTAs */}
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            <Link to="/signup" style={{ textDecoration: 'none' }}>
+                                <button style={{
+                                    ...MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                                    padding: '12px 28px', background: C.acid, color: '#000',
+                                    border: `1px solid ${C.acid}`, cursor: 'pointer',
+                                    transition: 'opacity 0.15s',
+                                }}
+                                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
+                                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+                                >
+                                    [ START FREE ] →
+                                </button>
+                            </Link>
+                            <Link to="/how-it-works" style={{ textDecoration: 'none' }}>
+                                <button style={{
+                                    ...MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                                    padding: '12px 28px', background: 'transparent', color: C.sub,
+                                    border: `1px solid ${C.border}`, cursor: 'pointer',
+                                    transition: 'color 0.15s, border-color 0.15s',
+                                }}
+                                    onMouseEnter={e => {
+                                        (e.currentTarget as HTMLElement).style.color = C.text;
+                                        (e.currentTarget as HTMLElement).style.borderColor = C.muted;
+                                    }}
+                                    onMouseLeave={e => {
+                                        (e.currentTarget as HTMLElement).style.color = C.sub;
+                                        (e.currentTarget as HTMLElement).style.borderColor = C.border;
+                                    }}
+                                >
+                                    HOW IT WORKS
+                                </button>
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Right: terminal-style code preview */}
+                    <div style={{ display: 'none' }} className="lg-hero-demo">
+                        {/* Shown via CSS on large screens */}
+                    </div>
+
+                    {/* Right: terminal block */}
+                    <div style={{
+                        border: `1px solid ${C.border}`, background: C.dim,
+                        display: 'flex', flexDirection: 'column',
+                    }}>
+                        {/* Terminal header */}
+                        <div style={{
+                            padding: '8px 14px', borderBottom: `1px solid ${C.border}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <span style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em' }}>SCAN OUTPUT</span>
+                            <div style={{ display: 'flex', gap: 5 }}>
+                                {['#FF5F56', '#FFBD2E', C.acid].map((c, i) => (
+                                    <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
+                                ))}
+                            </div>
+                        </div>
+                        {/* Terminal body */}
+                        <pre style={{
+                            margin: 0, padding: '20px', fontSize: 10, lineHeight: 1.8,
+                            color: C.sub, overflowX: 'auto', flexGrow: 1,
+                        }}>
+{`$ soteria scan --file main.py
+
+  [ANALYZING] AST parse complete
+  [ANALYZING] 739 patterns loaded
+  [ANALYZING] GCN inference...
+
+  ┌─ FINDINGS ─────────────────────┐
+  │ `}<span style={{ color: '#FF5F56' }}>CRITICAL</span>{`  SQL Injection          │
+  │   line 42 · CWE-89             │
+  │   fix: use parameterized query  │
+  │                                 │
+  │ `}<span style={{ color: '#FFBD2E' }}>HIGH    </span>{`  Hardcoded Secret       │
+  │   line 17 · CWE-798            │
+  │   fix: use env variables        │
+  └─────────────────────────────────┘
+
+  `}<span style={{ color: C.acid }}>RISK: HIGH  · 2 issues · 0.8s</span>{`
+`}
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── TICKER ─── */}
+            <Ticker />
+
+            {/* ─── STATS ─── */}
+            <section style={{ padding: '60px 24px', maxWidth: 1200, margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: C.border }}>
+                    {[
+                        { value: '739+', label: 'Vulnerability Patterns' },
+                        { value: '<2s',  label: 'Avg Scan Time' },
+                        { value: '8+',   label: 'Languages' },
+                        { value: '100%', label: 'Free & Open Source' },
+                    ].map(s => (
+                        <div key={s.label} style={{ background: C.bg }}>
+                            <Stat value={s.value} label={s.label} />
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ─── FEATURES ─── */}
+            <section style={{ padding: '40px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+                <div style={{ marginBottom: 40 }}>
+                    <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 10 }}>
+                        // CAPABILITY_MATRIX
+                    </div>
+                    <h2 style={{
+                        fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 900,
+                        letterSpacing: '-0.01em', textTransform: 'uppercase', margin: 0,
+                    }}>
+                        EVERYTHING YOU NEED TO{' '}
+                        <span style={{ color: C.acid }}>SHIP SAFE</span>
+                    </h2>
+                </div>
+
+                <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 1, background: C.border,
+                }}>
+                    {/* Wide card */}
+                    <div style={{ gridColumn: 'span 2', background: C.bg }}>
+                        <FeatureCard
+                            tag="CORE"
+                            title="REAL-TIME AST SCANNER"
+                            meta="// avg_scan_time: <2s · 739 patterns loaded"
+                            desc="Hybrid AST engine parses your code's syntax tree structurally — identifying injection vectors, taint flows, and unsafe patterns before your CI/CD pipeline even starts."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="DETECTION"
+                            title="739 VULNERABILITY PATTERNS"
+                            meta="// py · go · rs · js · ts · php · java · c/c++"
+                            desc="Hand-crafted detection rules covering OWASP Top 10, supply chain attacks, Log4Shell, and language-specific CVEs."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="AI"
+                            title="GCN + SNN NEURAL ENGINE"
+                            meta="// GATConv · F1 ≥ 0.70 · snn_baseline.pt"
+                            desc="Graph Convolutional Network blended with a Spiking Neural Network temporal profiler for deep structural malware detection."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="CI/CD"
+                            title="GITHUB PR REVIEWS"
+                            desc="Automated PR security reviewer runs on every pull request — flags CRITICAL findings before merge, posts GitHub-ready review comments."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="RUNTIME"
+                            title="eBPF KERNEL ENGINE"
+                            desc="Module 1 production runtime — LSM hooks, per-IP/port policy enforcement, and hot-reload via inotify. Zero overhead syscall monitoring."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="UX"
+                            title="ZERO-BS EXPLANATIONS"
+                            desc="No cryptic CWE codes left unexplained. Soteria tells you what's wrong, why it matters, and hands you patched code."
+                        />
+                    </div>
+                    <div style={{ background: C.bg }}>
+                        <FeatureCard
+                            tag="DETECTION"
+                            title="10-ENGINE FLEET"
+                            meta="// AgentShield · DeceptiNet · SymbAPT · RLShield · MemShield..."
+                            desc="Ten specialized detection engines covering TOCTOU mitigation, APT hunting, SOC orchestration, memory exploits, and container escapes."
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── HOW IT WORKS ─── */}
+            <section style={{
+                padding: '60px 24px 80px',
+                borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+                background: C.dim,
+            }}>
+                <div style={{ maxWidth: 900, margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                        <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 10 }}>
+                            // EXECUTION_FLOW
+                        </div>
+                        <h2 style={{
+                            fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 900,
+                            letterSpacing: '-0.01em', textTransform: 'uppercase', margin: 0,
+                        }}>
+                            THREE STEPS TO{' '}
+                            <span style={{ color: C.acid }}>SECURE CODE</span>
+                        </h2>
+                    </div>
+
+                    <div style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: 32, position: 'relative',
+                    }}>
+                        {/* Connector */}
+                        <div style={{
+                            position: 'absolute', top: 24, left: 'calc(16.7% + 28px)',
+                            right: 'calc(16.7% + 28px)', height: 1, background: C.border,
+                        }} />
+                        <Step num="01" title="PASTE YOUR CODE"
+                            desc="Drop any snippet or file — Python, Go, Rust, JS, TS, PHP, Java, C/C++. No install required." />
+                        <Step num="02" title="KYBER ANALYZES"
+                            desc="AST parsing + GCN neural model + 739 pattern rules run in under 2 seconds." />
+                        <Step num="03" title="FIX & SHIP"
+                            desc="Get the exact vulnerable line, CWE reference, and AI-generated patched code." />
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── CTA ─── */}
+            <section style={{ padding: '80px 24px', maxWidth: 900, margin: '0 auto' }}>
+                <div style={{
+                    border: `1px solid ${C.border}`, padding: '56px 48px',
+                    textAlign: 'center',
+                }}>
+                    <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 16 }}>
+                        // READY_TO_DEPLOY
+                    </div>
+                    <h2 style={{
+                        fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900,
+                        letterSpacing: '-0.02em', textTransform: 'uppercase',
+                        margin: '0 0 12px', lineHeight: 1.05,
+                    }}>
+                        STOP GUESSING.<br />
+                        <span style={{ color: C.acid }}>START KNOWING.</span>
+                    </h2>
+                    <p style={{
+                        fontSize: 11, color: C.sub, lineHeight: 1.8,
+                        maxWidth: 480, margin: '0 auto 36px',
+                    }}>
+                        Scan your first project in seconds. No credit card. No bloated SDK. No 14-day trial.
+                    </p>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <Link to="/signup" style={{ textDecoration: 'none' }}>
+                            <button style={{
+                                ...MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                                padding: '13px 32px', background: C.acid, color: '#000',
+                                border: `1px solid ${C.acid}`, cursor: 'pointer',
+                                transition: 'opacity 0.15s',
+                            }}
+                                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
+                                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+                            >
+                                [ START FREE — NO SIGN UP REQUIRED ]
+                            </button>
+                        </Link>
+                        <Link to="/scanner" style={{ textDecoration: 'none' }}>
+                            <button style={{
+                                ...MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                                padding: '13px 28px', background: 'transparent', color: C.sub,
+                                border: `1px solid ${C.border}`, cursor: 'pointer',
+                                transition: 'color 0.15s, border-color 0.15s',
+                            }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLElement).style.color = C.text;
+                                    (e.currentTarget as HTMLElement).style.borderColor = C.muted;
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLElement).style.color = C.sub;
+                                    (e.currentTarget as HTMLElement).style.borderColor = C.border;
+                                }}
+                            >
+                                &gt; OPEN SCANNER
+                            </button>
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── FOOTER ─── */}
+            <footer style={{
+                borderTop: `1px solid ${C.border}`,
+                padding: '32px 24px',
+            }}>
+                <div style={{
+                    maxWidth: 1200, margin: '0 auto',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20,
+                }}>
+                    <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <img src="/soteria-logo.png" alt="Soteria" style={{ width: 28, height: 28, objectFit: 'cover' }} />
+                        <span style={{ ...MONO, fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: C.text }}>
+                            SOTERIA
+                        </span>
+                    </Link>
+
+                    <div style={{ display: 'flex', gap: 28 }}>
+                        {[
+                            { to: '/about', label: 'ABOUT' },
+                            { to: '/features', label: 'FEATURES' },
+                            { to: '/changelog', label: 'CHANGELOG' },
+                        ].map(link => (
+                            <Link key={link.to} to={link.to} style={{
+                                ...MONO, fontSize: 9, color: C.sub, textDecoration: 'none',
+                                letterSpacing: '0.12em', transition: 'color 0.15s',
+                            }}
+                                onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
+                                onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                        <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer"
+                            style={{ ...MONO, fontSize: 9, color: C.sub, textDecoration: 'none', letterSpacing: '0.12em', transition: 'color 0.15s' }}
+                            onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
+                            onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}
+                        >
+                            GITHUB
+                        </a>
+                    </div>
+
+                    <div style={{ ...MONO, fontSize: 8, color: C.muted, letterSpacing: '0.12em' }}>
+                        © {new Date().getFullYear()} SOTERIA · BUILT FOR BUILDERS
+                    </div>
+                </div>
+            </footer>
+        </div>
+    );
 }
