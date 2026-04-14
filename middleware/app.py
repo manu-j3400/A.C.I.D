@@ -943,7 +943,7 @@ def structuralDNAExtraction(rawCode, filename=None):
             counts = get_node_counts(code_to_parse, detected_language)
             
             if not counts:
-                return "SYNTAX_ERROR"
+                return "SYNTAX_ERROR", detected_language
             
             # Create DataFrame with node counts
             if not isinstance(counts, dict):
@@ -1136,12 +1136,21 @@ def analyze(current_user):
 
     # 3. ERROR HANDLING
     if isinstance(featuresDf, str) and featuresDf == "SYNTAX_ERROR":
-        return jsonify({
-            'malicious': False,
-            'risk_level': 'INVALID',
-            'reason': f"Syntax Error: This {detected_language} code cannot be parsed",
-            'language': detected_language
-        }), 200
+        if detected_language == 'python':
+            # Python syntax errors are fatal — can't scan malformed Python AST
+            return jsonify({
+                'malicious': False,
+                'risk_level': 'INVALID',
+                'reason': f"Syntax Error: This python code cannot be parsed",
+                'language': 'python'
+            }), 200
+        # For all other languages: AST parse failure is non-fatal.
+        # Fall through with a zeroed feature DataFrame so pattern-based
+        # vulnerability scanning still runs (innerHTML XSS, eval, etc.)
+        if modelFeatures is not None:
+            featuresDf = pd.DataFrame([{col: 0 for col in modelFeatures}])
+        else:
+            featuresDf = pd.DataFrame([{}])
         
     if featuresDf is None:
         return jsonify({'status': 'error', 'message': 'Analysis failed.', 'language': detected_language}), 500
