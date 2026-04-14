@@ -52,15 +52,26 @@ except ImportError as e:
     normalizer = DummyNormalizer()
     print("⚠️ Using Dummy Normalizer (Analysis will be less accurate)")
 
-# Multi-language support
+# Language detection — pure Python, always available regardless of tree-sitter
 try:
-    from language_detector import detect_language
+    from language_detector import detect_language as _detect_language
+    _LANG_DETECT_ENABLED = True
+    print("✅ Language detector loaded")
+except ImportError as e:
+    _LANG_DETECT_ENABLED = False
+    _detect_language = None
+    print(f"⚠️ Language detector unavailable: {e}")
+
+# Tree-sitter AST parsing — requires compiled language packages
+try:
     from treesitter_parser import get_node_counts, get_supported_languages
     MULTI_LANG_ENABLED = True
-    print(f"✅ Multi-language support enabled: {get_supported_languages()}")
+    print(f"✅ Tree-sitter enabled: {get_supported_languages()}")
 except ImportError as e:
     MULTI_LANG_ENABLED = False
-    print(f"⚠️ Multi-language support disabled: {e}")
+    get_node_counts = None
+    get_supported_languages = lambda: []
+    print(f"⚠️ Tree-sitter unavailable (install tree-sitter-* packages): {e}")
 
 # Vulnerability database
 try:
@@ -533,9 +544,62 @@ def init_scan_db():
     except sqlite3.OperationalError:
         pass
 
+    # Training data table — stores scanned code for future model retraining
+    c.execute('''CREATE TABLE IF NOT EXISTS training_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code_hash TEXT NOT NULL,
+        code TEXT NOT NULL,
+        language TEXT NOT NULL,
+        is_malicious INTEGER NOT NULL,
+        risk_level TEXT,
+        vuln_count INTEGER DEFAULT 0,
+        confidence REAL,
+        timestamp TEXT NOT NULL,
+        source TEXT DEFAULT 'scanner'
+    )''')
+    try:
+        c.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_training_hash ON training_data(code_hash)')
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
     print("✅ Scan history database initialized (WAL mode)")
+
+
+def _save_training_sample(code: str, language: str, is_malicious: bool,
+                          risk_level: str, vuln_count: int, confidence: float,
+                          source: str = 'scanner'):
+    """
+    Persist a completed scan as a training sample.
+    Uses INSERT OR IGNORE so identical code hashes are not duplicated.
+    Runs in a daemon thread to not block the response.
+    """
+    import threading
+    code_hash = hashlib.sha256(code.encode('utf-8', errors='replace')).hexdigest()[:32]
+    ts = datetime.utcnow().isoformat()
+    # Truncate very large code samples (>50k chars) to keep DB size manageable
+    code_stored = code[:50000] if len(code) > 50000 else code
+
+    def _write():
+        try:
+            with _db_lock:
+                conn = get_db_connection()
+                conn.execute(
+                    '''INSERT OR IGNORE INTO training_data
+                       (code_hash, code, language, is_malicious, risk_level,
+                        vuln_count, confidence, timestamp, source)
+                       VALUES (?,?,?,?,?,?,?,?,?)''',
+                    (code_hash, code_stored, language, int(is_malicious),
+                     risk_level, vuln_count, confidence, ts, source)
+                )
+                conn.commit()
+                conn.close()
+        except Exception as e:
+            print(f"Training data save failed: {e}")
+
+    threading.Thread(target=_write, daemon=True).start()
+
 
 init_scan_db()
 
@@ -927,35 +991,48 @@ def structuralDNAExtraction(rawCode, filename=None):
 
     detected_language = 'python'
     confidence = 0.0
-    
-    # Try multi-language detection first
-    if MULTI_LANG_ENABLED:
+
+    # ── Language detection — always runs (pure Python, no tree-sitter needed) ──
+    if _LANG_DETECT_ENABLED and _detect_language is not None:
         try:
-            detected_language, confidence = detect_language(code_to_parse, filename=filename)
+            detected_language, confidence = _detect_language(code_to_parse, filename=filename)
             print(f"🔍 Detected language: {detected_language} (confidence: {confidence:.2f})")
         except Exception as e:
             print(f"Language detection failed: {e}")
             detected_language = 'python'
-    
-    # Use tree-sitter for all languages (more consistent)
-    if MULTI_LANG_ENABLED:
+
+    # ── Tree-sitter AST parsing (when packages are installed) ──
+    if MULTI_LANG_ENABLED and get_node_counts is not None:
+        supported = get_supported_languages()
+        if detected_language not in supported:
+            # Unsupported language (e.g. kotlin, swift) — skip AST, use zeroed features
+            print(f"ℹ️ {detected_language} has no tree-sitter parser — using pattern-only scan")
+            if modelFeatures is not None:
+                df_aligned = pd.DataFrame([{col: 0 for col in modelFeatures}])
+            else:
+                df_aligned = pd.DataFrame([{}])
+            result = (df_aligned, detected_language)
+            _cache_result(code_hash, result)
+            _log_perf(t_start, len(rawCode), detected_language)
+            return result
+
         try:
             counts = get_node_counts(code_to_parse, detected_language)
-            
+
             if not counts:
                 return "SYNTAX_ERROR", detected_language
-            
+
             # Create DataFrame with node counts
             if not isinstance(counts, dict):
                 counts = {}
             df = pd.DataFrame([counts])
-            
+
             # Align with model features (fill missing with 0)
             if modelFeatures is not None:
                 df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
             else:
                 df_aligned = df
-            
+
             # Add any extra columns from detection that model doesn't know about
             for col in df.columns:
                 if col not in df_aligned.columns:
@@ -965,12 +1042,34 @@ def structuralDNAExtraction(rawCode, filename=None):
             _cache_result(code_hash, result)
             _log_perf(t_start, len(rawCode), detected_language)
             return result
-            
+
         except Exception as e:
             print(f"Tree-sitter parsing failed for {detected_language}: {e}")
-            # Fall back to Python AST if tree-sitter fails
+            # If tree-sitter fails for non-Python, use zeroed features and continue
+            if detected_language != 'python':
+                if modelFeatures is not None:
+                    df_aligned = pd.DataFrame([{col: 0 for col in modelFeatures}])
+                else:
+                    df_aligned = pd.DataFrame([{}])
+                result = (df_aligned, detected_language)
+                _cache_result(code_hash, result)
+                _log_perf(t_start, len(rawCode), detected_language)
+                return result
+            # For Python, fall through to native AST parser below
     
-    # Fallback: Original Python-only AST parsing
+    # Non-Python code when tree-sitter is unavailable: skip ML features, allow pattern scan
+    if detected_language != 'python':
+        print(f"ℹ️ Tree-sitter unavailable for {detected_language} — using pattern-only scan")
+        if modelFeatures is not None:
+            df_aligned = pd.DataFrame([{col: 0 for col in modelFeatures}])
+        else:
+            df_aligned = pd.DataFrame([{}])
+        result = (df_aligned, detected_language)
+        _cache_result(code_hash, result)
+        _log_perf(t_start, len(rawCode), detected_language)
+        return result
+
+    # Python-only AST parsing (native, no tree-sitter needed)
     try:
         tree = ast.parse(code_to_parse)
         normalizer.reset()  # bound memory on large files
@@ -978,8 +1077,7 @@ def structuralDNAExtraction(rawCode, filename=None):
 
         nodes = [type(node).__name__ for node in ast.walk(normalizedTree)]
         counts = dict(Counter(nodes))
-        
-        # reindexing
+
         df = pd.DataFrame([counts])
         if modelFeatures is not None:
             df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
@@ -990,10 +1088,10 @@ def structuralDNAExtraction(rawCode, filename=None):
         _cache_result(code_hash, result)
         _log_perf(t_start, len(rawCode), 'python')
         return result
-    
+
     except SyntaxError:
-        return "SYNTAX_ERROR", detected_language
-    
+        return "SYNTAX_ERROR", 'python'
+
     except Exception as e:
         print(f"Error processing code: {e}")
         return None, detected_language
@@ -1392,6 +1490,17 @@ def analyze(current_user):
                 }, timeout=5)
         except Exception:
             pass  # webhook failures are non-fatal
+
+    # Save scan as training sample (fire-and-forget, never blocks response)
+    _save_training_sample(
+        code=codeInput,
+        language=detected_language,
+        is_malicious=verdict,
+        risk_level=riskLabel,
+        vuln_count=len(vulnerabilities),
+        confidence=confidence,
+        source='scanner',
+    )
 
     return jsonify(result)
 
@@ -1806,6 +1915,55 @@ def scan_history_export(current_user):
                              row['code_hash'], row['nodes_scanned'], row['reason']])
 
         filename = f"soteria_scans_{datetime.now().strftime('%Y%m%d')}.csv"
+        return FlaskResponse(
+            si.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/training-data/export', methods=['GET'])
+@token_required(optional=False)
+def training_data_export(current_user):
+    """
+    Export collected training samples as CSV (admin use / model retraining).
+    Returns code, language, is_malicious, risk_level, vuln_count, confidence, timestamp.
+    Code column is omitted by default; pass ?include_code=1 to include it.
+    ---
+    tags: [Admin]
+    security: [{Bearer: []}]
+    produces: [text/csv]
+    """
+    import csv
+    from io import StringIO
+    from flask import Response as FlaskResponse
+    include_code = request.args.get('include_code', '0') == '1'
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT * FROM training_data ORDER BY timestamp DESC')
+        rows = c.fetchall()
+        conn.close()
+
+        si = StringIO()
+        writer = csv.writer(si)
+        headers = ['id', 'language', 'is_malicious', 'risk_level',
+                   'vuln_count', 'confidence', 'timestamp', 'source']
+        if include_code:
+            headers.append('code')
+        writer.writerow(headers)
+        for row in rows:
+            record = [row['id'], row['language'], row['is_malicious'],
+                      row['risk_level'], row['vuln_count'],
+                      row['confidence'], row['timestamp'], row['source']]
+            if include_code:
+                record.append(row['code'])
+            writer.writerow(record)
+
+        filename = f"soteria_training_{datetime.now().strftime('%Y%m%d')}.csv"
         return FlaskResponse(
             si.getvalue(),
             mimetype='text/csv',
@@ -2833,7 +2991,7 @@ def process_files_batch(files):
                 'nodes_scanned': len(featuresDf.columns)
             })
             
-            # Save to history
+            # Save to scan history + training data
             save_scan_result(
                 language=detected_language,
                 risk_level=riskLabel,
@@ -2842,6 +3000,12 @@ def process_files_batch(files):
                 code=code,
                 nodes_scanned=len(featuresDf.columns),
                 reason=message
+            )
+            _save_training_sample(
+                code=code, language=detected_language,
+                is_malicious=verdict, risk_level=riskLabel,
+                vuln_count=len([k for k in BUZZ_WORDS if k in code]),
+                confidence=confidence, source='batch',
             )
             
         except Exception as e:
