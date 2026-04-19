@@ -23,7 +23,8 @@ import logging
 import json as json_stdlib
 from functools import wraps, lru_cache
 
-BUZZ_WORDS = {}  # Placeholder - will be loaded from vulnerability_db
+BUZZ_WORDS = {}       # Placeholder - will be loaded from vulnerability_db
+LANGUAGE_FILTER = {}  # Placeholder - pattern → frozenset of applicable languages
 
 # to make normalizer_AST file accessable 
 ROOT = Path(__file__).resolve().parent.parent
@@ -75,16 +76,17 @@ except ImportError as e:
 
 # Vulnerability database
 try:
-    from vulnerability_db import VULNERABILITY_PATTERNS
+    from vulnerability_db import VULNERABILITY_PATTERNS, LANGUAGE_FILTER
     BUZZ_WORDS = {pattern: info[0] for pattern, info in VULNERABILITY_PATTERNS.items()}
     # Also create a severity lookup
     SEVERITY_LOOKUP = {pattern: info[1] for pattern, info in VULNERABILITY_PATTERNS.items()}
     CWE_LOOKUP = {pattern: info[2] for pattern, info in VULNERABILITY_PATTERNS.items()}
-    print(f"✅ Vulnerability database loaded: {len(VULNERABILITY_PATTERNS)} patterns")
+    print(f"✅ Vulnerability database loaded: {len(VULNERABILITY_PATTERNS)} patterns, {len(LANGUAGE_FILTER)} language-filtered")
 except ImportError as e:
     print(f"⚠️ Vulnerability database not loaded: {e}")
     SEVERITY_LOOKUP = {}
     CWE_LOOKUP = {}
+    LANGUAGE_FILTER = {}
 
 # Entropy profiler (Phase 2) — torch-free; fails silently if unavailable
 try:
@@ -1219,18 +1221,22 @@ def analyze(current_user):
     # Strip comments to prevent AI explanations from triggering false positives
     clean_code = strip_comments(codeInput)
 
-    # 1. KEYWORD SAFETY NET (on uncommented code)
-    triggerKeywords = [k for k in BUZZ_WORDS if k in clean_code]
-
-    # 2. TRANSFORM CODE INTO NUMBERS (Original code is passed to AST parser)
+    # 2. TRANSFORM CODE INTO NUMBERS + DETECT LANGUAGE
     result = structuralDNAExtraction(codeInput, filename=filename)
-    
+
     # Handle tuple return (dataframe, language)
     if isinstance(result, tuple):
         featuresDf, detected_language = result
     else:
         featuresDf = result
         detected_language = 'python'
+
+    # 1. KEYWORD SAFETY NET — language-aware: only apply patterns valid for this language
+    _active_kw = {
+        p for p in BUZZ_WORDS
+        if p not in LANGUAGE_FILTER or detected_language in LANGUAGE_FILTER[p]
+    }
+    triggerKeywords = [k for k in _active_kw if k in clean_code]
 
     # 3. ERROR HANDLING
     if isinstance(featuresDf, str) and featuresDf == "SYNTAX_ERROR":
@@ -1391,11 +1397,11 @@ def analyze(current_user):
             'inference_ms':   round(snn_result.inference_ms, 1),
         }
 
-    # LINE-LEVEL VULNERABILITY DETECTION
+    # LINE-LEVEL VULNERABILITY DETECTION (language-filtered)
     vulnerabilities = []
     code_lines = codeInput.split('\n')
     for line_num, line_text in enumerate(code_lines, 1):
-        for pattern in BUZZ_WORDS:
+        for pattern in _active_kw:
             if pattern in line_text:
                 severity = SEVERITY_LOOKUP.get(pattern, 'MEDIUM')
                 cwe = CWE_LOOKUP.get(pattern, '')
@@ -2934,8 +2940,12 @@ def process_files_batch(files):
             
             load_model_if_updated()
             
-            # Keyword check
-            triggerKeywords = [k for k in BUZZ_WORDS if k in code]
+            # Keyword check (language-aware)
+            _active_kw_b = {
+                p for p in BUZZ_WORDS
+                if p not in LANGUAGE_FILTER or detected_language in LANGUAGE_FILTER[p]
+            }
+            triggerKeywords = [k for k in _active_kw_b if k in code]
             
             # ML prediction
             maliciousProb = 0.5 if triggerKeywords else 0.1

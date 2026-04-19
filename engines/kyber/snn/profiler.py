@@ -30,7 +30,9 @@ Design notes
 
 from __future__ import annotations
 
+import builtins as _builtins_mod
 import io
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -44,6 +46,43 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from .encoder import SemanticEncoder, encode_semantic
 from .lif_network import LIFConfig, LIFNetwork, TemporalAnomalyLoss
 from .telemetry import ExecutionHook, SpikeTrain, encode_rate
+
+
+# ---------------------------------------------------------------------------
+# Sandboxing constants for record_baseline exec()
+# ---------------------------------------------------------------------------
+
+# Allowlist of safe builtins — blocks open(), __import__, eval, exec, compile
+# to prevent malicious training samples from causing side effects.
+_SAFE_BUILTINS: dict = {
+    name: getattr(_builtins_mod, name)
+    for name in (
+        'abs', 'all', 'any', 'bin', 'bool', 'bytearray', 'bytes',
+        'callable', 'chr', 'complex', 'dict', 'dir', 'divmod',
+        'enumerate', 'filter', 'float', 'format', 'frozenset',
+        'getattr', 'globals', 'hasattr', 'hash', 'hex', 'id', 'int',
+        'isinstance', 'issubclass', 'iter', 'len', 'list', 'locals',
+        'map', 'max', 'memoryview', 'min', 'next', 'object', 'oct',
+        'ord', 'pow', 'print', 'property', 'range', 'repr', 'reversed',
+        'round', 'set', 'setattr', 'slice', 'sorted', 'staticmethod',
+        'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip',
+        # Exception types needed by most code
+        'ArithmeticError', 'AssertionError', 'AttributeError',
+        'BaseException', 'BufferError', 'EOFError', 'EnvironmentError',
+        'Exception', 'FileExistsError', 'FileNotFoundError',
+        'FloatingPointError', 'GeneratorExit', 'IOError', 'ImportError',
+        'IndexError', 'IndentationError', 'KeyError', 'KeyboardInterrupt',
+        'LookupError', 'MemoryError', 'ModuleNotFoundError', 'NameError',
+        'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError',
+        'RecursionError', 'ReferenceError', 'RuntimeError', 'StopIteration',
+        'SyntaxError', 'SystemError', 'TabError', 'TimeoutError', 'TypeError',
+        'UnboundLocalError', 'UnicodeDecodeError', 'UnicodeEncodeError',
+        'UnicodeError', 'ValueError', 'ZeroDivisionError',
+    )
+    if hasattr(_builtins_mod, name)
+}
+
+_EXEC_TIMEOUT_S: float = 5.0   # per-sample execution wall-clock limit
 
 
 # ---------------------------------------------------------------------------
@@ -226,14 +265,28 @@ class BaselineProfiler:
         SpikeTrain captured during execution, or None if exec() raised.
         """
         hook = ExecutionHook(max_events=max_events)
-        globs = exec_globals if exec_globals is not None else {}
+        globs: dict = exec_globals if exec_globals is not None else {}
+        # Restrict builtins: block open(), __import__, eval, exec, compile, etc.
+        # Python adds __builtins__ automatically on exec(); we override with allowlist.
+        globs.setdefault('__builtins__', _SAFE_BUILTINS)
 
-        hook.start()
-        try:
-            exec(compile(source_code, "<profiler>", "exec"), globs)  # noqa: S102
-        except Exception:
-            pass   # capture what we got; anomalous code may raise
-        finally:
+        def _run_exec() -> None:
+            """Execute profiled code inside its own thread (for timeout support)."""
+            hook.start()
+            try:
+                exec(compile(source_code, "<profiler>", "exec"), globs)  # noqa: S102
+            except Exception:
+                pass   # capture what we got; anomalous code may raise
+            finally:
+                hook.stop()
+
+        t = threading.Thread(target=_run_exec, daemon=True)
+        t.start()
+        t.join(timeout=_EXEC_TIMEOUT_S)
+        if t.is_alive():
+            # Thread exceeded wall-clock limit (infinite loop, heavy computation).
+            # hook.stop() is not thread-safe here, but the max_events cap will
+            # cause the trace callback to detach naturally on the next event.
             hook.stop()
 
         train = hook.to_spike_train(bin_size_us=self.train_config.bin_size_us)
