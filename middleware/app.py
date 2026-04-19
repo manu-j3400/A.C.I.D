@@ -98,6 +98,16 @@ except ImportError as e:
     _get_entropy_flags = None  # type: ignore[assignment]
     print(f"⚠️ Entropy profiler not available: {e}")
 
+# Semgrep deep scanner — optional 4th detection layer (AST-level, community rules)
+try:
+    from semgrep_scanner import scan as _semgrep_scan, is_available as _semgrep_available
+    SEMGREP_ENABLED = _semgrep_available()
+    print(f"{'✅' if SEMGREP_ENABLED else '⚠️'} Semgrep scanner: {'available' if SEMGREP_ENABLED else 'binary not found (pip install semgrep)'}")
+except ImportError as e:
+    SEMGREP_ENABLED = False
+    _semgrep_scan = None  # type: ignore[assignment]
+    print(f"⚠️ Semgrep scanner module not loadable: {e}")
+
 # Engine 3: SNN Micro-Temporal Profiler (Kyber) — lazy-loaded on first Python scan
 # Deferred to avoid heavy torch/snntorch import during worker boot (Render timeout)
 SNN_ENABLED = False
@@ -1450,6 +1460,20 @@ def analyze(current_user):
             'snippet':  eflag.literal_preview[:100],
         })
 
+    # SEMGREP DEEP SCAN — AST-level community rules (4th detection layer)
+    if SEMGREP_ENABLED and _semgrep_scan is not None:
+        try:
+            sg_findings = _semgrep_scan(codeInput, detected_language, timeout=30)
+            # Deduplicate: skip findings already reported at the same (line, cwe) pair
+            existing_pairs = {(v['line'], v.get('cwe', '')) for v in vulnerabilities}
+            for f in sg_findings:
+                if (f['line'], f.get('cwe', '')) not in existing_pairs:
+                    vulnerabilities.append(f)
+            if sg_findings:
+                result['metadata']['semgrep_findings'] = len(sg_findings)
+        except Exception as _sg_e:
+            print(f"Semgrep scan error: {_sg_e}")
+
     if vulnerabilities:
         result['vulnerabilities'] = vulnerabilities
         result['summary'] = generate_tldr_summary(vulnerabilities)
@@ -1975,6 +1999,60 @@ def training_data_export(current_user):
             mimetype='text/csv',
             headers={'Content-Disposition': f'attachment; filename={filename}'}
         )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/training-data/stats', methods=['GET'])
+@token_required(optional=False)
+def training_data_stats(current_user):
+    """
+    Return aggregate statistics about the training data collected from scanner runs.
+    Used by the AdminDashboard to display training corpus health.
+    ---
+    tags: [Admin]
+    security: [{Bearer: []}]
+    responses:
+      200:
+        description: Training data statistics
+    """
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute('SELECT COUNT(*) AS total FROM training_data')
+        total = c.fetchone()['total']
+
+        c.execute('SELECT COUNT(*) AS cnt FROM training_data WHERE is_malicious = 1')
+        malicious_count = c.fetchone()['cnt']
+
+        c.execute('SELECT COUNT(*) AS cnt FROM training_data WHERE is_malicious = 0')
+        clean_count = c.fetchone()['cnt']
+
+        c.execute('''SELECT language, COUNT(*) AS cnt FROM training_data
+                     GROUP BY language ORDER BY cnt DESC LIMIT 10''')
+        by_language = [{'language': row['language'], 'count': row['cnt']}
+                       for row in c.fetchall()]
+
+        c.execute('''SELECT risk_level, COUNT(*) AS cnt FROM training_data
+                     GROUP BY risk_level ORDER BY cnt DESC''')
+        by_risk = [{'risk_level': row['risk_level'], 'count': row['cnt']}
+                   for row in c.fetchall()]
+
+        c.execute('SELECT MAX(timestamp) AS last FROM training_data')
+        last_row = c.fetchone()
+        last_collected = last_row['last'] if last_row else None
+
+        conn.close()
+        return jsonify({
+            'total': total,
+            'malicious': malicious_count,
+            'clean': clean_count,
+            'by_language': by_language,
+            'by_risk': by_risk,
+            'last_collected': last_collected,
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
