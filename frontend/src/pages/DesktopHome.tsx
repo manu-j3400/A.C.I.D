@@ -16,6 +16,14 @@ import { API_BASE_URL } from '@/lib/api';
 import AppSidebar from '@/components/AppSidebar';
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
+interface ContribStats {
+  total: number;
+  malicious: number;
+  clean: number;
+  by_language: { language: string; count: number }[];
+  last_collected: string | null;
+}
+
 interface SecurityScoreData {
   score: number;
   grade: string;
@@ -210,6 +218,7 @@ export default function DesktopHome() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookSaved, setWebhookSaved] = useState(false);
   const [showWebhook, setShowWebhook] = useState(false);
+  const [contrib, setContrib] = useState<ContribStats | null>(null);
 
   /* Fetch score */
   useEffect(() => {
@@ -231,6 +240,15 @@ export default function DesktopHome() {
     if (!token) return;
     fetch(`${API_BASE_URL}/api/settings/webhook`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setWebhookUrl(d.webhook_url || '')).catch(() => {});
+  }, [token]);
+
+  /* Fetch personal training contributions */
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/training-data/stats/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setContrib(d))
+      .catch(() => {});
   }, [token]);
 
   /* Compare */
@@ -419,6 +437,50 @@ export default function DesktopHome() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Training corpus contributions */}
+            {contrib && (
+              <div style={{ borderBottom: `1px solid ${C.dim}` }}>
+                <div className="px-5 pt-3 pb-1 flex items-center justify-between">
+                  <span className="text-[9px] tracking-[0.2em] font-bold" style={{ color: C.faint }}>MY CONTRIBUTIONS</span>
+                  {contrib.total > 0 && (
+                    <span className="text-[8px]" style={{ color: C.sub, ...MONO }}>{contrib.total} SAMPLES</span>
+                  )}
+                </div>
+                {contrib.total === 0 ? (
+                  <div className="px-5 py-2 text-[9px]" style={{ color: C.sub, ...MONO }}>
+                    Run scans to contribute
+                  </div>
+                ) : (
+                  <>
+                    {/* Label balance mini-bars */}
+                    <div className="flex items-center gap-3 px-5 py-1.5" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                      <span className="text-[9px] font-bold w-14 flex-shrink-0" style={{ color: C.red, ...MONO }}>THREAT</span>
+                      <AsciiBar value={contrib.malicious} max={contrib.total} color={C.red} />
+                      <span className="text-[9px] tabular-nums ml-auto" style={{ color: C.red, ...MONO }}>{contrib.malicious}</span>
+                    </div>
+                    <div className="flex items-center gap-3 px-5 py-1.5" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                      <span className="text-[9px] font-bold w-14 flex-shrink-0" style={{ color: C.acid, ...MONO }}>CLEAN</span>
+                      <AsciiBar value={contrib.clean} max={contrib.total} color={C.acid} />
+                      <span className="text-[9px] tabular-nums ml-auto" style={{ color: C.acid, ...MONO }}>{contrib.clean}</span>
+                    </div>
+                    {/* Per-language breakdown */}
+                    {contrib.by_language.slice(0, 4).map(({ language, count }) => (
+                      <div key={language} className="flex items-center gap-3 px-5 py-1" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                        <span className="text-[8px] font-bold w-14 truncate flex-shrink-0" style={{ color: C.sub, ...MONO }}>{language}</span>
+                        <AsciiBar value={count} max={contrib.total} color="#3A3A3A" />
+                        <span className="text-[8px] tabular-nums ml-auto" style={{ color: C.sub, ...MONO }}>{count}</span>
+                      </div>
+                    ))}
+                    {contrib.last_collected && (
+                      <div className="px-5 py-1.5 text-[8px]" style={{ color: C.sub, ...MONO }}>
+                        LAST: {new Date(contrib.last_collected).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

@@ -567,8 +567,14 @@ def init_scan_db():
         vuln_count INTEGER DEFAULT 0,
         confidence REAL,
         timestamp TEXT NOT NULL,
-        source TEXT DEFAULT 'scanner'
+        source TEXT DEFAULT 'scanner',
+        user_id INTEGER DEFAULT NULL
     )''')
+    # Migrate: add user_id column if this is an existing DB without it
+    try:
+        c.execute('ALTER TABLE training_data ADD COLUMN user_id INTEGER DEFAULT NULL')
+    except sqlite3.OperationalError:
+        pass  # column already exists
     try:
         c.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_training_hash ON training_data(code_hash)')
     except sqlite3.OperationalError:
@@ -581,7 +587,7 @@ def init_scan_db():
 
 def _save_training_sample(code: str, language: str, is_malicious: bool,
                           risk_level: str, vuln_count: int, confidence: float,
-                          source: str = 'scanner'):
+                          source: str = 'scanner', user_id: int = None):
     """
     Persist a completed scan as a training sample.
     Uses INSERT OR IGNORE so identical code hashes are not duplicated.
@@ -600,10 +606,10 @@ def _save_training_sample(code: str, language: str, is_malicious: bool,
                 conn.execute(
                     '''INSERT OR IGNORE INTO training_data
                        (code_hash, code, language, is_malicious, risk_level,
-                        vuln_count, confidence, timestamp, source)
-                       VALUES (?,?,?,?,?,?,?,?,?)''',
+                        vuln_count, confidence, timestamp, source, user_id)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)''',
                     (code_hash, code_stored, language, int(is_malicious),
-                     risk_level, vuln_count, confidence, ts, source)
+                     risk_level, vuln_count, confidence, ts, source, user_id)
                 )
                 conn.commit()
                 conn.close()
@@ -1530,6 +1536,7 @@ def analyze(current_user):
         vuln_count=len(vulnerabilities),
         confidence=confidence,
         source='scanner',
+        user_id=user_id,
     )
 
     return jsonify(result)
@@ -2051,6 +2058,45 @@ def training_data_stats(current_user):
             'clean': clean_count,
             'by_language': by_language,
             'by_risk': by_risk,
+            'last_collected': last_collected,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/training-data/stats/me', methods=['GET'])
+@token_required(optional=False)
+def training_data_stats_me(current_user):
+    """Personal training corpus contribution stats for the logged-in user."""
+    uid = current_user['user_id']
+    try:
+        conn = get_db_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute('SELECT COUNT(*) AS total FROM training_data WHERE user_id = ?', (uid,))
+        total = c.fetchone()['total']
+
+        c.execute('SELECT COUNT(*) AS cnt FROM training_data WHERE user_id = ? AND is_malicious = 1', (uid,))
+        malicious_count = c.fetchone()['cnt']
+
+        c.execute('SELECT COUNT(*) AS cnt FROM training_data WHERE user_id = ? AND is_malicious = 0', (uid,))
+        clean_count = c.fetchone()['cnt']
+
+        c.execute('''SELECT language, COUNT(*) AS cnt FROM training_data
+                     WHERE user_id = ? GROUP BY language ORDER BY cnt DESC LIMIT 6''', (uid,))
+        by_language = [{'language': r['language'], 'count': r['cnt']} for r in c.fetchall()]
+
+        c.execute('SELECT MAX(timestamp) AS last FROM training_data WHERE user_id = ?', (uid,))
+        last_row = c.fetchone()
+        last_collected = last_row['last'] if last_row else None
+
+        conn.close()
+        return jsonify({
+            'total': total,
+            'malicious': malicious_count,
+            'clean': clean_count,
+            'by_language': by_language,
             'last_collected': last_collected,
         })
     except Exception as e:
@@ -3094,6 +3140,7 @@ def process_files_batch(files):
                 is_malicious=verdict, risk_level=riskLabel,
                 vuln_count=len([k for k in BUZZ_WORDS if k in code]),
                 confidence=confidence, source='batch',
+                user_id=current_user['user_id'] if current_user else None,
             )
             
         except Exception as e:
