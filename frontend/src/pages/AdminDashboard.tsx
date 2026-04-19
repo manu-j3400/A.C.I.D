@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/context/AdminContext';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, LogOut, UserPlus, Activity, AlertTriangle } from 'lucide-react';
+import { Shield, Users, LogOut, UserPlus, Activity, AlertTriangle, Database, Download } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
@@ -26,12 +26,24 @@ interface ScanRecord {
     reason: string;
 }
 
+interface TrainingStats {
+    total: number;
+    malicious: number;
+    clean: number;
+    by_language: { language: string; count: number }[];
+    by_risk: { risk_level: string; count: number }[];
+    last_collected: string | null;
+}
+
 export default function AdminDashboard() {
     const { adminUser, adminToken, adminLogout } = useAdmin();
     const navigate = useNavigate();
     const [users, setUsers] = useState<UserRecord[]>([]);
     const [scans, setScans] = useState<ScanRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
+    const [trainingLoading, setTrainingLoading] = useState(true);
+    const [exportingTraining, setExportingTraining] = useState(false);
 
     useEffect(() => {
         if (!adminToken) return;
@@ -51,11 +63,39 @@ export default function AdminDashboard() {
             })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
+
+        fetch(`${API_BASE_URL}/api/training-data/stats`, {
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+        })
+            .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch training stats'))
+            .then(data => setTrainingStats(data))
+            .catch(err => console.error(err))
+            .finally(() => setTrainingLoading(false));
     }, [adminToken]);
 
     const handleLogout = () => {
         adminLogout();
         navigate('/admin/login');
+    };
+
+    const handleExportTraining = async (includeCode = false) => {
+        if (!adminToken) return;
+        setExportingTraining(true);
+        try {
+            const url = `${API_BASE_URL}/api/training-data/export${includeCode ? '?include_code=1' : ''}`;
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${adminToken}` } });
+            if (!res.ok) throw new Error('Export failed');
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `soteria_training_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setExportingTraining(false);
+        }
     };
 
     const totalUsers = users.length;
@@ -311,6 +351,146 @@ export default function AdminDashboard() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Training Data Collection Panel */}
+                <div className="rounded-2xl bg-neutral-950 border border-white/[0.06] overflow-hidden">
+                    <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4 text-emerald-500" />
+                            <h2 className="text-sm font-bold text-neutral-300 uppercase tracking-widest">Training Corpus</h2>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                onClick={() => handleExportTraining(false)}
+                                disabled={exportingTraining || trainingLoading || !trainingStats || trainingStats.total === 0}
+                                className="h-8 text-xs border border-neutral-700 bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white disabled:opacity-40"
+                            >
+                                <Download className="w-3 h-3 mr-1.5" />
+                                Export CSV
+                            </Button>
+                            <Button
+                                onClick={() => handleExportTraining(true)}
+                                disabled={exportingTraining || trainingLoading || !trainingStats || trainingStats.total === 0}
+                                className="h-8 text-xs border border-neutral-700 bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white disabled:opacity-40"
+                            >
+                                <Download className="w-3 h-3 mr-1.5" />
+                                With Code
+                            </Button>
+                        </div>
+                    </div>
+
+                    {trainingLoading ? (
+                        <div className="p-12 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full border-2 border-neutral-800 border-t-emerald-500 animate-spin" />
+                        </div>
+                    ) : !trainingStats || trainingStats.total === 0 ? (
+                        <div className="p-12 text-center text-neutral-600 text-sm">
+                            No training samples collected yet. Run scans to populate the corpus.
+                        </div>
+                    ) : (
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            {/* Label balance */}
+                            <div>
+                                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Label Balance</p>
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span className="text-red-400 font-medium">Malicious</span>
+                                            <span className="text-neutral-400 font-mono">{trainingStats.malicious.toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
+                                            <div
+                                                className="h-full bg-red-500 rounded-full"
+                                                style={{ width: `${trainingStats.total > 0 ? (trainingStats.malicious / trainingStats.total) * 100 : 0}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span className="text-emerald-400 font-medium">Clean</span>
+                                            <span className="text-neutral-400 font-mono">{trainingStats.clean.toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
+                                            <div
+                                                className="h-full bg-emerald-500 rounded-full"
+                                                style={{ width: `${trainingStats.total > 0 ? (trainingStats.clean / trainingStats.total) * 100 : 0}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="pt-2 border-t border-white/[0.04]">
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-neutral-500">Total samples</span>
+                                            <span className="text-white font-bold font-mono">{trainingStats.total.toLocaleString()}</span>
+                                        </div>
+                                        {trainingStats.last_collected && (
+                                            <div className="flex justify-between text-xs mt-1">
+                                                <span className="text-neutral-500">Last collected</span>
+                                                <span className="text-neutral-400 font-mono">
+                                                    {new Date(trainingStats.last_collected).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* By language */}
+                            <div>
+                                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">By Language</p>
+                                <div className="space-y-2">
+                                    {trainingStats.by_language.slice(0, 6).map(({ language, count }) => (
+                                        <div key={language}>
+                                            <div className="flex justify-between text-xs mb-1">
+                                                <span className="text-neutral-300 font-mono">{language}</span>
+                                                <span className="text-neutral-500">{count.toLocaleString()}</span>
+                                            </div>
+                                            <div className="h-1.5 rounded-full bg-neutral-800 overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full"
+                                                    style={{
+                                                        width: `${trainingStats.total > 0 ? (count / trainingStats.total) * 100 : 0}%`,
+                                                        background: '#5599FF',
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* By risk level */}
+                            <div>
+                                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">By Risk Level</p>
+                                <div className="space-y-2">
+                                    {trainingStats.by_risk.map(({ risk_level, count }) => {
+                                        const color = risk_level === 'CRITICAL' || risk_level === 'HIGH'
+                                            ? '#ef4444'
+                                            : risk_level === 'MEDIUM' ? '#f59e0b'
+                                            : risk_level === 'LOW' ? '#ADFF2F'
+                                            : '#404040';
+                                        return (
+                                            <div key={risk_level}>
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span className="font-mono" style={{ color }}>{risk_level || 'UNKNOWN'}</span>
+                                                    <span className="text-neutral-500">{count.toLocaleString()}</span>
+                                                </div>
+                                                <div className="h-1.5 rounded-full bg-neutral-800 overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full"
+                                                        style={{
+                                                            width: `${trainingStats.total > 0 ? (count / trainingStats.total) * 100 : 0}%`,
+                                                            background: color,
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
