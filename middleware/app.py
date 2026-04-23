@@ -21,6 +21,7 @@ import hmac
 import uuid
 import logging
 import json as json_stdlib
+import requests
 from functools import wraps, lru_cache
 
 BUZZ_WORDS = {}       # Placeholder - will be loaded from vulnerability_db
@@ -375,7 +376,12 @@ logging.getLogger('werkzeug').setLevel(logging.WARNING)
 @app.before_request
 def attach_request_id():
     """Generate a unique request ID and attach it to every request."""
-    request.request_id = request.headers.get('X-Request-ID', uuid.uuid4().hex[:12])
+    raw_rid = request.headers.get('X-Request-ID', '')
+    import re as _re
+    if raw_rid and _re.match(r'^[a-zA-Z0-9_\-]{1,64}$', raw_rid):
+        request.request_id = raw_rid
+    else:
+        request.request_id = uuid.uuid4().hex[:12]
     request.start_time = time.time()
 
 
@@ -628,7 +634,9 @@ import secrets
 
 JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
-    print("⚠️ WARNING: JWT_SECRET environment variable not set. Generating a random temporary secret. Sessions will not persist across restarts.")
+    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER'):
+        raise RuntimeError("JWT_SECRET environment variable must be set in production. Refusing to start.")
+    print("⚠️ WARNING: JWT_SECRET not set — using ephemeral random secret. Sessions won't survive restarts. Set JWT_SECRET in production.")
     JWT_SECRET = secrets.token_hex(32)
 
 def init_users_db():
@@ -674,20 +682,25 @@ def generate_token(user_id, email, is_admin=False):
         'user_id': user_id,
         'email': email,
         'is_admin': is_admin,
-        'exp': int(time.time()) + 60 * 60 * 24 * 7  # 7 days
+        'exp': int(time.time()) + 60 * 60 * 24  # 24 hours
     }
     return pyjwt.encode(payload, JWT_SECRET, algorithm='HS256')
 
 def decode_token(token):
-    """Decode and validate a JWT token. Supports custom JWTs and Supabase JWTs."""
-    # Try custom JWT first
+    """Decode and validate a JWT token."""
     try:
-        return pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        # Check revocation set
+        jti = payload.get('jti') or token[-16:]
+        exp = payload.get('exp', 0)
+        with _TOKEN_REVOCATION_LOCK:
+            if (jti, exp) in _TOKEN_REVOCATION_SET:
+                return None
+        return payload
     except pyjwt.ExpiredSignatureError:
         return None
     except pyjwt.InvalidTokenError:
-        pass
-    return None
+        return None
 
 # ══════════════════════════════════════
 # AUTH API ENDPOINTS
@@ -823,6 +836,30 @@ def auth_login():
             'is_admin': bool(user['is_admin'])
         }
     })
+
+
+_TOKEN_REVOCATION_SET: set = set()
+_TOKEN_REVOCATION_LOCK = threading.Lock()
+
+@app.route('/api/auth/logout', methods=['POST'])
+@token_required(optional=False)
+def auth_logout(current_user):
+    """Revoke the current JWT by adding its jti/exp to the revocation set."""
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header.split(' ', 1)[1]
+        try:
+            payload = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            exp = payload.get('exp', 0)
+            jti = payload.get('jti') or token[-16:]
+            with _TOKEN_REVOCATION_LOCK:
+                _TOKEN_REVOCATION_SET.add((jti, exp))
+                # Prune expired entries
+                now = int(time.time())
+                _TOKEN_REVOCATION_SET -= {e for e in _TOKEN_REVOCATION_SET if e[1] < now}
+        except Exception:
+            pass
+    return jsonify({'status': 'logged out'}), 200
 
 
 @app.route('/api/auth/me', methods=['GET'])
@@ -1946,7 +1983,7 @@ def scan_history_export(current_user):
         return FlaskResponse(
             si.getvalue(),
             mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename={filename}'}
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1997,7 +2034,7 @@ def training_data_export(current_user):
         return FlaskResponse(
             si.getvalue(),
             mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename={filename}'}
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2308,7 +2345,8 @@ def security_score(current_user):
 
 
 @app.route('/model-stats', methods=['GET'])
-def model_stats():
+@token_required(optional=True)
+def model_stats(current_user=None):
     """Return real model stats from the actual model file on disk."""
     stats = {
         'status': 'no_model',
@@ -2410,7 +2448,7 @@ def deep_scan(current_user):
     import requests as req
     import json as json_mod
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     code = data.get('code', '')
     scan_result = data.get('scan_result', {})
 
@@ -2659,17 +2697,25 @@ def _automation_error(endpoint, error_code, message, status_code=500):
 def _is_safe_external_url(url: str) -> bool:
     """Return False if url resolves to an RFC1918/loopback/link-local address."""
     import ipaddress
+    import socket
     from urllib.parse import urlparse
     try:
         host = urlparse(url).hostname
         if not host:
             return False
-        addr = ipaddress.ip_address(host)
-        return not (addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved)
-    except ValueError:
-        # hostname is a domain name, not an IP — allow (DNS rebinding is out-of-scope here)
-        blocked = {'localhost', '0.0.0.0', '::1'}
-        return host.lower() not in blocked
+        # Always resolve to IP — mitigates DNS rebinding
+        try:
+            resolved = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+            for r in resolved:
+                addr = ipaddress.ip_address(r[4][0])
+                if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+                    return False
+            return True
+        except socket.gaierror:
+            # Can't resolve — reject
+            return False
+    except Exception:
+        return False
 
 
 def _require_automation_secret():
@@ -2813,55 +2859,48 @@ def github_push_webhook():
             return jsonify(file_info), 200
 
         import urllib.request
+        from urllib.parse import urlparse as _urlparse
         scan_results = []
         threats_found = 0
+        batch_files = []
 
         for entry in file_info["files"][:20]:
+            raw_url = entry.get("raw_url", "")
+            _parsed = _urlparse(raw_url)
+            if _parsed.scheme != "https" or _parsed.netloc != "raw.githubusercontent.com":
+                scan_results.append({"file": entry.get("path", "?"), "status": "skipped",
+                                     "reason": "Disallowed raw_url host"})
+                continue
             try:
-                raw_url = entry.get("raw_url", "")
-                from urllib.parse import urlparse as _urlparse
-                _parsed = _urlparse(raw_url)
-                if _parsed.scheme != "https" or _parsed.netloc != "raw.githubusercontent.com":
-                    scan_results.append({"file": entry.get("path", "?"), "status": "skipped",
-                                         "reason": "Disallowed raw_url host"})
-                    continue
-                req = urllib.request.Request(raw_url, headers={"User-Agent": "Soteria/1.0"})
-                with urllib.request.urlopen(req, timeout=10) as resp:
+                req_obj = urllib.request.Request(raw_url, headers={"User-Agent": "Soteria/1.0"})
+                with urllib.request.urlopen(req_obj, timeout=10) as resp:
                     code = resp.read().decode("utf-8", errors="replace")
-
                 if len(code) > 50000:
                     scan_results.append({"file": entry["path"], "status": "skipped",
                                          "reason": "File too large (>50KB)"})
                     continue
-
-                with app.test_request_context(
-                    '/analyze', method='POST', json={"code": code},
-                    headers={"Content-Type": "application/json"}
-                ):
-                    from flask import g
-                    analysis = analyze()
-                    if hasattr(analysis, 'get_json'):
-                        data = analysis.get_json()
-                    else:
-                        data = analysis[0].get_json() if isinstance(analysis, tuple) else {}
-
-                    is_threat = data.get("malicious", False)
-                    if is_threat:
-                        threats_found += 1
-
-                    scan_results.append({
-                        "file": entry["path"],
-                        "status": "scanned",
-                        "risk_level": data.get("risk_level", "UNKNOWN"),
-                        "confidence": data.get("confidence", 0),
-                        "malicious": is_threat,
-                        "reason": data.get("reason", ""),
-                        "language": data.get("language", "unknown"),
-                        "vulnerabilities": data.get("vulnerabilities", [])
-                    })
-            except Exception as scan_err:
+                batch_files.append({"filename": entry["path"], "code": code})
+            except Exception as fetch_err:
                 scan_results.append({"file": entry["path"], "status": "error",
-                                     "reason": str(scan_err)[:200]})
+                                     "reason": str(fetch_err)[:200]})
+
+        if batch_files:
+            batch_result = process_files_batch(batch_files)
+            batch_data = batch_result[0] if isinstance(batch_result, tuple) else batch_result
+            for r in batch_data.get("results", []):
+                is_threat = r.get("status") == "malicious"
+                if is_threat:
+                    threats_found += 1
+                scan_results.append({
+                    "file": r.get("filename", ""),
+                    "status": "scanned",
+                    "risk_level": r.get("risk_level", "UNKNOWN"),
+                    "confidence": r.get("confidence", 0),
+                    "malicious": is_threat,
+                    "reason": r.get("message", ""),
+                    "language": r.get("language", "unknown"),
+                    "vulnerabilities": r.get("vulnerabilities", []),
+                })
 
         total_scanned = sum(1 for r in scan_results if r.get("status") == "scanned")
         high_risk = sum(1 for r in scan_results
@@ -2893,11 +2932,12 @@ def github_push_webhook():
 # ── SELF-IMPROVING ML ENDPOINTS ──────────────────────────────────────────────
 
 @app.route('/feedback', methods=['POST'])
-@rate_limit(max_requests=30, window_seconds=60)
-def submit_feedback():
+@token_required(optional=False)
+@rate_limit(max_requests=10, window_seconds=60)
+def submit_feedback(current_user):
     """
     Users submit feedback on scan results (false positive, false negative, correct).
-    No auth required — feedback is valuable from anyone.
+    Requires auth to prevent training data poisoning.
     """
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -3202,8 +3242,6 @@ def process_files_batch(files, user_id=None):
         }
     }
 
-import requests
-
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
 
@@ -3233,6 +3271,7 @@ def github_pkce_state():
 
 
 @app.route('/github/token', methods=['POST'])
+@rate_limit(max_requests=10, window_seconds=300)
 def github_token():
     data = request.get_json(silent=True) or {}
     code          = data.get('code')
@@ -3293,9 +3332,11 @@ def github_repos():
 
 
 @app.route('/github-scan', methods=['POST'])
-def github_scan():
+@token_required(optional=False)
+@rate_limit(max_requests=5, window_seconds=300)
+def github_scan(current_user):
     """Clone a GitHub repository and scan it."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     repo_url = data.get('repo_url')
     access_token = data.get('access_token')
     
