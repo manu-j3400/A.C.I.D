@@ -32,7 +32,7 @@ export default function AppSidebar() {
   const [logoutHover, setLogoutHover] = React.useState(false);
 
   return (
-    <aside className="fixed top-0 left-0 bottom-0 w-48 flex flex-col z-50 select-none" style={S.sidebar}>
+    <aside className="fixed top-0 left-0 bottom-0 w-48 flex flex-col z-50 select-none hidden md:flex" style={S.sidebar}>
 
       {/* ── Logo ── */}
       <div className="h-14 flex items-center gap-3 px-5 flex-shrink-0" style={S.topBorder}>

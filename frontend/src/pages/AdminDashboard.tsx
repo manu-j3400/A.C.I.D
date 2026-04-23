@@ -44,6 +44,7 @@ export default function AdminDashboard() {
     const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
     const [trainingLoading, setTrainingLoading] = useState(true);
     const [exportingTraining, setExportingTraining] = useState(false);
+    const [exportToast, setExportToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
     useEffect(() => {
         if (!adminToken) return;
@@ -91,10 +92,13 @@ export default function AdminDashboard() {
             a.download = `soteria_training_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(a.href);
+            setExportToast({ msg: 'Export downloaded', ok: true });
         } catch (err) {
             console.error(err);
+            setExportToast({ msg: 'Export failed', ok: false });
         } finally {
             setExportingTraining(false);
+            setTimeout(() => setExportToast(null), 3000);
         }
     };
 
@@ -145,6 +149,19 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-black text-white">
+            {/* Export toast */}
+            {exportToast && (
+                <div style={{
+                    position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+                    padding: '10px 18px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
+                    letterSpacing: '0.08em', borderRadius: 0,
+                    background: exportToast.ok ? 'rgba(173,255,47,0.12)' : 'rgba(231,76,60,0.12)',
+                    border: `1px solid ${exportToast.ok ? '#ADFF2F' : '#E74C3C'}`,
+                    color: exportToast.ok ? '#ADFF2F' : '#E74C3C',
+                }}>
+                    {exportToast.ok ? '✓' : '✕'} {exportToast.msg}
+                </div>
+            )}
             {/* Header */}
             <header className="border-b border-white/[0.06] bg-neutral-950/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
