@@ -40,17 +40,18 @@ interface SecurityScoreData {
 }
 
 /* ─── Design tokens ──────────────────────────────────────────────────── */
+import { COLORS } from '../theme/colors';
 const C = {
-  acid:  '#ADFF2F',
-  red:   '#FF3131',
-  amber: '#FF8C00',
+  acid:  COLORS.acid,
+  red:   COLORS.red,
+  amber: COLORS.orange,
   gold:  '#FFD700',
-  dim:   '#1A1A1A',
-  mid:   '#2A2A2A',
-  muted: '#444',
-  faint: '#222',
-  text:  '#E5E5E5',
-  sub:   '#666',
+  dim:   COLORS.surface2,
+  mid:   COLORS.border2,
+  muted: COLORS.muted,
+  faint: COLORS.surface,
+  text:  COLORS.text,
+  sub:   COLORS.sub,
 } as const;
 
 const MONO: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };

@@ -2,16 +2,17 @@ import { motion } from 'framer-motion';
 import { Github, Linkedin, Globe, Cpu, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { COLORS } from '../theme/colors';
 const C = {
-    bg: '#000000',
-    accent: '#ADFF2F',
-    danger: '#FF3131',
-    amber: '#FF8C00',
-    text: '#E5E5E5',
-    subdued: '#707070',
-    muted: '#404040',
-    border: '#1E1E1E',
-    font: "'JetBrains Mono', monospace",
+    bg:      COLORS.bg,
+    accent:  COLORS.acid,
+    danger:  COLORS.red,
+    amber:   COLORS.orange,
+    text:    COLORS.text,
+    subdued: COLORS.sub,
+    muted:   COLORS.muted,
+    border:  COLORS.border,
+    font:    "'JetBrains Mono', monospace",
 };
 
 const cellStyle: React.CSSProperties = {

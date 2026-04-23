@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
+import { COLORS } from '../theme/colors';
 const C = {
-    acid: '#ADFF2F', red: '#FF3131',
-    border: '#1E1E1E', dim: '#0D0D0D', muted: '#404040',
-    text: '#E5E5E5', sub: '#707070',
+    acid: COLORS.acid, red: COLORS.red,
+    border: COLORS.border, dim: COLORS.surface, muted: COLORS.muted,
+    text: COLORS.text, sub: COLORS.sub,
 };
 
 export default function ForgotPassword() {

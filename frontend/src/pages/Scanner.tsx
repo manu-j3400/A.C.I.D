@@ -113,15 +113,16 @@ function extractFixedCode(llmOutput: string): string | null {
 }
 
 // ── Design tokens ────────────────────────────────────────────────────────────
+import { COLORS } from '../theme/colors';
 const C = {
-  acid:    '#ADFF2F',
-  red:     '#FF3131',
-  amber:   '#FF8C00',
-  dim:     '#1A1A1A',
-  border:  '#1E1E1E',
-  muted:   '#404040',
-  text:    '#E5E5E5',
-  subdued: '#707070',
+  acid:    COLORS.acid,
+  red:     COLORS.red,
+  amber:   COLORS.orange,
+  dim:     COLORS.surface2,
+  border:  COLORS.border,
+  muted:   COLORS.muted,
+  text:    COLORS.text,
+  subdued: COLORS.sub,
 };
 
 const sevColor = (s: string) =>

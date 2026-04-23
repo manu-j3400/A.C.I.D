@@ -6,15 +6,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PublicNavbar from '@/components/PublicNavbar';
+import { COLORS } from '../theme/colors';
 
 const C = {
-    acid:   '#ADFF2F',
-    bg:     '#000000',
-    dim:    '#0D0D0D',
-    border: '#1E1E1E',
-    muted:  '#404040',
-    sub:    '#707070',
-    text:   '#E5E5E5',
+    acid:   COLORS.acid,
+    bg:     COLORS.bg,
+    dim:    COLORS.surface,
+    border: COLORS.border,
+    muted:  COLORS.muted,
+    sub:    COLORS.sub,
+    text:   COLORS.text,
 };
 
 const MONO: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
@@ -49,7 +50,7 @@ function Ticker() {
             }}>
                 {doubled.map((item, i) => (
                     <span key={i} style={{
-                        ...MONO, fontSize: 9, color: C.sub, letterSpacing: '0.15em',
+                        ...MONO, fontSize: 11, color: C.sub, letterSpacing: '0.08em',
                         whiteSpace: 'nowrap',
                     }}>
                         <span style={{ color: C.acid, marginRight: 10 }}>▸</span>
@@ -115,13 +116,13 @@ function FeatureCard({ tag, title, meta, desc, wide }: FeatureCardProps) {
             }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <span style={{
-                    ...MONO, fontSize: 8, letterSpacing: '0.15em', color: hovered ? C.acid : C.sub,
+                    ...MONO, fontSize: 11, letterSpacing: '0.08em', color: hovered ? C.acid : C.sub,
                     border: `1px solid ${hovered ? C.acid : C.border}`,
                     padding: '3px 7px', transition: 'color 0.15s, border-color 0.15s',
                 }}>
                     {tag}
                 </span>
-                <span style={{ ...MONO, fontSize: 8, color: C.muted, letterSpacing: '0.1em' }}>
+                <span style={{ ...MONO, fontSize: 11, color: C.muted, letterSpacing: '0.08em' }}>
                     {hovered ? '●' : '○'}
                 </span>
             </div>
@@ -129,11 +130,11 @@ function FeatureCard({ tag, title, meta, desc, wide }: FeatureCardProps) {
                 {title}
             </div>
             {meta && (
-                <div style={{ ...MONO, fontSize: 9, color: C.acid, marginBottom: 10, letterSpacing: '0.06em' }}>
+                <div style={{ ...MONO, fontSize: 11, color: C.acid, marginBottom: 10, letterSpacing: '0.06em' }}>
                     {meta}
                 </div>
             )}
-            <div style={{ ...MONO, fontSize: 10, color: C.sub, lineHeight: 1.7, letterSpacing: '0.02em' }}>
+            <div style={{ ...MONO, fontSize: 11, color: C.sub, lineHeight: 1.7, letterSpacing: '0.02em' }}>
                 {desc}
             </div>
         </div>
@@ -152,7 +153,7 @@ function Step({ num, title, desc }: { num: string; title: string; desc: string }
                 {num}
             </div>
             <div style={{ ...MONO, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: '0.04em' }}>{title}</div>
-            <div style={{ ...MONO, fontSize: 10, color: C.sub, lineHeight: 1.7, maxWidth: 200 }}>{desc}</div>
+            <div style={{ ...MONO, fontSize: 11, color: C.sub, lineHeight: 1.7, maxWidth: 200 }}>{desc}</div>
         </div>
     );
 }
@@ -166,7 +167,7 @@ function Stat({ value, label }: { value: string; label: string }) {
             <div style={{ ...MONO, fontSize: 32, fontWeight: 700, color: C.acid, letterSpacing: '-0.02em', marginBottom: 6 }}>
                 {value}
             </div>
-            <div style={{ ...MONO, fontSize: 8, color: C.sub, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+            <div style={{ ...MONO, fontSize: 11, color: C.sub, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {label}
             </div>
         </div>
@@ -191,7 +192,7 @@ export default function LandingPage() {
                         width: 6, height: 6, borderRadius: '50%', background: C.acid,
                         display: 'inline-block', boxShadow: `0 0 6px ${C.acid}`,
                     }} />
-                    <span style={{ fontSize: 9, color: C.sub, letterSpacing: '0.15em' }}>
+                    <span style={{ fontSize: 11, color: C.sub, letterSpacing: '0.08em' }}>
                         SOTERIA ENGINE v2.5 · LIVE
                     </span>
                 </div>
@@ -272,7 +273,7 @@ export default function LandingPage() {
                             padding: '8px 14px', borderBottom: `1px solid ${C.border}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         }}>
-                            <span style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em' }}>SCAN OUTPUT</span>
+                            <span style={{ fontSize: 11, color: C.sub, letterSpacing: '0.08em' }}>SCAN OUTPUT</span>
                             <div style={{ display: 'flex', gap: 5 }}>
                                 {['#FF5F56', '#FFBD2E', C.acid].map((c, i) => (
                                     <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
@@ -281,7 +282,7 @@ export default function LandingPage() {
                         </div>
                         {/* Terminal body */}
                         <pre style={{
-                            margin: 0, padding: '20px', fontSize: 10, lineHeight: 1.8,
+                            margin: 0, padding: '20px', fontSize: 11, lineHeight: 1.8,
                             color: C.sub, overflowX: 'auto', flexGrow: 1,
                         }}>
 {`$ soteria scan --file main.py
@@ -329,7 +330,7 @@ export default function LandingPage() {
             {/* ─── FEATURES ─── */}
             <section style={{ padding: '40px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
                 <div style={{ marginBottom: 40 }}>
-                    <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: C.acid, letterSpacing: '0.08em', marginBottom: 10 }}>
                         // CAPABILITY_MATRIX
                     </div>
                     <h2 style={{
@@ -410,7 +411,7 @@ export default function LandingPage() {
             }}>
                 <div style={{ maxWidth: 900, margin: '0 auto' }}>
                     <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                        <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, color: C.acid, letterSpacing: '0.08em', marginBottom: 10 }}>
                             // EXECUTION_FLOW
                         </div>
                         <h2 style={{
@@ -447,7 +448,7 @@ export default function LandingPage() {
                     border: `1px solid ${C.border}`, padding: '56px 48px',
                     textAlign: 'center',
                 }}>
-                    <div style={{ fontSize: 9, color: C.acid, letterSpacing: '0.2em', marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: C.acid, letterSpacing: '0.08em', marginBottom: 16 }}>
                         // READY_TO_DEPLOY
                     </div>
                     <h2 style={{
@@ -524,8 +525,8 @@ export default function LandingPage() {
                             { to: '/changelog', label: 'CHANGELOG' },
                         ].map(link => (
                             <Link key={link.to} to={link.to} style={{
-                                ...MONO, fontSize: 9, color: C.sub, textDecoration: 'none',
-                                letterSpacing: '0.12em', transition: 'color 0.15s',
+                                ...MONO, fontSize: 11, color: C.sub, textDecoration: 'none',
+                                letterSpacing: '0.08em', transition: 'color 0.15s',
                             }}
                                 onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
                                 onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}

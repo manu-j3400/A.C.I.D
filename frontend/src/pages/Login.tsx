@@ -11,14 +11,15 @@ const GoogleIcon = () => (
     </svg>
 );
 
+import { COLORS } from '../theme/colors';
 const C = {
-    acid:   '#ADFF2F',
-    red:    '#FF3131',
-    border: '#1E1E1E',
-    dim:    '#0D0D0D',
-    muted:  '#404040',
-    text:   '#E5E5E5',
-    sub:    '#707070',
+    acid:   COLORS.acid,
+    red:    COLORS.red,
+    border: COLORS.border,
+    dim:    COLORS.surface,
+    muted:  COLORS.muted,
+    text:   COLORS.text,
+    sub:    COLORS.sub,
 };
 
 export default function Login() {
@@ -33,7 +34,12 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setError(''); setLoading(true);
         try { await login(email, password); navigate('/dashboard'); }
-        catch (err: any) { setError(err.message || 'LOGIN FAILED'); }
+        catch (err: any) {
+            const msg: string = err.message || '';
+            if (msg.includes('Invalid') || msg.includes('invalid') || msg.includes('credentials')) setError('Wrong email or password.');
+            else if (msg.includes('network') || msg.includes('fetch')) setError('Cannot reach server. Check your connection.');
+            else setError(msg || 'Sign in failed. Try again.');
+        }
         finally { setLoading(false); }
     };
 
@@ -51,10 +57,10 @@ export default function Login() {
             fontFamily: "'JetBrains Mono', monospace", color: C.text,
         }}>
             {/* Corner marks */}
-            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
                 SOTERIA / AUTHENTICATE
             </div>
-            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
                 [ SECURE ]
             </div>
 
@@ -67,10 +73,10 @@ export default function Login() {
                     padding: '14px 20px', borderBottom: `1px solid ${C.border}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 }}>
-                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em' }}>OPERATOR LOGIN</div>
+                    <div style={{ fontSize: 11, color: C.sub, letterSpacing: '0.12em' }}>Sign In</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.acid, display: 'inline-block' }} />
-                        <span style={{ fontSize: 8, color: C.acid }}>LIVE</span>
+                        <span style={{ fontSize: 11, color: C.acid }}>LIVE</span>
                     </div>
                 </div>
 
@@ -80,14 +86,14 @@ export default function Login() {
                         <img src="/soteria-logo.png" alt="Soteria" style={{ width: 48, height: 48, objectFit: 'cover', margin: '0 auto 12px', display: 'block' }} />
                     </Link>
                     <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
-                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.1em' }}>SECURITY INTELLIGENCE PLATFORM</div>
+                    <div style={{ fontSize: 11, color: C.sub, letterSpacing: '0.1em' }}>SECURITY INTELLIGENCE PLATFORM</div>
                 </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={{ padding: 20 }}>
                     {/* Email */}
                     <div style={{ marginBottom: 12 }}>
-                        <label style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>EMAIL ADDRESS</label>
+                        <label style={{ fontSize: 11, color: C.sub, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Email Address</label>
                         <input
                             type="email" value={email} onChange={e => setEmail(e.target.value)}
                             placeholder="operator@domain.com" required
@@ -105,8 +111,8 @@ export default function Login() {
                     {/* Password */}
                     <div style={{ marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <label style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em' }}>PASSWORD</label>
-                            <Link to="/forgot-password" style={{ fontSize: 8, color: C.sub, textDecoration: 'none', letterSpacing: '0.08em' }}
+                            <label style={{ fontSize: 11, color: C.sub, letterSpacing: '0.06em' }}>Password</label>
+                            <Link to="/forgot-password" style={{ fontSize: 11, color: C.sub, textDecoration: 'none', letterSpacing: '0.08em' }}
                                 onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
                                 onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}
                             >
@@ -142,7 +148,7 @@ export default function Login() {
 
                     {/* Error */}
                     {error && (
-                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 9, color: C.red, letterSpacing: '0.06em' }}>
+                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 11, color: C.red, letterSpacing: '0.06em' }}>
                             ! {error}
                         </div>
                     )}
@@ -166,7 +172,7 @@ export default function Login() {
                     {/* Divider */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0', color: C.muted }}>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
-                        <span style={{ fontSize: 8, letterSpacing: '0.1em' }}>OR</span>
+                        <span style={{ fontSize: 11, letterSpacing: '0.1em' }}>OR</span>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
                     </div>
 
@@ -191,7 +197,7 @@ export default function Login() {
 
                 {/* Footer */}
                 <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 9, color: C.sub }}>
+                    <span style={{ fontSize: 11, color: C.sub }}>
                         NO ACCOUNT?{' '}
                         <Link to="/signup" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}
                             onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.7')}

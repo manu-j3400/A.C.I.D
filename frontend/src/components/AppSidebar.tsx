@@ -1,17 +1,18 @@
 /**
  * AppSidebar — the persistent left rail for all authenticated pages.
- * Design: Weaponized Minimalism · JetBrains Mono · Acid green accent #ADFF2F
+ * Design: Weaponized Minimalism · JetBrains Mono · Acid green accent
  */
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Brain, Home, Layers, LogOut, Plus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { COLORS } from '../theme/colors';
 
 const NAV = [
-  { to: '/dashboard', label: 'OVERVIEW',  Icon: Home },
-  { to: '/scanner',   label: 'SCANNER',   Icon: Activity },
-  { to: '/batch',     label: 'BATCH',     Icon: Layers },
-  { to: '/engine',    label: 'MODEL LAB', Icon: Brain },
+  { to: '/dashboard', label: 'Overview',  Icon: Home },
+  { to: '/scanner',   label: 'Scanner',   Icon: Activity },
+  { to: '/batch',     label: 'Batch',     Icon: Layers },
+  { to: '/engine',    label: 'Model Lab', Icon: Brain },
 ];
 
 const S = {
@@ -19,7 +20,7 @@ const S = {
   topBorder: { borderBottom: '1px solid #141414' },
   midBorder: { borderBottom: '1px solid #0D0D0D' },
   botBorder: { borderTop: '1px solid #141414' },
-  pill:      { background: '#ADFF2F', color: '#000', borderRadius: 0 },
+  pill:      { background: COLORS.acid, color: '#000', borderRadius: 0 },
   pillHover: { background: '#C4FF52', color: '#000', borderRadius: 0 },
 } as const;
 
@@ -35,15 +36,24 @@ export default function AppSidebar() {
 
       {/* ── Logo ── */}
       <div className="h-14 flex items-center gap-3 px-5 flex-shrink-0" style={S.topBorder}>
-        <img src="/soteria-logo.png" alt="" className="w-5 h-5 object-cover" style={{ borderRadius: 0 }} />
-        <span className="text-[10px] font-bold tracking-[0.28em] text-white">SOTERIA</span>
+        <img src="/soteria-logo.png" alt="Soteria" className="w-5 h-5 object-cover" style={{ borderRadius: 0 }} />
+        <span className="text-[11px] font-bold tracking-[0.08em] text-white">SOTERIA</span>
       </div>
 
       {/* ── Status pill ── */}
       <div className="px-5 py-2 flex-shrink-0" style={S.midBorder}>
-        <span className="flex items-center gap-2 text-[9px] tracking-[0.18em] font-bold" style={{ color: '#ADFF2F' }}>
-          <span className="inline-block w-1.5 h-1.5 animate-pulse" style={{ background: '#ADFF2F', borderRadius: 0 }} />
-          SYSTEM LIVE
+        <span
+          className="flex items-center gap-2 text-[11px] font-bold"
+          style={{
+            color: COLORS.acid,
+            padding: '3px 8px',
+            background: 'rgba(173,255,47,0.08)',
+            border: '1px solid rgba(173,255,47,0.25)',
+            display: 'inline-flex',
+          }}
+        >
+          <span className="inline-block w-1.5 h-1.5 animate-pulse" style={{ background: COLORS.acid, borderRadius: 0 }} />
+          System Live
         </span>
       </div>
 
@@ -53,10 +63,10 @@ export default function AppSidebar() {
           const active = pathname === to || (to !== '/dashboard' && pathname.startsWith(to));
           return (
             <Link key={to} to={to}
-              className="relative flex items-center gap-3 px-5 py-[11px] text-[10px] font-bold tracking-[0.14em] transition-all duration-100 no-underline"
-              style={{ color: active ? '#E5E5E5' : '#303030', background: active ? '#080808' : 'transparent' }}>
+              className="relative flex items-center gap-3 px-5 py-[11px] text-[11px] font-bold tracking-[0.06em] transition-all duration-100 no-underline"
+              style={{ color: active ? COLORS.text : '#505050', background: active ? '#080808' : 'transparent' }}>
               {active && (
-                <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: '#ADFF2F' }} />
+                <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: COLORS.acid }} />
               )}
               <Icon className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
               {label}
@@ -71,10 +81,11 @@ export default function AppSidebar() {
           onClick={() => navigate('/scanner')}
           onMouseEnter={() => setBtnHover(true)}
           onMouseLeave={() => setBtnHover(false)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold tracking-[0.14em] transition-all duration-100"
+          aria-label="Start new scan"
+          className="w-full flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold tracking-[0.06em] transition-all duration-100"
           style={btnHover ? S.pillHover : S.pill}>
           <Plus className="w-3 h-3" />
-          NEW SCAN
+          New Scan
         </button>
       </div>
 
@@ -82,8 +93,8 @@ export default function AppSidebar() {
       <div className="px-5 py-4 flex-shrink-0" style={S.botBorder}>
         {user && (
           <>
-            <div className="text-[9px] tracking-[0.22em] mb-0.5" style={{ color: '#222' }}>OPERATOR</div>
-            <div className="text-[9px] font-bold truncate mb-3" style={{ color: '#3A3A3A' }}>
+            <div className="text-[11px] tracking-[0.06em] mb-0.5" style={{ color: COLORS.sub }}>Operator</div>
+            <div className="text-[11px] font-bold truncate mb-3" style={{ color: COLORS.text }}>
               {user.email ?? user.name}
             </div>
           </>
@@ -92,10 +103,11 @@ export default function AppSidebar() {
           onClick={() => { logout(); navigate('/'); }}
           onMouseEnter={() => setLogoutHover(true)}
           onMouseLeave={() => setLogoutHover(false)}
-          className="flex items-center gap-2 text-[9px] font-bold tracking-[0.14em] transition-all duration-100"
-          style={{ color: logoutHover ? '#FF3131' : '#282828' }}>
+          aria-label="Sign out"
+          className="flex items-center gap-2 text-[11px] font-bold tracking-[0.06em] transition-all duration-100"
+          style={{ color: logoutHover ? COLORS.red : COLORS.muted }}>
           <LogOut className="w-3 h-3" />
-          TERMINATE SESSION
+          Sign Out
         </button>
       </div>
     </aside>

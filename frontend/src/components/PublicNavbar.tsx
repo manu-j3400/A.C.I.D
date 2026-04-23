@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { COLORS } from '../theme/colors';
 
-const ACCENT = '#ADFF2F';
+const ACCENT = COLORS.acid;
 const FONT = "'JetBrains Mono', 'Courier New', monospace";
 
 const NAV_LINKS = [
@@ -37,34 +38,34 @@ export default function PublicNavbar() {
                 padding: '0 24px',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <span style={{ fontSize: '9px', color: ACCENT, letterSpacing: '0.14em' }}>
+                    <span style={{ fontSize: '11px', color: ACCENT, letterSpacing: '0.14em' }}>
                         ● SOTERIA
                     </span>
-                    <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                    <span style={{ fontSize: '11px', color: '#333', letterSpacing: '0.1em' }}>
                         SECURITY ANALYSIS PLATFORM v2.5
                     </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     {isAuthenticated && user ? (
                         <>
-                            <span style={{ fontSize: '9px', color: ACCENT, letterSpacing: '0.12em' }}>
+                            <span style={{ fontSize: '11px', color: ACCENT, letterSpacing: '0.12em' }}>
                                 [ CONNECTED ] {user.name}
                             </span>
-                            <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                            <span style={{ fontSize: '11px', color: '#333', letterSpacing: '0.1em' }}>
                                 SESSION::ACTIVE
                             </span>
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '9px', color: '#555', letterSpacing: '0.12em' }}>
+                            <span style={{ fontSize: '11px', color: '#555', letterSpacing: '0.12em' }}>
                                 [ LIVE ]
                             </span>
-                            <span style={{ fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+                            <span style={{ fontSize: '11px', color: '#333', letterSpacing: '0.1em' }}>
                                 AUTH::NONE
                             </span>
                         </>
                     )}
-                    <span style={{ fontSize: '9px', color: '#222', letterSpacing: '0.1em' }}>
+                    <span style={{ fontSize: '11px', color: '#222', letterSpacing: '0.1em' }}>
                         KRN::5.15.0-LTS
                     </span>
                 </div>
@@ -110,7 +111,7 @@ export default function PublicNavbar() {
                         SOTERIA
                     </span>
                     <span style={{
-                        fontSize: '9px',
+                        fontSize: '11px',
                         color: ACCENT,
                         letterSpacing: '0.1em',
                         borderLeft: '1px solid #1E1E1E',
@@ -134,7 +135,7 @@ export default function PublicNavbar() {
                                 key={path}
                                 to={path}
                                 style={{
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     fontFamily: FONT,
                                     fontWeight: 700,
                                     letterSpacing: '0.14em',
@@ -166,7 +167,7 @@ export default function PublicNavbar() {
                     {isAuthenticated && user ? (
                         <>
                             <span style={{
-                                fontSize: '10px',
+                                fontSize: '11px',
                                 fontFamily: FONT,
                                 color: '#444',
                                 border: '1px solid #1E1E1E',
@@ -178,7 +179,7 @@ export default function PublicNavbar() {
                             <Link
                                 to="/dashboard"
                                 style={{
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     fontFamily: FONT,
                                     fontWeight: 700,
                                     letterSpacing: '0.14em',
@@ -204,7 +205,7 @@ export default function PublicNavbar() {
                                 title="Sign out"
                                 style={{
                                     fontFamily: FONT,
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     letterSpacing: '0.12em',
                                     color: '#555',
                                     backgroundColor: 'transparent',
@@ -231,7 +232,7 @@ export default function PublicNavbar() {
                             <Link
                                 to="/login"
                                 style={{
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     fontFamily: FONT,
                                     fontWeight: 700,
                                     letterSpacing: '0.14em',
@@ -258,7 +259,7 @@ export default function PublicNavbar() {
                             <Link
                                 to="/signup"
                                 style={{
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     fontFamily: FONT,
                                     fontWeight: 700,
                                     letterSpacing: '0.14em',

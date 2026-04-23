@@ -15,15 +15,16 @@ interface BatchSummary {
 }
 type ScanState = 'idle' | 'scanning' | 'done';
 
+import { COLORS } from '../theme/colors';
 const C = {
-    acid:   '#ADFF2F',
-    red:    '#FF3131',
-    amber:  '#FF8C00',
-    dim:    '#0D0D0D',
-    border: '#1E1E1E',
-    muted:  '#404040',
-    text:   '#E5E5E5',
-    sub:    '#707070',
+    acid:   COLORS.acid,
+    red:    COLORS.red,
+    amber:  COLORS.orange,
+    dim:    COLORS.surface,
+    border: COLORS.border,
+    muted:  COLORS.muted,
+    text:   COLORS.text,
+    sub:    COLORS.sub,
 };
 
 const riskColor = (r: string) =>
