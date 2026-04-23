@@ -653,13 +653,14 @@ def init_users_db():
     # Seed default admin if none exists
     c.execute('SELECT id FROM users WHERE is_admin = 1')
     if not c.fetchone():
-        pw_hash = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        random_pw = secrets.token_urlsafe(16)
+        pw_hash = bcrypt.hashpw(random_pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         c.execute(
             'INSERT INTO users (name, email, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?, ?)',
-            ('Admin', 'admin@acid.dev', pw_hash, 1, datetime.now().isoformat())
+            ('Admin', 'admin@soteria.dev', pw_hash, 1, datetime.now().isoformat())
         )
         conn.commit()
-        print("✅ Default admin seeded (admin@acid.dev / admin123)")
+        print(f"✅ Default admin seeded (admin@soteria.dev / {random_pw}) — save this password, it will not be shown again")
     
     conn.close()
     print("✅ Users database initialized")
@@ -685,20 +686,6 @@ def decode_token(token):
     except pyjwt.ExpiredSignatureError:
         return None
     except pyjwt.InvalidTokenError:
-        pass
-    # Fallback: Supabase JWT (signed with Supabase secret, not ours).
-    # We trust the token was already validated by Supabase at issuance;
-    # we just extract sub/email to identify the user for data isolation.
-    try:
-        claims = pyjwt.decode(token, options={"verify_signature": False}, algorithms=["HS256", "RS256"])
-        sub = claims.get('sub')
-        if sub:
-            return {
-                'user_id': sub,
-                'email': claims.get('email', ''),
-                'is_admin': False,
-            }
-    except Exception:
         pass
     return None
 
@@ -755,7 +742,7 @@ def auth_signup():
       400: {description: Validation error}
       409: {description: Email already registered}
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -809,7 +796,7 @@ def auth_login():
       200: {description: Login successful, schema: {type: object, properties: {token: {type: string}, user: {type: object}}}}
       401: {description: Invalid credentials}
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
@@ -872,7 +859,7 @@ def auth_me():
 @app.route('/api/auth/admin/login', methods=['POST'])
 @rate_limit(max_requests=5, window_seconds=300) # 5 admin login attempts per 5 minutes
 def auth_admin_login():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
@@ -1209,12 +1196,12 @@ def analyze(current_user):
             vulnerabilities: {type: array, items: {type: object}}
       429: {description: Rate limit exceeded}
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     codeInput = data.get('code', '')
     filename = data.get('filename', None)  # e.g. "main.go", "package.json"
 
     if not isinstance(codeInput, str):
-        codeInput = str(codeInput)
+        return jsonify({'status': 'error', 'message': 'code must be a string'}), 400
 
     if len(codeInput) > 50000:
         return jsonify({
@@ -1255,18 +1242,11 @@ def analyze(current_user):
     triggerKeywords = [k for k in _active_kw if k in clean_code]
 
     # 3. ERROR HANDLING
+    # Parse failure is NEVER fatal — pattern-based + entropy scanning always runs.
+    # We zero out AST/ML features and attach a parse_warning to the final response.
+    _parse_failed = False
     if isinstance(featuresDf, str) and featuresDf == "SYNTAX_ERROR":
-        if detected_language == 'python':
-            # Python syntax errors are fatal — can't scan malformed Python AST
-            return jsonify({
-                'malicious': False,
-                'risk_level': 'INVALID',
-                'reason': f"Syntax Error: This python code cannot be parsed",
-                'language': 'python'
-            }), 200
-        # For all other languages: AST parse failure is non-fatal.
-        # Fall through with a zeroed feature DataFrame so pattern-based
-        # vulnerability scanning still runs (innerHTML XSS, eval, etc.)
+        _parse_failed = True
         if modelFeatures is not None:
             featuresDf = pd.DataFrame([{col: 0 for col in modelFeatures}])
         else:
@@ -1399,6 +1379,7 @@ def analyze(current_user):
             'process_time':     'Real-time',
             'gcn_probability':  gcn_probability,
             'gcn_enabled':      gcn_enabled,
+            'parse_warning':    'AST parse failed — ML features zeroed, pattern scan ran normally' if _parse_failed else None,
         }
     }
 
@@ -1515,17 +1496,25 @@ def analyze(current_user):
             c = conn.cursor()
             c.execute('SELECT webhook_url FROM user_settings WHERE user_id = ?', (user_id,))
             row = c.fetchone()
-            conn.close()
-            if row and row['webhook_url']:
-                requests.post(row['webhook_url'], json={
+            webhook_url = row['webhook_url'] if row else None
+        except Exception:
+            webhook_url = None
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        if webhook_url:
+            try:
+                requests.post(webhook_url, json={
                     'event': 'malicious_scan',
                     'risk_level': riskLabel,
                     'confidence': confidence,
                     'language': detected_language,
                     'reason': message,
                 }, timeout=5)
-        except Exception:
-            pass  # webhook failures are non-fatal
+            except Exception:
+                pass  # webhook failures are non-fatal
 
     # Save scan as training sample (fire-and-forget, never blocks response)
     _save_training_sample(
@@ -1542,8 +1531,10 @@ def analyze(current_user):
     return jsonify(result)
 
 
-@app.route('/generate-report', methods=['POST']) 
-def generateReport():
+@app.route('/generate-report', methods=['POST'])
+@token_required(optional=False)
+@rate_limit(max_requests=10, window_seconds=60)
+def generateReport(current_user):
     data = request.get_json()
     snippet = data.get('code', '')
     verdict = data.get('verdict', 'UNKNOWN')
@@ -1973,6 +1964,8 @@ def training_data_export(current_user):
     security: [{Bearer: []}]
     produces: [text/csv]
     """
+    if not current_user.get('is_admin'):
+        return jsonify({'error': 'Admin access required'}), 403
     import csv
     from io import StringIO
     from flask import Response as FlaskResponse
@@ -2023,6 +2016,8 @@ def training_data_stats(current_user):
       200:
         description: Training data statistics
     """
+    if not current_user.get('is_admin'):
+        return jsonify({'error': 'Admin access required'}), 403
     try:
         conn = get_db_connection()
         conn.row_factory = sqlite3.Row
@@ -2162,6 +2157,8 @@ def set_webhook_setting(current_user):
     # Allow empty string to clear the webhook; validate non-empty URLs
     if webhook_url and not webhook_url.startswith(('https://', 'http://')):
         return jsonify({'error': 'webhook_url must be a valid http/https URL'}), 400
+    if webhook_url and not _is_safe_external_url(webhook_url):
+        return jsonify({'error': 'webhook_url must point to a public internet host'}), 400
 
     try:
         conn = get_db_connection()
@@ -2357,9 +2354,16 @@ def model_stats():
     return jsonify(stats)
 
 
+_TRAINING_LOCK = threading.Lock()
+
 @app.route('/train-stream', methods=['POST'])
-def train_stream():
+@token_required(optional=False)
+def train_stream(current_user):
     """Run training pipeline and stream output via SSE."""
+    if not current_user.get('is_admin'):
+        return jsonify({'error': 'Admin access required'}), 403
+    if not _TRAINING_LOCK.acquire(blocking=False):
+        return jsonify({'error': 'Training already in progress'}), 409
     def generate():
         pipeline_path = str(ROOT / 'backend' / 'train_full_pipeline.py')
         try:
@@ -2388,6 +2392,8 @@ def train_stream():
                 yield f"data: [ERROR] Training failed with exit code {proc.returncode}\n\n"
         except Exception as e:
             yield f"data: [ERROR] {str(e)}\n\n"
+        finally:
+            _TRAINING_LOCK.release()
         yield "data: [STREAM_END]\n\n"
 
     response = app.response_class(generate(), mimetype='text/event-stream')
@@ -2397,7 +2403,9 @@ def train_stream():
 
 
 @app.route('/deep-scan', methods=['POST'])
-def deep_scan():
+@token_required(optional=False)
+@rate_limit(max_requests=5, window_seconds=60)
+def deep_scan(current_user):
     """LLM-powered deep scan that explains vulnerabilities and suggests fixes."""
     import requests as req
     import json as json_mod
@@ -2512,13 +2520,14 @@ Provide your security analysis with vulnerability explanations and a fixed versi
 
 
 @app.route('/batch-scan', methods=['POST'])
-@rate_limit(max_requests=10, window_seconds=60)  # slightly stricter for batch scans
-def batch_scan():
+@token_required(optional=False)
+@rate_limit(max_requests=10, window_seconds=60)
+def batch_scan(current_user):
     """Scan multiple files at once."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     files = data.get('files', [])
-    
-    result = process_files_batch(files)
+
+    result = process_files_batch(files, user_id=current_user.get('user_id'))
     if isinstance(result, tuple):
         return jsonify(result[0]), result[1]
     return jsonify(result), 200
@@ -2647,12 +2656,26 @@ def _automation_error(endpoint, error_code, message, status_code=500):
     }), status_code
 
 
-def _require_automation_secret(allow_query_param=False):
+def _is_safe_external_url(url: str) -> bool:
+    """Return False if url resolves to an RFC1918/loopback/link-local address."""
+    import ipaddress
+    from urllib.parse import urlparse
+    try:
+        host = urlparse(url).hostname
+        if not host:
+            return False
+        addr = ipaddress.ip_address(host)
+        return not (addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved)
+    except ValueError:
+        # hostname is a domain name, not an IP — allow (DNS rebinding is out-of-scope here)
+        blocked = {'localhost', '0.0.0.0', '::1'}
+        return host.lower() not in blocked
+
+
+def _require_automation_secret():
     """Shared auth check for automation endpoints. Returns error tuple or None."""
     configured_secret = os.environ.get('MAKE_WEBHOOK_SECRET')
     provided_secret = request.headers.get('X-Automation-Secret', '')
-    if allow_query_param and not provided_secret:
-        provided_secret = request.args.get('secret', '')
     if not configured_secret:
         return jsonify({
             'status': 'error',
@@ -2675,7 +2698,7 @@ def render_deploy_webhook():
     Reactive Healing Loop entry point.
     Render POSTs here on deploy failure. Circuit breaker prevents loops.
     """
-    auth_error = _require_automation_secret(allow_query_param=True)
+    auth_error = _require_automation_secret()
     if auth_error:
         return auth_error
 
@@ -2771,7 +2794,7 @@ def github_push_webhook():
     Scan-on-Push — receives a GitHub push webhook, extracts changed files,
     fetches their content, runs security scans, and returns results.
     """
-    auth_error = _require_automation_secret(allow_query_param=True)
+    auth_error = _require_automation_secret()
     if auth_error:
         return auth_error
 
@@ -2795,7 +2818,14 @@ def github_push_webhook():
 
         for entry in file_info["files"][:20]:
             try:
-                req = urllib.request.Request(entry["raw_url"], headers={"User-Agent": "Soteria/1.0"})
+                raw_url = entry.get("raw_url", "")
+                from urllib.parse import urlparse as _urlparse
+                _parsed = _urlparse(raw_url)
+                if _parsed.scheme != "https" or _parsed.netloc != "raw.githubusercontent.com":
+                    scan_results.append({"file": entry.get("path", "?"), "status": "skipped",
+                                         "reason": "Disallowed raw_url host"})
+                    continue
+                req = urllib.request.Request(raw_url, headers={"User-Agent": "Soteria/1.0"})
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     code = resp.read().decode("utf-8", errors="replace")
 
@@ -2997,7 +3027,7 @@ import tempfile
 import subprocess
 import os
 
-def process_files_batch(files):
+def process_files_batch(files, user_id=None):
     if not files:
         return {'error': 'No files provided'}, 400
     
@@ -3040,17 +3070,14 @@ def process_files_batch(files):
                 featuresDf = result
                 detected_language = 'python'
             
+            _parse_failed_b = False
             if isinstance(featuresDf, str) and featuresDf == "SYNTAX_ERROR":
-                results.append({
-                    'filename': filename,
-                    'status': 'error',
-                    'message': f'Syntax error in {detected_language} code',
-                    'risk_level': 'INVALID',
-                    'confidence': 0,
-                    'language': detected_language
-                })
-                continue
-            
+                _parse_failed_b = True
+                if modelFeatures is not None:
+                    featuresDf = pd.DataFrame([{col: 0 for col in modelFeatures}])
+                else:
+                    featuresDf = pd.DataFrame([{}])
+
             if featuresDf is None:
                 results.append({
                     'filename': filename,
@@ -3061,9 +3088,9 @@ def process_files_batch(files):
                     'language': detected_language
                 })
                 continue
-            
+
             load_model_if_updated()
-            
+
             # Keyword check (language-aware)
             _active_kw_b = {
                 p for p in BUZZ_WORDS
@@ -3122,7 +3149,8 @@ def process_files_batch(files):
                 'risk_level': riskLabel,
                 'confidence': confidence,
                 'language': detected_language,
-                'nodes_scanned': len(featuresDf.columns)
+                'nodes_scanned': len(featuresDf.columns),
+                'parse_warning': 'AST parse failed — pattern scan ran normally' if _parse_failed_b else None,
             })
             
             # Save to scan history + training data
@@ -3140,7 +3168,7 @@ def process_files_batch(files):
                 is_malicious=verdict, risk_level=riskLabel,
                 vuln_count=len([k for k in BUZZ_WORDS if k in code]),
                 confidence=confidence, source='batch',
-                user_id=current_user['user_id'] if current_user else None,
+                user_id=user_id,
             )
             
         except Exception as e:
@@ -3314,9 +3342,11 @@ def github_scan():
                 if len(files_data) >= 50:
                     break
         except Exception as e:
-            return jsonify({'error': f'Failed to clone repository: {str(e)}'}), 500
+            app.logger.error(f'git clone failed: {e}')
+            return jsonify({'error': 'Failed to clone repository'}), 500
             
-    result, status = process_files_batch(files_data) if isinstance(process_files_batch(files_data), tuple) else (process_files_batch(files_data), 200)
+    batch_result = process_files_batch(files_data)
+    result, status = batch_result if isinstance(batch_result, tuple) else (batch_result, 200)
     return jsonify(result), status
 
 
