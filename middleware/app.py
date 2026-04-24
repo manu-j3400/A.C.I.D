@@ -392,7 +392,15 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Cache-Control'] = 'no-store, max-age=0'
-    response.headers['X-Request-ID'] = getattr(request, 'request_id', 'unknown')
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'none'; "
+        "script-src 'none'; "
+        "frame-ancestors 'none'"
+    )
+    # Echo client ID separately; server-generated ID is authoritative for logging
+    _client_req_id = getattr(request, 'request_id', 'unknown')
+    response.headers['X-Request-ID'] = _client_req_id
 
     duration_ms = round((time.time() - getattr(request, 'start_time', time.time())) * 1000, 1)
     extra = {
@@ -443,8 +451,10 @@ def rate_limit(max_requests=20, window_seconds=60):
                 except Exception:
                     pass
             if not key:
-                ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-                key = f"ip:{ip.split(',')[0].strip() if ip else 'unknown'}"
+                # Use only request.remote_addr — never trust client-supplied X-Forwarded-For
+                # for rate-limit keying (prevents header-spoofing bypass)
+                ip = request.remote_addr or 'unknown'
+                key = f"ip:{ip}"
 
             now = time.time()
             with RATE_LIMIT_LOCK:
@@ -682,6 +692,7 @@ def generate_token(user_id, email, is_admin=False):
         'user_id': user_id,
         'email': email,
         'is_admin': is_admin,
+        'jti': secrets.token_hex(16),
         'exp': int(time.time()) + 60 * 60 * 24  # 24 hours
     }
     return pyjwt.encode(payload, JWT_SECRET, algorithm='HS256')
@@ -785,7 +796,8 @@ def auth_signup():
     except sqlite3.IntegrityError:
         return jsonify({'error': 'An account with this email already exists'}), 409
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.exception('Signup error')
+        return jsonify({'error': 'An internal error occurred. Please try again.'}), 500
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -1249,8 +1261,9 @@ def analyze(current_user):
     if not codeInput:
         return jsonify({'status': 'error', 'message': 'No code provided'}), 400
 
-    # ── 24h result cache check ──
-    _cache_key = hashlib.sha256(codeInput.encode('utf-8', errors='replace')).hexdigest()
+    # ── 24h result cache check — keyed on (user_id, code) so results don't leak cross-user ──
+    _uid_for_cache = current_user.get('user_id', 'anon') if current_user else 'anon'
+    _cache_key = hashlib.sha256(f"{_uid_for_cache}:{codeInput}".encode('utf-8', errors='replace')).hexdigest()
     with _result_cache_lock:
         _cached = _result_cache.get(_cache_key)
         if _cached:
@@ -1541,7 +1554,7 @@ def analyze(current_user):
                 conn.close()
             except Exception:
                 pass
-        if webhook_url:
+        if webhook_url and _is_safe_external_url(webhook_url):
             try:
                 requests.post(webhook_url, json={
                     'event': 'malicious_scan',
@@ -2506,9 +2519,10 @@ Provide your security analysis with vulnerability explanations and a fixed versi
                 yield "data: [STREAM_END]\n\n"
                 return
             
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:streamGenerateContent?key={api_key}&alt=sse"
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:streamGenerateContent?alt=sse"
             resp = req.post(url, headers={
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
             }, json={
                 "systemInstruction": {"parts": [{"text": system_prompt}]},
                 "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
@@ -3131,12 +3145,13 @@ def process_files_batch(files, user_id=None):
 
             load_model_if_updated()
 
-            # Keyword check (language-aware)
+            # Keyword check (language-aware) — use comment-stripped code to match /analyze behavior
+            clean_code_b = strip_comments(code)
             _active_kw_b = {
                 p for p in BUZZ_WORDS
                 if p not in LANGUAGE_FILTER or detected_language in LANGUAGE_FILTER[p]
             }
-            triggerKeywords = [k for k in _active_kw_b if k in code]
+            triggerKeywords = [k for k in _active_kw_b if k in clean_code_b]
             
             # ML prediction
             maliciousProb = 0.5 if triggerKeywords else 0.1
@@ -3281,27 +3296,25 @@ def github_token():
     if not code:
         return jsonify({'error': 'No code provided'}), 400
 
-    # PKCE + state validation runs before the GitHub config check so that
-    # invalid/expired tokens are rejected regardless of server configuration.
-    if state and code_verifier:
-        try:
-            state_payload = pyjwt.decode(state, JWT_SECRET, algorithms=['HS256'])
-        except pyjwt.ExpiredSignatureError:
-            return jsonify({'error': 'OAuth state expired. Please restart the login flow.'}), 400
-        except pyjwt.InvalidTokenError:
-            return jsonify({'error': 'Invalid OAuth state.'}), 400
+    # PKCE + state are unconditionally required — no fallback path without them
+    if not state or not code_verifier:
+        return jsonify({'error': 'state and code_verifier are required'}), 400
 
-        import hashlib, base64
-        computed = base64.urlsafe_b64encode(
-            hashlib.sha256(code_verifier.encode()).digest()
-        ).rstrip(b'=').decode()
-        expected = state_payload.get('code_challenge', '')
-        # Constant-time compare to prevent timing attacks
-        if not hmac.compare_digest(computed, expected):
-            return jsonify({'error': 'PKCE verification failed.'}), 400
-    elif state or code_verifier:
-        # One present without the other — reject partial submissions
-        return jsonify({'error': 'Both state and code_verifier are required.'}), 400
+    try:
+        state_payload = pyjwt.decode(state, JWT_SECRET, algorithms=['HS256'])
+    except pyjwt.ExpiredSignatureError:
+        return jsonify({'error': 'OAuth state expired. Please restart the login flow.'}), 400
+    except pyjwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid OAuth state.'}), 400
+
+    import hashlib, base64
+    computed = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).rstrip(b'=').decode()
+    expected = state_payload.get('code_challenge', '')
+    # Constant-time compare to prevent timing attacks
+    if not hmac.compare_digest(computed, expected):
+        return jsonify({'error': 'PKCE verification failed.'}), 400
 
     if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
         return jsonify({'error': 'GitHub OAuth login is not configured.'}), 501
@@ -3343,11 +3356,16 @@ def github_scan(current_user):
     if not repo_url or not repo_url.startswith('https://github.com/'):
         return jsonify({'error': 'Invalid or missing GitHub URL'}), 400
         
+    # Strict allowlist for access_token: alphanumeric + underscore, 20-255 chars
+    _TOKEN_RE = re.compile(r'^[A-Za-z0-9_\-]{20,255}$')
+    if access_token and not _TOKEN_RE.match(access_token):
+        return jsonify({'error': 'Invalid access_token format'}), 400
+
     clone_url = repo_url
     if access_token:
-        # Insert oauth token into URL for authenticated clone
-        if repo_url.startswith('https://github.com/'):
-            clone_url = f"https://oauth2:{access_token}@" + repo_url[8:]
+        # Use GIT_ASKPASS env var instead of embedding token in URL to avoid
+        # token appearing in git logs, ps output, or server access logs
+        pass  # clone_url stays as repo_url; token injected via env below
         
     code_extensions = [
         '.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.c', '.cpp', '.h', '.hpp',
@@ -3359,8 +3377,20 @@ def github_scan(current_user):
     
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
-            # Shallow clone with potentially authenticated URL
-            subprocess.run(['git', 'clone', '--depth', '1', clone_url, temp_dir], check=True, capture_output=True)
+            # Shallow clone — pass token via env GIT_ASKPASS to avoid URL embedding
+            clone_env = os.environ.copy()
+            if access_token:
+                # Write a minimal askpass script that outputs the token
+                askpass_script = os.path.join(temp_dir, '_askpass.sh')
+                with open(askpass_script, 'w') as _f:
+                    _f.write(f'#!/bin/sh\necho "{access_token}"\n')
+                os.chmod(askpass_script, 0o700)
+                clone_env['GIT_ASKPASS'] = askpass_script
+                clone_env['GIT_TERMINAL_PROMPT'] = '0'
+            subprocess.run(
+                ['git', 'clone', '--depth', '1', clone_url, temp_dir],
+                check=True, capture_output=True, env=clone_env
+            )
             
             for root, dirs, files in os.walk(temp_dir):
                 if '.git' in dirs:

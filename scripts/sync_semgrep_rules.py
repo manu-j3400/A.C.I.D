@@ -214,11 +214,20 @@ def _github_list_yaml_files(lang_dir: str, session: requests.Session) -> List[st
     return urls
 
 
+_DEGENERATE_KEYS: frozenset = frozenset({
+    '"" !=', '"" ==', '"" ""', '"" is', '"*"', "''", '""',
+    '!= ""', '== ""', 'is None', 'is not', '!= null', '== null',
+})
+_MAX_YAML_BYTES = 512 * 1024  # 512 KB per file — guards against YAML bombs
+
+
 def _fetch_yaml(url: str, session: requests.Session) -> Optional[dict]:
     try:
         resp = session.get(url, timeout=15)
         if resp.status_code != 200:
             return None
+        if len(resp.content) > _MAX_YAML_BYTES:
+            return None  # reject oversized files
         return yaml.safe_load(resp.text)
     except Exception:
         return None
@@ -263,7 +272,7 @@ def _process_yaml(data: dict, lang_code: str) -> List[Tuple[str, Entry]]:
         seen_keys: Set[str] = set()
         for rp in raw_patterns:
             key = _extract_string_key(rp)
-            if key and key not in seen_keys and len(key) >= 4:
+            if key and key not in seen_keys and len(key) >= 8 and key not in _DEGENERATE_KEYS:
                 seen_keys.add(key)
                 results.append((key, (msg or key, sev, cwe)))
 
@@ -399,6 +408,9 @@ def main(dry_run: bool = False, stats_only: bool = False) -> None:
     print("Fetching semgrep-rules file list (this may take 20–30 s)…")
     session = requests.Session()
     session.headers['User-Agent'] = 'Soteria-sync/1.0'
+    _gh_token = os.environ.get('GITHUB_TOKEN')
+    if _gh_token:
+        session.headers['Authorization'] = f'Bearer {_gh_token}'
 
     # lang_dir → list of YAML URLs
     yaml_urls: Dict[str, List[str]] = {}
