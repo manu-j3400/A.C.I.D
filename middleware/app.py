@@ -297,11 +297,15 @@ app = Flask(__name__)
 
 try:
     from flasgger import Swagger
+    # Disable Swagger UI in production unless explicitly opted-in via env var
+    _swagger_enabled = os.environ.get('ENABLE_SWAGGER_UI', '').lower() in ('1', 'true', 'yes')
+    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER'):
+        _swagger_enabled = False
     swagger_config = {
         'headers': [],
         'specs': [{'endpoint': 'apispec', 'route': '/apispec.json', 'rule_filter': lambda rule: True, 'model_filter': lambda tag: True}],
         'static_url_path': '/flasgger_static',
-        'swagger_ui': True,
+        'swagger_ui': _swagger_enabled,
         'specs_route': '/apidocs',
     }
     swagger_template = {
@@ -666,6 +670,11 @@ def init_users_db():
         webhook_url TEXT,
         updated_at TEXT
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS revoked_tokens (
+        jti TEXT PRIMARY KEY,
+        exp INTEGER NOT NULL
+    )''')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_revoked_tokens_exp ON revoked_tokens(exp)')
     conn.commit()
 
     # Seed default admin if none exists
@@ -701,12 +710,24 @@ def decode_token(token):
     """Decode and validate a JWT token."""
     try:
         payload = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        # Check revocation set
-        jti = payload.get('jti') or token[-16:]
+        jti = payload.get('jti')
+        if not jti:
+            return None  # tokens without jti are rejected (legacy or tampered)
+        # Check in-memory set first (fast path), then DB (survives restarts)
         exp = payload.get('exp', 0)
         with _TOKEN_REVOCATION_LOCK:
             if (jti, exp) in _TOKEN_REVOCATION_SET:
                 return None
+        try:
+            conn = get_db_connection()
+            row = conn.execute('SELECT 1 FROM revoked_tokens WHERE jti = ?', (jti,)).fetchone()
+            conn.close()
+            if row:
+                with _TOKEN_REVOCATION_LOCK:
+                    _TOKEN_REVOCATION_SET.add((jti, exp))
+                return None
+        except Exception:
+            pass
         return payload
     except pyjwt.ExpiredSignatureError:
         return None
@@ -773,8 +794,8 @@ def auth_signup():
 
     if not name or not email or not password:
         return jsonify({'error': 'Name, email, and password are required'}), 400
-    if len(password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
 
     try:
         pw_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -863,12 +884,25 @@ def auth_logout(current_user):
         try:
             payload = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
             exp = payload.get('exp', 0)
-            jti = payload.get('jti') or token[-16:]
-            with _TOKEN_REVOCATION_LOCK:
-                _TOKEN_REVOCATION_SET.add((jti, exp))
-                # Prune expired entries
-                now = int(time.time())
-                _TOKEN_REVOCATION_SET -= {e for e in _TOKEN_REVOCATION_SET if e[1] < now}
+            jti = payload.get('jti')
+            if jti:
+                # Persist to DB so revocation survives restarts
+                try:
+                    conn = get_db_connection()
+                    conn.execute(
+                        'INSERT OR IGNORE INTO revoked_tokens (jti, exp) VALUES (?, ?)',
+                        (jti, exp)
+                    )
+                    # Prune expired rows
+                    conn.execute('DELETE FROM revoked_tokens WHERE exp < ?', (int(time.time()),))
+                    conn.commit()
+                    conn.close()
+                except Exception:
+                    pass
+                with _TOKEN_REVOCATION_LOCK:
+                    _TOKEN_REVOCATION_SET.add((jti, exp))
+                    now = int(time.time())
+                    _TOKEN_REVOCATION_SET -= {e for e in _TOKEN_REVOCATION_SET if e[1] < now}
         except Exception:
             pass
     return jsonify({'status': 'logged out'}), 200
@@ -2416,14 +2450,31 @@ def train_stream(current_user):
     if not _TRAINING_LOCK.acquire(blocking=False):
         return jsonify({'error': 'Training already in progress'}), 409
     def generate():
-        pipeline_path = str(ROOT / 'backend' / 'train_full_pipeline.py')
+        pipeline_path = str((ROOT / 'backend' / 'train_full_pipeline.py').resolve())
+        # Verify path is inside repo root before executing
         try:
+            _rel = (ROOT / 'backend' / 'train_full_pipeline.py').resolve().relative_to(ROOT.resolve())
+        except ValueError:
+            yield "data: [ERROR] Pipeline path traversal detected\n\n"
+            _TRAINING_LOCK.release()
+            return
+        try:
+            # Minimal env — strip PYTHONPATH and other injections
+            _train_env = {
+                'PATH': '/usr/local/bin:/usr/bin:/bin',
+                'HOME': os.environ.get('HOME', '/tmp'),
+                'LANG': 'en_US.UTF-8',
+            }
+            for _k in ('VIRTUAL_ENV', 'CONDA_PREFIX', 'GEMINI_API_KEY', 'JWT_SECRET', 'DB_PATH'):
+                if _k in os.environ:
+                    _train_env[_k] = os.environ[_k]
             proc = subprocess.Popen(
                 [sys.executable, pipeline_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
+                env=_train_env,
                 cwd=str(ROOT / 'backend')
             )
             for line in proc.stdout:
