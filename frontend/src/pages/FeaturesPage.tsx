@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Code2, GraduationCap, Rocket, ScanLine, Brain, Trophy, Github } from 'lucide-react';
-
+import { ScanLine, Brain, Github, Database } from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
 import { COLORS } from '../theme/colors';
+
 const C = {
     bg:      COLORS.bg,
     accent:  COLORS.acid,
@@ -29,290 +30,240 @@ const cellStyle: React.CSSProperties = {
 
 export default function FeaturesPage() {
     return (
-        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden' }}>
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden', paddingTop: 76 }}>
+            <PublicNavbar />
 
-            {/* ─── NAV STRIP ─── */}
-            <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', height: '36px' }}>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
-                    <Link to="/" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em' }}>SOTERIA</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/home" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOME ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/features" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ FEATURES ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/how-it-works" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOW IT WORKS ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/changelog" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ CHANGELOG ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ ABOUT ]</Link>
-                </div>
-                <div style={{ flex: 1 }} />
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/login" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ LOGIN ]</Link>
-                </div>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/signup" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700 }}>[ START FREE ]</Link>
-                </div>
-            </div>
-
-            {/* ─── PAGE TITLE STRIP ─── */}
+            {/* PAGE TITLE STRIP */}
             <div style={{ borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, color: C.text, fontWeight: 700, letterSpacing: '0.1em', fontSize: '11px' }}>
-                    CORE PLATFORM — FEATURES
+                    PLATFORM CAPABILITIES
                 </div>
                 <div style={{ ...cellStyle, color: C.accent }}>[ LIVE ]</div>
-                <div style={{ ...cellStyle }}>6 FEATURES</div>
                 <div style={{ ...cellStyle }}>KYBER ENGINE v2.5.0</div>
                 <div style={{ flex: 1, borderRight: `1px solid ${C.border}` }} />
                 <div style={{ ...cellStyle, borderRight: 'none' }}>UTC {new Date().toISOString().slice(11, 19)}</div>
             </div>
 
-            {/* ─── HERO ─── */}
-            <section style={{ padding: '80px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                    <div style={{ display: 'inline-block', border: `1px solid ${C.border}`, padding: '4px 12px', marginBottom: '24px' }}>
-                        <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.2em', fontWeight: 700 }}>// CORE PLATFORM</span>
-                    </div>
-                    <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px', textTransform: 'uppercase', fontFamily: C.font }}>
-                        SECURITY.{' '}
-                        <span style={{ color: C.danger, WebkitTextStroke: `1px ${C.text}` } as React.CSSProperties}>REIMAGINED.</span>
+            {/* HERO — asymmetric, no rotating words */}
+            <section style={{ padding: '64px 48px 48px', borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 340px', gap: '64px', alignItems: 'start' }}>
+                <div>
+                    <h1 style={{ fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 24px', textTransform: 'uppercase', fontFamily: C.font }}>
+                        HYBRID AST + GCN + SNN.<br />
+                        <span style={{ color: C.danger }}>509 VULNERABILITY PATTERNS.</span>
                     </h1>
-                    <p style={{ fontSize: '14px', color: C.subdued, maxWidth: '560px', lineHeight: 1.7 }}>
-                        Hybrid AST + GCN + SNN detection stack. Sub-second vulnerability identification across 500+ patterns in Python, Go, Rust, JavaScript, and more.
+                    <p style={{ fontSize: '13px', color: C.subdued, maxWidth: '520px', lineHeight: 1.8, margin: 0 }}>
+                        Not another SAST tool with regex rules. Soteria builds a control-flow graph of your code, runs graph attention convolution over it, and blends the result with a temporal spike neural network score — then explains the finding in plain English.
                     </p>
                 </div>
-            </section>
-
-            {/* ─── UVP GRID ─── */}
-            <section style={{ padding: '0', borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// VALUE PROPOSITION — 3 PILLARS</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', maxWidth: '100%' }}>
+                <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: '32px' }}>
+                    <div style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em', marginBottom: '16px' }}>DETECTION STACK</div>
                     {[
-                        {
-                            icon: <Code2 size={20} />,
-                            label: 'INSTANT AST AUDITS',
-                            tag: '[ FEATURE ]',
-                            tagColor: C.accent,
-                            desc: 'Stop waiting for 30-minute CI/CD pipelines to fail. Hybrid AST engine identifies structural vulnerabilities locally in milliseconds.',
-                            stat: '< 2s',
-                            statLabel: 'SCAN TIME',
-                        },
-                        {
-                            icon: <GraduationCap size={20} />,
-                            label: 'ZERO-BS EXPLANATIONS',
-                            tag: '[ FEATURE ]',
-                            tagColor: C.amber,
-                            desc: 'No cryptic CWE codes. Models explain exactly what\'s wrong, why it\'s dangerous, and give you the patched code in plain English.',
-                            stat: '100%',
-                            statLabel: 'PLAIN ENGLISH',
-                        },
-                        {
-                            icon: <Rocket size={20} />,
-                            label: 'FRICTIONLESS WORKFLOW',
-                            tag: '[ FEATURE ]',
-                            tagColor: C.danger,
-                            desc: 'No 14-day trials. No forced sales calls. No bloated SDKs. Paste your code, get secure fixes, keep shipping.',
-                            stat: '0',
-                            statLabel: 'SETUP STEPS',
-                        },
-                    ].map((uvp, i) => (
-                        <motion.div
-                            key={uvp.label}
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.4, delay: i * 0.1 }}
-                            style={{
-                                borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
-                                padding: '32px',
-                                cursor: 'default',
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                                <div style={{ color: uvp.tagColor }}>{uvp.icon}</div>
-                                <span style={{ fontSize: '10px', color: uvp.tagColor, fontWeight: 700, letterSpacing: '0.1em' }}>{uvp.tag}</span>
+                        { label: 'AST Feature Extraction', sub: '52-dim vector, cyclomatic complexity', color: C.text },
+                        { label: 'Entropy Pre-Scanner', sub: 'flags high-entropy strings ≥ 5 bits', color: C.amber },
+                        { label: 'SNN Temporal Profiler', sub: '8-channel LIF spike encoder', color: C.accent },
+                        { label: 'RF Ensemble', sub: 'acidModel.pkl baseline', color: C.text },
+                        { label: 'GCN Blend', sub: 'GATConv, activates at F1 ≥ 0.70', color: C.accent },
+                        { label: 'Gemini 2.5 Pro', sub: 'streaming SSE explanation', color: C.subdued },
+                    ].map((layer, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '10px 0', borderBottom: i < 5 ? `1px solid ${C.border}` : 'none' }}>
+                            <span style={{ fontSize: '10px', color: C.muted, minWidth: '18px', paddingTop: '1px' }}>{String(i + 1).padStart(2, '0')}</span>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: layer.color, letterSpacing: '0.06em' }}>{layer.label}</div>
+                                <div style={{ fontSize: '10px', color: C.muted, marginTop: '2px' }}>{layer.sub}</div>
                             </div>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: C.text, letterSpacing: '0.1em', marginBottom: '12px' }}>{uvp.label}</div>
-                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.7, marginBottom: '24px' }}>{uvp.desc}</p>
-                            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '16px' }}>
-                                <div style={{ fontSize: '28px', fontWeight: 900, color: uvp.tagColor, lineHeight: 1 }}>{uvp.stat}</div>
-                                <div style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.12em', marginTop: '4px' }}>{uvp.statLabel}</div>
-                            </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
             </section>
 
-            {/* ─── FEATURE BLOCKS ─── */}
-            <section style={{ borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// PLATFORM CAPABILITIES</span>
-                </div>
-
-                {/* Real-Time Scanning — full width */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    style={{ borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}
-                >
-                    <div style={{ padding: '32px 48px', borderRight: `1px solid ${C.border}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <ScanLine size={16} style={{ color: C.danger }} />
-                            <span style={{ fontSize: '10px', color: C.danger, fontWeight: 700, letterSpacing: '0.15em' }}>[ ACTIVE ] REAL-TIME SCANNING</span>
-                        </div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '12px', lineHeight: 1.1 }}>Real-Time Scanning</h3>
-                        <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8 }}>
-                            Detects SQL injection, XSS, code injection, and dozens of vulnerability patterns instantly. Paste your code and get results in under 2 seconds.
-                        </p>
+            {/* REAL-TIME SCANNING */}
+            <section style={{ borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ padding: '36px 48px', borderRight: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <ScanLine size={14} style={{ color: C.danger }} />
+                        <span style={{ fontSize: '10px', color: C.danger, fontWeight: 700, letterSpacing: '0.15em' }}>REAL-TIME SCANNING</span>
                     </div>
-                    <div style={{ padding: '32px 48px', background: '#040404' }}>
-                        <div style={{ border: `1px solid ${C.muted}`, padding: '16px', fontFamily: C.font, fontSize: '12px', lineHeight: 1.8 }}>
-                            <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2.5, repeat: Infinity }}>
-                                <div><span style={{ color: C.accent }}>$</span> soteria scan login.py</div>
-                                <div style={{ color: C.subdued }}>Analyzing 47 lines...</div>
-                                <div style={{ color: C.danger, fontWeight: 700 }}>! 2 CRITICAL VULNERABILITIES FOUND</div>
-                                <div style={{ color: C.amber, fontWeight: 700 }}>! 1 WARNING DETECTED</div>
-                                <div style={{ color: C.accent, fontWeight: 700 }}>+ SCAN COMPLETE — 1.2s</div>
-                            </motion.div>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* AI Explanations + Gamified Learning */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: `1px solid ${C.border}` }}>
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        style={{ padding: '32px 48px', borderRight: `1px solid ${C.border}` }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <Brain size={16} style={{ color: C.accent }} />
-                            <span style={{ fontSize: '10px', color: C.accent, fontWeight: 700, letterSpacing: '0.15em' }}>[ ACTIVE ] AI EXPLANATIONS</span>
-                        </div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '12px', lineHeight: 1.1 }}>AI Explanations</h3>
-                        <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, marginBottom: '20px' }}>
-                            Every vulnerability comes with a clear, beginner-friendly explanation of what went wrong and how to fix it. Learn by doing.
-                        </p>
-                        <div style={{ border: `1px solid ${C.muted}`, padding: '12px 16px', background: '#050505' }}>
-                            <span style={{ color: C.accent, fontSize: '12px' }}>"</span>
-                            <span style={{ fontSize: '12px', color: C.text }}>This f-string allows user input to modify your SQL...</span>
-                            <span style={{ color: C.accent, fontSize: '12px' }}>"</span>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        style={{ padding: '32px 48px' }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <Trophy size={16} style={{ color: C.amber }} />
-                            <span style={{ fontSize: '10px', color: C.amber, fontWeight: 700, letterSpacing: '0.15em' }}>[ ACTIVE ] GAMIFIED LEARNING</span>
-                        </div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '12px', lineHeight: 1.1 }}>Gamified Learning</h3>
-                        <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, marginBottom: '20px' }}>
-                            Earn XP for writing secure code and fixing vulnerabilities. Track your progress over time.
-                        </p>
+                    <h3 style={{ fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '14px', lineHeight: 1.1 }}>
+                        Sub-second. In-browser.
+                    </h3>
+                    <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: '0 0 20px' }}>
+                        Paste code and get a verdict in under 2 seconds. SQL injection, XSS, command injection, SSRF, path traversal, and 500+ more patterns across Python, Go, Rust, JavaScript, TypeScript, and Java.
+                    </p>
+                    <div style={{ display: 'flex', gap: '24px' }}>
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: C.subdued, marginBottom: '8px', letterSpacing: '0.1em' }}>
-                                <span>LEVEL 4 SCANNER</span>
-                                <span style={{ color: C.amber }}>850 / 1000 XP</span>
-                            </div>
-                            <div style={{ height: '6px', background: C.muted, border: `1px solid ${C.border}` }}>
-                                <motion.div
-                                    style={{ height: '100%', background: C.amber }}
-                                    initial={{ width: '0%' }}
-                                    whileInView={{ width: '85%' }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 1.5, delay: 0.5, ease: 'easeOut' }}
-                                />
-                            </div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: C.danger }}>509+</div>
+                            <div style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em', marginTop: '2px' }}>PATTERNS</div>
                         </div>
-                    </motion.div>
-                </div>
-
-                {/* GitHub Integration */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}
-                >
-                    <div style={{ padding: '32px 48px', borderRight: `1px solid ${C.border}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <Github size={16} style={{ color: C.text }} />
-                            <span style={{ fontSize: '10px', color: C.text, fontWeight: 700, letterSpacing: '0.15em' }}>[ ACTIVE ] GITHUB INTEGRATION</span>
+                        <div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: C.text }}>&lt; 2s</div>
+                            <div style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em', marginTop: '2px' }}>SCAN TIME</div>
                         </div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '12px', lineHeight: 1.1 }}>GitHub Integration</h3>
-                        <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8 }}>
-                            Connect your GitHub account with one click. Scan entire repositories for vulnerabilities automatically.
-                        </p>
+                        <div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: C.accent }}>6</div>
+                            <div style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em', marginTop: '2px' }}>LANGUAGES</div>
+                        </div>
                     </div>
-                    <div style={{ padding: '32px 48px', background: '#030303', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                </div>
+                <div style={{ padding: '36px 48px', background: '#040404', fontFamily: C.font, fontSize: '12px', lineHeight: 1.9 }}>
+                    <div style={{ border: `1px solid ${C.border}`, padding: '20px' }}>
+                        <div><span style={{ color: C.accent }}>$</span> soteria scan auth_handler.py</div>
+                        <div style={{ color: C.muted }}>  parsing 89 lines...</div>
+                        <div style={{ color: C.muted }}>  building cfg graph... 14 nodes</div>
+                        <div style={{ color: C.muted }}>  entropy scan... ok</div>
+                        <div style={{ color: C.muted }}>  snn temporal profile... ok</div>
+                        <div style={{ color: C.muted }}>  rf ensemble... score 0.71</div>
+                        <div style={{ color: C.muted }}>  gcn blend activated... score 0.84</div>
+                        <div style={{ color: C.danger, fontWeight: 700, marginTop: '4px' }}>  MALICIOUS — 2 CRITICAL</div>
+                        <div style={{ color: C.amber }}>    L44: unsanitized f-string SQL</div>
+                        <div style={{ color: C.amber }}>    L67: subprocess shell=True + user input</div>
+                        <div style={{ color: C.accent, marginTop: '4px' }}>  completed in 1.3s</div>
+                    </div>
+                </div>
+            </section>
+
+            {/* AI EXPLANATIONS */}
+            <section style={{ borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '340px 1fr' }}>
+                <div style={{ borderRight: `1px solid ${C.border}`, padding: '36px 32px', background: '#030303' }}>
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em', marginBottom: '8px' }}>GEMINI 2.5 PRO — STREAMING</div>
+                        <div style={{ fontSize: '11px', color: C.subdued, lineHeight: 1.8, borderLeft: `2px solid ${C.accent}`, paddingLeft: '12px' }}>
+                            "The f-string on line 44 passes <span style={{ color: C.danger }}>request.args['id']</span> directly into a SQL query string. An attacker controls the value of this parameter and can inject arbitrary SQL — for example, <span style={{ color: C.amber }}>id=1 OR 1=1</span> returns all rows."
+                        </div>
+                    </div>
+                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '14px', fontSize: '10px', color: C.muted }}>
+                        <div>SEVERITY: CRITICAL</div>
+                        <div>CWE-89: SQL Injection</div>
+                        <div>FIX: parameterized query</div>
+                    </div>
+                </div>
+                <div style={{ padding: '36px 48px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <Brain size={14} style={{ color: C.accent }} />
+                        <span style={{ fontSize: '10px', color: C.accent, fontWeight: 700, letterSpacing: '0.15em' }}>AI EXPLANATIONS</span>
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '14px', lineHeight: 1.1 }}>
+                        No CWE codes. No noise.
+                    </h3>
+                    <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: '0 0 20px' }}>
+                        Every finding streams a plain-English explanation: what the vulnerability is, how an attacker exploits it, and the exact patched code. Powered by Gemini 2.5 Pro over Server-Sent Events — first token in under 400ms.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                            'Streaming SSE — no wait for full response',
+                            'Patched code snippet included with every finding',
+                            'References actual line numbers from your code',
+                        ].map((item, i) => (
+                            <div key={i} style={{ display: 'flex', gap: '10px', fontSize: '11px', color: C.subdued }}>
+                                <span style={{ color: C.accent }}>→</span>
+                                {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* GITHUB INTEGRATION + BATCH */}
+            <section style={{ borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ padding: '36px 48px', borderRight: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <Github size={14} style={{ color: C.text }} />
+                        <span style={{ fontSize: '10px', color: C.text, fontWeight: 700, letterSpacing: '0.15em' }}>GITHUB INTEGRATION</span>
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '14px', lineHeight: 1.1 }}>
+                        Scan entire repos.
+                    </h3>
+                    <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: '0 0 20px' }}>
+                        OAuth PKCE (RFC 7636) — connect once, clone and scan any repo. GIT_ASKPASS token injection, no credentials ever embedded in URLs. PRs auto-checked via the kyber-pr-check GitHub Actions workflow.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {['my-flask-app', 'react-portfolio', 'node-api'].map((repo, i) => (
-                            <motion.div
+                            <div
                                 key={repo}
-                                initial={{ opacity: 0, y: 8 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.4 + i * 0.15 }}
-                                style={{ border: `1px solid ${C.border}`, padding: '8px 14px', fontSize: '11px', color: C.subdued, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                style={{ border: `1px solid ${C.border}`, padding: '6px 12px', fontSize: '11px', color: C.subdued, display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
                                 <div style={{ width: '6px', height: '6px', background: i === 0 ? C.accent : i === 1 ? C.text : C.danger }} />
                                 {repo}
-                            </motion.div>
+                            </div>
                         ))}
                     </div>
-                </motion.div>
+                </div>
+                <div style={{ padding: '36px 48px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <Database size={14} style={{ color: C.amber }} />
+                        <span style={{ fontSize: '10px', color: C.amber, fontWeight: 700, letterSpacing: '0.15em' }}>SCAN HISTORY</span>
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '14px', lineHeight: 1.1 }}>
+                        Every scan. Searchable.
+                    </h3>
+                    <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: '0 0 20px' }}>
+                        Full scan history in SQLite WAL — paginated, filterable by verdict. Export to CSV. Webhook notifications fire on malicious results. 24h result cache means re-scanning identical code returns instantly.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                            'CSV export — JWT-protected endpoint',
+                            'Webhook on malicious scan result',
+                            '24h SHA-256 result cache per user',
+                        ].map((item, i) => (
+                            <div key={i} style={{ display: 'flex', gap: '10px', fontSize: '11px', color: C.subdued }}>
+                                <span style={{ color: C.amber }}>→</span>
+                                {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </section>
 
-            {/* ─── CTA ─── */}
-            <section style={{ borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// CALL TO ACTION</span>
-                </div>
-                <div style={{ padding: '64px 48px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '24px' }}>
-                    <h2 style={{ fontSize: 'clamp(32px, 5vw, 60px)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1, margin: 0, fontFamily: C.font }}>
-                        READY TO WRITE<br />
-                        <span style={{ color: C.accent }}>SECURE CODE?</span>
+            {/* CTA */}
+            <section style={{ padding: '64px 48px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ borderLeft: `3px solid ${C.accent}`, paddingLeft: '28px', maxWidth: '700px' }}>
+                    <div style={{ fontSize: '11px', color: C.muted, letterSpacing: '0.1em', marginBottom: '16px' }}>
+                        NO INSTALL. NO CREDIT CARD. NO SALES CALL.
+                    </div>
+                    <h2 style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, margin: '0 0 20px', fontFamily: C.font }}>
+                        SCAN YOUR CODE.<br />
+                        <span style={{ color: C.accent }}>KNOW WHAT'S IN IT.</span>
                     </h2>
-                    <p style={{ fontSize: '13px', color: C.subdued, margin: 0 }}>Stop guessing. Start knowing. Scan your first project in seconds — no install required.</p>
-                    <Link
-                        to="/signup"
-                        style={{
-                            display: 'inline-block',
-                            border: `1px solid ${C.accent}`,
-                            background: C.accent,
-                            color: '#000',
-                            fontFamily: C.font,
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            letterSpacing: '0.15em',
-                            padding: '12px 28px',
-                            textDecoration: 'none',
-                            textTransform: 'uppercase',
-                        }}
-                    >
-                        START FREE — NO CREDIT CARD
-                    </Link>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <Link
+                            to="/signup"
+                            style={{
+                                display: 'inline-block',
+                                border: `1px solid ${C.accent}`,
+                                background: C.accent,
+                                color: '#000',
+                                fontFamily: C.font,
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                letterSpacing: '0.15em',
+                                padding: '12px 28px',
+                                textDecoration: 'none',
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            START FREE
+                        </Link>
+                        <Link
+                            to="/how-it-works"
+                            style={{
+                                display: 'inline-block',
+                                border: `1px solid ${C.border}`,
+                                color: C.subdued,
+                                fontFamily: C.font,
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                letterSpacing: '0.15em',
+                                padding: '12px 28px',
+                                textDecoration: 'none',
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            HOW IT WORKS
+                        </Link>
+                    </div>
                 </div>
             </section>
 
-            {/* ─── FOOTER ─── */}
+            {/* FOOTER */}
             <footer style={{ borderTop: `1px solid ${C.border}`, padding: '0', display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
                     <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>

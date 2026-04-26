@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
     Rocket,
     Zap,
@@ -9,8 +8,9 @@ import {
     Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+import PublicNavbar from '../components/PublicNavbar';
 import { COLORS } from '../theme/colors';
+
 const C = {
     bg:      COLORS.bg,
     accent:  COLORS.acid,
@@ -168,41 +168,13 @@ const RELEASES: Release[] = [
 
 export default function Changelog() {
     return (
-        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden' }}>
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden', paddingTop: 76 }}>
+            <PublicNavbar />
 
-            {/* ─── NAV STRIP ─── */}
-            <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', height: '36px' }}>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
-                    <Link to="/" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em' }}>SOTERIA</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/home" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOME ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/features" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ FEATURES ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/how-it-works" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOW IT WORKS ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/changelog" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ CHANGELOG ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ ABOUT ]</Link>
-                </div>
-                <div style={{ flex: 1 }} />
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/login" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ LOGIN ]</Link>
-                </div>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/signup" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700 }}>[ START FREE ]</Link>
-                </div>
-            </div>
-
-            {/* ─── PAGE TITLE STRIP ─── */}
+            {/* PAGE TITLE STRIP */}
             <div style={{ borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, color: C.text, fontWeight: 700, letterSpacing: '0.1em', fontSize: '11px' }}>
-                    DEVELOPER LOGS — SYSTEM LIFECYCLE
+                    SYSTEM LIFECYCLE
                 </div>
                 <div style={{ ...cellStyle, color: C.accent }}>[ LIVE ]</div>
                 <div style={{ ...cellStyle }}>{RELEASES.length} RELEASES</div>
@@ -211,31 +183,27 @@ export default function Changelog() {
                 <div style={{ ...cellStyle, borderRight: 'none' }}>UTC {new Date().toISOString().slice(11, 19)}</div>
             </div>
 
-            {/* ─── HEADER ─── */}
-            <section style={{ padding: '80px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
+            {/* HEADER */}
+            <section style={{ padding: '64px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ maxWidth: '800px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
                         <GitCommit size={14} style={{ color: C.accent }} />
-                        <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.2em', fontWeight: 700 }}>// DEVELOPER LOGS</span>
+                        <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>EVERY RELEASE. EVERY CHANGE.</span>
                     </div>
                     <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px', textTransform: 'uppercase', fontFamily: C.font }}>
                         SYSTEM LIFECYCLE
                     </h1>
-                    <p style={{ fontSize: '13px', color: C.subdued, lineHeight: 1.8 }}>
+                    <p style={{ fontSize: '13px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
                         Every architectural upgrade, security patch, and feature release mapped across the Soteria lifecycle.
                     </p>
                 </div>
             </section>
 
-            {/* ─── TIMELINE ─── */}
+            {/* TIMELINE */}
             <div style={{ padding: '0 48px 80px', maxWidth: '1200px' }}>
                 {RELEASES.map((release, index) => (
-                    <motion.div
+                    <div
                         key={release.version}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
                         style={{ borderBottom: `1px solid ${C.border}` }}
                     >
                         {/* Release header row */}
@@ -264,7 +232,6 @@ export default function Changelog() {
 
                         {/* Release body */}
                         <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr' }}>
-                            {/* Left: description + icon */}
                             <div style={{ borderRight: `1px solid ${C.border}`, padding: '24px 20px' }}>
                                 <div style={{ color: index === 0 ? C.accent : C.subdued, marginBottom: '12px' }}>
                                     <release.icon size={20} />
@@ -274,7 +241,6 @@ export default function Changelog() {
                                 </p>
                             </div>
 
-                            {/* Right: feature list */}
                             <div style={{ padding: '24px 28px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0' }}>
                                     {release.features.map((feature, i) => (
@@ -295,23 +261,18 @@ export default function Changelog() {
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
 
-                {/* Bottom status */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.3 }}
-                    style={{ paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}
-                >
+                <div style={{ paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Zap size={12} style={{ color: C.accent }} />
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.12em' }}>UPDATES AUTOMATICALLY SYNCHRONIZED — LAST SYNC: {new Date().toISOString().slice(0, 10)}</span>
-                </motion.div>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.12em' }}>
+                        LAST SYNC: {new Date().toISOString().slice(0, 10)}
+                    </span>
+                </div>
             </div>
 
-            {/* ─── FOOTER ─── */}
+            {/* FOOTER */}
             <footer style={{ borderTop: `1px solid ${C.border}`, padding: '0', display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
                     <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>

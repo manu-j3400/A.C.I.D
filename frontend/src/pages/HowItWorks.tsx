@@ -1,8 +1,8 @@
-import { motion } from 'framer-motion';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Terminal, BookOpen, Trophy, ArrowRight } from 'lucide-react';
-
+import PublicNavbar from '../components/PublicNavbar';
 import { COLORS } from '../theme/colors';
+
 const C = {
     bg:      COLORS.bg,
     accent:  COLORS.acid,
@@ -29,158 +29,37 @@ const cellStyle: React.CSSProperties = {
 
 export default function HowItWorks() {
     return (
-        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden' }}>
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden', paddingTop: 76 }}>
+            <PublicNavbar />
 
-            {/* ─── NAV STRIP ─── */}
-            <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.bg, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', height: '36px' }}>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
-                    <Link to="/" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em' }}>SOTERIA</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/home" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOME ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/features" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ FEATURES ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/how-it-works" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ HOW IT WORKS ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/changelog" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ CHANGELOG ]</Link>
-                </div>
-                <div style={{ ...cellStyle }}>
-                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ ABOUT ]</Link>
-                </div>
-                <div style={{ flex: 1 }} />
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/login" style={{ color: C.subdued, textDecoration: 'none', fontFamily: C.font, fontSize: '11px' }}>[ LOGIN ]</Link>
-                </div>
-                <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/signup" style={{ color: C.accent, textDecoration: 'none', fontFamily: C.font, fontSize: '11px', fontWeight: 700 }}>[ START FREE ]</Link>
-                </div>
-            </div>
-
-            {/* ─── PAGE TITLE STRIP ─── */}
+            {/* PAGE TITLE STRIP */}
             <div style={{ borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, color: C.text, fontWeight: 700, letterSpacing: '0.1em', fontSize: '11px' }}>
-                    HOW IT WORKS — METHODOLOGY
+                    HOW IT WORKS
                 </div>
                 <div style={{ ...cellStyle, color: C.accent }}>[ LIVE ]</div>
-                <div style={{ ...cellStyle }}>3 STEPS</div>
-                <div style={{ ...cellStyle }}>SCAN. LEARN. LEVEL UP.</div>
+                <div style={{ ...cellStyle }}>KYBER ENGINE — DETECTION PIPELINE</div>
                 <div style={{ flex: 1, borderRight: `1px solid ${C.border}` }} />
                 <div style={{ ...cellStyle, borderRight: 'none' }}>UTC {new Date().toISOString().slice(11, 19)}</div>
             </div>
 
-            {/* ─── HERO ─── */}
-            <section style={{ padding: '80px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                    <div style={{ display: 'inline-block', border: `1px solid ${C.border}`, padding: '4px 12px', marginBottom: '24px' }}>
-                        <span style={{ fontSize: '10px', color: C.accent, letterSpacing: '0.2em', fontWeight: 700 }}>// PROCESS OVERVIEW</span>
-                    </div>
-                    <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px', textTransform: 'uppercase', fontFamily: C.font }}>
-                        SCAN. LEARN.{' '}
-                        <span style={{ color: C.accent }}>LEVEL UP.</span>
+            {/* HERO */}
+            <section style={{ padding: '64px 48px 48px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ maxWidth: '840px' }}>
+                    <h1 style={{ fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 20px', textTransform: 'uppercase', fontFamily: C.font }}>
+                        FROM RAW CODE TO<br />
+                        <span style={{ color: C.accent }}>VERDICT IN 1.3 SECONDS.</span>
                     </h1>
-                    <p style={{ fontSize: '14px', color: C.subdued, maxWidth: '560px', lineHeight: 1.7 }}>
-                        Three deterministic steps from raw code to actionable security intelligence. No black boxes — full visibility at every stage.
+                    <p style={{ fontSize: '13px', color: C.subdued, maxWidth: '560px', lineHeight: 1.8, margin: 0 }}>
+                        Six deterministic stages — no black boxes. AST parsing through graph neural networks, with entropy and spike neural profiling in between. Here's every step.
                     </p>
                 </div>
             </section>
 
-            {/* ─── STEPS ─── */}
+            {/* PIPELINE — full width scrollable */}
             <section style={{ borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// EXECUTION PIPELINE — 3 STAGES</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    {[
-                        {
-                            icon: <Terminal size={24} />,
-                            num: '01',
-                            title: 'Paste Code',
-                            desc: 'Drop any code snippet into the scanner — Python, JavaScript, Go, Rust, SQL, and more. Files via drag-and-drop or direct paste.',
-                            detail: [
-                                'AST parse → feature extraction',
-                                '52-dimensional feature vector',
-                                'Multi-language support',
-                            ],
-                            accent: C.accent,
-                        },
-                        {
-                            icon: <BookOpen size={24} />,
-                            num: '02',
-                            title: 'Understand',
-                            desc: 'Get plain-English explanations of every vulnerability and how to fix it. GCN + SNN ensemble scoring with entropy pre-scan.',
-                            detail: [
-                                'Gemini 2.5 Pro explainer',
-                                'GCN control-flow analysis',
-                                'SNN temporal profiling',
-                            ],
-                            accent: C.amber,
-                        },
-                        {
-                            icon: <Trophy size={24} />,
-                            num: '03',
-                            title: 'Level Up',
-                            desc: 'Earn XP, climb the ranks, and build real security intuition over time. Every scan tracked in your personal history.',
-                            detail: [
-                                'XP system + rank progression',
-                                'Scan history + CSV export',
-                                'Security score trending',
-                            ],
-                            accent: C.text,
-                        },
-                    ].map((step, i) => (
-                        <motion.div
-                            key={step.num}
-                            initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
-                            style={{
-                                borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
-                                padding: '40px 32px',
-                            }}
-                        >
-                            {/* Step number + icon */}
-                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
-                                <div style={{ color: step.accent }}>{step.icon}</div>
-                                <div style={{ fontSize: '48px', fontWeight: 900, color: C.muted, lineHeight: 1 }}>{step.num}</div>
-                            </div>
-
-                            <div style={{ border: `1px solid ${C.border}`, padding: '4px 10px', display: 'inline-block', marginBottom: '16px' }}>
-                                <span style={{ fontSize: '10px', color: step.accent, fontWeight: 700, letterSpacing: '0.1em' }}>[ STEP {step.num} ]</span>
-                            </div>
-
-                            <h3 style={{ fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', color: C.text, marginBottom: '12px', lineHeight: 1.1 }}>{step.title}</h3>
-                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, marginBottom: '24px' }}>{step.desc}</p>
-
-                            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '16px' }}>
-                                {step.detail.map((d, j) => (
-                                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                        <span style={{ color: step.accent, fontSize: '10px' }}>+</span>
-                                        <span style={{ fontSize: '11px', color: C.subdued }}>{d}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {i < 2 && (
-                                <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <ArrowRight size={14} style={{ color: C.muted }} />
-                                    <span style={{ fontSize: '10px', color: C.muted, letterSpacing: '0.1em' }}>NEXT: STEP {String(i + 2).padStart(2, '0')}</span>
-                                </div>
-                            )}
-                        </motion.div>
-                    ))}
-                </div>
-            </section>
-
-            {/* ─── PIPELINE DIAGRAM ─── */}
-            <section style={{ borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// DETECTION ENGINE PIPELINE</span>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>DETECTION ENGINE PIPELINE</span>
                 </div>
                 <div style={{ padding: '40px 48px', overflowX: 'auto' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0', minWidth: '700px' }}>
@@ -209,23 +88,112 @@ export default function HowItWorks() {
                 </div>
             </section>
 
-            {/* ─── CTA ─── */}
+            {/* STEP DETAIL — 2-col asymmetric */}
             <section style={{ borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>// CALL TO ACTION</span>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>STAGE BREAKDOWN</span>
                 </div>
-                <div style={{ padding: '64px 48px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '24px' }}>
-                    <h2 style={{ fontSize: 'clamp(32px, 5vw, 60px)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1, margin: 0, fontFamily: C.font }}>
-                        READY TO WRITE<br />
-                        <span style={{ color: C.accent }}>SECURE CODE?</span>
-                    </h2>
-                    <p style={{ fontSize: '13px', color: C.subdued, margin: 0 }}>Stop guessing. Start knowing. Scan your first project in seconds.</p>
+
+                {[
+                    {
+                        num: '01',
+                        label: 'PASTE YOUR CODE',
+                        accent: C.accent,
+                        left: 'Drop any code into the scanner — Python, JavaScript, Go, Rust, TypeScript, Java, SQL. File upload (drag-and-drop) or direct paste. 30+ extensions accepted.',
+                        right: [
+                            'AST parse → feature extraction',
+                            '52-dimensional numeric feature vector',
+                            'Cyclomatic complexity, entropy, dangerous function frequencies',
+                            'Language auto-detection via 12 regex heuristics',
+                        ],
+                    },
+                    {
+                        num: '02',
+                        label: 'DETECTION PIPELINE RUNS',
+                        accent: C.amber,
+                        left: 'Entropy pre-scanner flags high-entropy literals (strings ≥ 5.0 bits, bytes ≥ 6.5 bits). SNN temporal profiler encodes 8-channel spike patterns. RF ensemble scores baseline. GCN graph attention convolution blends in when test F1 ≥ 0.70.',
+                        right: [
+                            'Entropy pre-scan: high-entropy string/bytes flagged pre-ML',
+                            'SNN: 8-channel LIF encoder — call/line/return/exception rates, derivative, burst, silence, phase',
+                            'RF acidModel.pkl — 52 AST features',
+                            'GCN GATConv — control-flow graph edges with 7-dim edge features',
+                        ],
+                    },
+                    {
+                        num: '03',
+                        label: 'PLAIN-ENGLISH VERDICT',
+                        accent: C.text,
+                        left: 'Every finding streams a Gemini 2.5 Pro explanation over SSE — first token under 400ms. What the vulnerability is, how an attacker exploits it, and the patched code. Full scan history saved; export to CSV anytime.',
+                        right: [
+                            'Gemini 2.5 Pro SSE — streams explanation in real time',
+                            'Patched code snippet with every finding',
+                            'Scan history: SQLite WAL, paginated, filterable',
+                            'CSV export + webhook on malicious result',
+                        ],
+                    },
+                ].map((step, i) => (
+                    <div
+                        key={step.num}
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: i < 2 ? `1px solid ${C.border}` : 'none' }}
+                    >
+                        <div style={{ padding: '36px 48px', borderRight: `1px solid ${C.border}` }}>
+                            <div style={{ fontSize: '48px', fontWeight: 900, color: C.muted, lineHeight: 1, marginBottom: '16px' }}>{step.num}</div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: step.accent, letterSpacing: '0.1em', marginBottom: '14px' }}>{step.label}</div>
+                            <p style={{ fontSize: '12px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>{step.left}</p>
+                        </div>
+                        <div style={{ padding: '36px 48px', background: i % 2 === 1 ? '#030303' : 'transparent' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '64px' }}>
+                                {step.right.map((item, j) => (
+                                    <div key={j} style={{ display: 'flex', gap: '10px', fontSize: '11px', color: C.subdued }}>
+                                        <span style={{ color: step.accent, flexShrink: 0 }}>→</span>
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </section>
+
+            {/* TIMING TABLE */}
+            <section style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ borderBottom: `1px solid ${C.border}`, padding: '0 48px', height: '36px', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>TIMING BREAKDOWN — TYPICAL SCAN (200 LOC)</span>
+                </div>
+                <div style={{ padding: '0 48px' }}>
+                    {[
+                        { phase: 'AST parse + feature extract', time: '~80ms', color: C.text },
+                        { phase: 'Entropy pre-scan', time: '~20ms', color: C.amber },
+                        { phase: 'SNN temporal profile', time: '~110ms', color: C.accent },
+                        { phase: 'RF ensemble inference', time: '~15ms', color: C.text },
+                        { phase: 'GCN graph inference (when active)', time: '~240ms', color: C.accent },
+                        { phase: 'Pattern + semgrep matching', time: '~180ms', color: C.subdued },
+                        { phase: 'Gemini SSE first token', time: '~380ms', color: C.muted },
+                    ].map((row, i, arr) => (
+                        <div
+                            key={row.phase}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                                height: '36px',
+                            }}
+                        >
+                            <div style={{ flex: 1, fontSize: '11px', color: C.subdued }}>{row.phase}</div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: row.color, minWidth: '90px', textAlign: 'right' }}>{row.time}</div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* CTA */}
+            <section style={{ padding: '64px 48px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ borderLeft: `3px solid ${C.accent}`, paddingLeft: '28px' }}>
+                    <p style={{ fontSize: '12px', color: C.muted, margin: '0 0 12px', letterSpacing: '0.1em' }}>READY TO RUN IT ON YOUR CODE?</p>
                     <Link
                         to="/signup"
                         style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '10px',
+                            display: 'inline-block',
                             border: `1px solid ${C.accent}`,
                             background: C.accent,
                             color: '#000',
@@ -238,12 +206,12 @@ export default function HowItWorks() {
                             textTransform: 'uppercase',
                         }}
                     >
-                        START FREE <ArrowRight size={14} />
+                        START FREE
                     </Link>
                 </div>
             </section>
 
-            {/* ─── FOOTER ─── */}
+            {/* FOOTER */}
             <footer style={{ borderTop: `1px solid ${C.border}`, padding: '0', display: 'flex', alignItems: 'stretch', height: '36px' }}>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}` }}>
                     <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>
