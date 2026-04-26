@@ -1,6 +1,6 @@
 /**
  * DesktopHome — Soteria OS Dashboard
- * Design: Weaponized Minimalism · JetBrains Mono · 0px radius · Acid green #ADFF2F
+ * Design: Weaponized Minimalism · JetBrains Mono · 0px radius · White accent #FFFFFF
  * Layout: Fixed sidebar + status strip + dual-panel command view
  */
 import React, { useState, useEffect } from 'react';

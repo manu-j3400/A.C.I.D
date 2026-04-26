@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
 
-const ACCENT = '#ADFF2F';
+const ACCENT = '#FFFFFF';
 const FONT = "'JetBrains Mono', 'Courier New', monospace";
 
 export default function GithubCallback() {

@@ -64,7 +64,7 @@ function detectEditorLang(backendLang: string | undefined, filename: string, cod
     const n = BACKEND_TO_MONACO[backendLang.toLowerCase()];
     if (n) return n;
   }
-  const ext = filename.includes('.') ? '.' + filename.split('.').pop()!.toLowerCase() : '';
+  const ext = filename && filename.includes('.') ? '.' + filename.split('.').pop()!.toLowerCase() : '';
   if (ext && EXT_TO_MONACO[ext]) return EXT_TO_MONACO[ext];
   for (const [pat, lang] of CODE_PATTERNS) if (pat.test(code)) return lang;
   return 'plaintext';

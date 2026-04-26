@@ -14,7 +14,7 @@ interface GraphNode {
 }
 interface GraphLink { source: string; target: string; color: string; }
 
-const ACID   = '#ADFF2F';
+const ACID   = '#FFFFFF';
 const RED    = '#FF3131';
 const AMBER  = '#FF8C00';
 const BORDER = '#1E1E1E';

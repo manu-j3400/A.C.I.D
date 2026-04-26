@@ -1,7 +1,7 @@
 export const COLORS = {
-  acid:    '#ADFF2F',
-  acidDim: '#8ACC1F',       // for light backgrounds (better contrast)
-  red:     '#E74C3C',       // softer than #FF3131
+  acid:    '#FFFFFF',
+  acidDim: '#D4D4D4',
+  red:     '#E74C3C',
   orange:  '#FF8C00',
   bg:      '#000000',
   surface: '#0D0D0D',
@@ -9,6 +9,6 @@ export const COLORS = {
   border:  '#1E1E1E',
   border2: '#2A2A2A',
   text:    '#E5E5E5',
-  sub:     '#999999',       // raised from #707070/#666 for contrast
+  sub:     '#999999',
   muted:   '#666666',
 } as const;

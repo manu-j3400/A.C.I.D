@@ -155,9 +155,9 @@ export default function AdminDashboard() {
                     position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
                     padding: '10px 18px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
                     letterSpacing: '0.08em', borderRadius: 0,
-                    background: exportToast.ok ? 'rgba(173,255,47,0.12)' : 'rgba(231,76,60,0.12)',
-                    border: `1px solid ${exportToast.ok ? '#ADFF2F' : '#E74C3C'}`,
-                    color: exportToast.ok ? '#ADFF2F' : '#E74C3C',
+                    background: exportToast.ok ? 'rgba(255,255,255,0.07)' : 'rgba(231,76,60,0.12)',
+                    border: `1px solid ${exportToast.ok ? '#FFFFFF' : '#E74C3C'}`,
+                    color: exportToast.ok ? '#FFFFFF' : '#E74C3C',
                 }}>
                     {exportToast.ok ? '✓' : '✕'} {exportToast.msg}
                 </div>
@@ -484,7 +484,7 @@ export default function AdminDashboard() {
                                         const color = risk_level === 'CRITICAL' || risk_level === 'HIGH'
                                             ? '#ef4444'
                                             : risk_level === 'MEDIUM' ? '#f59e0b'
-                                            : risk_level === 'LOW' ? '#ADFF2F'
+                                            : risk_level === 'LOW' ? '#E5E5E5'
                                             : '#404040';
                                         return (
                                             <div key={risk_level}>

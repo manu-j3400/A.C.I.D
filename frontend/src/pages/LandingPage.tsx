@@ -1,6 +1,6 @@
 /**
  * Soteria Landing Page
- * Design: Weaponized Minimalism · JetBrains Mono · Acid green #ADFF2F
+ * Design: Weaponized Minimalism · JetBrains Mono · White accent #FFFFFF
  */
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
@@ -82,11 +82,12 @@ function Terminal() {
             </div>
             <div style={{ padding: '18px 20px', minHeight: 320 }}>
                 {lines.map((line, i) => {
-                    const isCrit = line.includes('CRITICAL');
-                    const isHigh = line.includes('HIGH') && !line.includes('RISK');
-                    const isRisk = line.includes('RISK:');
-                    const isCmd  = line.startsWith('$');
-                    const isArrow = line.trim().startsWith('→');
+                    const safe  = line ?? '';
+                    const isCrit = safe.includes('CRITICAL');
+                    const isHigh = safe.includes('HIGH') && !safe.includes('RISK');
+                    const isRisk = safe.includes('RISK:');
+                    const isCmd  = safe.startsWith('$');
+                    const isArrow = safe.trim().startsWith('→');
                     return (
                         <div key={i} style={{
                             ...MONO, fontSize: 11, lineHeight: 1.75,
@@ -94,11 +95,11 @@ function Terminal() {
                                  : isHigh ? '#FF8C00'
                                  : isRisk ? C.acid
                                  : isCmd  ? C.text
-                                 : isArrow ? '#5AE65A'
+                                 : isArrow ? C.acid
                                  : C.sub,
                             whiteSpace: 'pre',
                         }}>
-                            {line || '\u00A0'}
+                            {safe || '\u00A0'}
                         </div>
                     );
                 })}

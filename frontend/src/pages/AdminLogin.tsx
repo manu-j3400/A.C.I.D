@@ -30,11 +30,11 @@ export default function AdminLogin() {
     return (
         <div className="min-h-screen bg-black flex items-center justify-center px-4 relative">
             {/* Orange/red glow background — distinct from user login's blue */}
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#ADFF2F]/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#FFFFFF]/5 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-950 border border-[#ADFF2F]/15 backdrop-blur-xl shadow-2xl shadow-black/30">
+            <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-950 border border-[#FFFFFF]/15 backdrop-blur-xl shadow-2xl shadow-black/30">
                 <div className="text-center mb-8">
-                    <div className="mx-auto w-14 h-14 rounded-xl bg-[#0D0D0D] border border-[#ADFF2F]/30 flex items-center justify-center mb-4">
+                    <div className="mx-auto w-14 h-14 rounded-xl bg-[#0D0D0D] border border-[#FFFFFF]/30 flex items-center justify-center mb-4">
                         <Shield className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">Admin Portal</h1>
@@ -50,7 +50,7 @@ export default function AdminLogin() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-[#ADFF2F]/40 focus:ring-1 focus:ring-[#ADFF2F]/15 transition-colors"
+                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-[#FFFFFF]/40 focus:ring-1 focus:ring-[#FFFFFF]/15 transition-colors"
                         />
                     </div>
                     <div>
@@ -61,7 +61,7 @@ export default function AdminLogin() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-[#ADFF2F]/40 focus:ring-1 focus:ring-[#ADFF2F]/15 transition-colors"
+                            className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-neutral-700 focus:outline-none focus:border-[#FFFFFF]/40 focus:ring-1 focus:ring-[#FFFFFF]/15 transition-colors"
                         />
                     </div>
 
@@ -70,7 +70,7 @@ export default function AdminLogin() {
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-[#ADFF2F] text-black hover:bg-[#C4FF52] py-6 rounded-xl font-bold transition-all"
+                        className="w-full bg-[#FFFFFF] text-black hover:bg-[#E0E0E0] py-6 rounded-xl font-bold transition-all"
                     >
                         <Shield className="w-4 h-4 mr-2" />
                         {loading ? <span style={{opacity:0.7}}>●●●</span> : 'Admin Sign In'}
