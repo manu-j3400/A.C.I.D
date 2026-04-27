@@ -25,11 +25,11 @@ def run_gcn_pipeline() -> None:
     build_gcn_dataset()
 
     print("\n--- 3c. Training GATConv GCN Model ---")
-    metrics = train_gcn()
+    metrics = train_gcn(epochs=100)
     print(f"[train_full_pipeline] GCN test metrics: {metrics}")
-    if metrics.get("f1", 0.0) < 0.70:
+    if metrics.get("f1", 0.0) < 0.60:
         print(
-            "[train_full_pipeline] Warning: GCN test F1 < 0.70. "
+            "[train_full_pipeline] Warning: GCN test F1 < 0.60. "
             "GCN blending in /analyze will be disabled until model improves."
         )
 

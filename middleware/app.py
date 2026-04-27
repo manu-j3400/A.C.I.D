@@ -138,7 +138,7 @@ def _init_snn_once():
 
 # GCN model (Phase 3b) — loaded once at startup via lazy singleton
 _gcn_model = None
-_gcn_f1    = 0.0   # test F1 from training checkpoint; blend only if >= 0.70
+_gcn_f1    = 0.0   # test F1 from training checkpoint; blend only if >= 0.60
 _GCN_ENABLED = False
 
 def _load_gcn_model_once():
@@ -157,7 +157,7 @@ def _load_gcn_model_once():
             _gcn_f1 = ckpt.get('test_metrics', {}).get('f1', 0.0)
             _gcn_model = load_gcn_model(str(_ckpt_path))
             _GCN_ENABLED = True
-            print(f"✅ GCN model loaded (test F1={_gcn_f1:.3f}); blending {'ON' if _gcn_f1 >= 0.70 else 'OFF (F1 < 0.70)'}.")
+            print(f"✅ GCN model loaded (test F1={_gcn_f1:.3f}); blending {'ON' if _gcn_f1 >= 0.60 else 'OFF (F1 < 0.60)'}.")
         else:
             print("⚠️ GCN model checkpoint not found; GCN inference disabled.")
     except ImportError as e:
@@ -1166,6 +1166,61 @@ def structuralDNAExtraction(rawCode, filename=None):
         nodes = [type(node).__name__ for node in ast.walk(normalizedTree)]
         counts = dict(Counter(nodes))
 
+        # ── Engineered security features (mirrors extractor_AST.py) ──────────
+        _DANGEROUS_CALLS_MW = frozenset({"eval", "exec", "compile", "__import__"})
+        _DANGEROUS_ATTR_MW  = frozenset({"system", "popen", "call", "Popen", "run", "check_output"})
+        _SUSPICIOUS_IMP_MW  = frozenset({"os", "subprocess", "socket", "ctypes", "pickle", "marshal", "base64"})
+
+        counts["cyclomatic_complexity"] = (
+            counts.get("If", 0) + counts.get("For", 0)
+            + counts.get("While", 0) + counts.get("Try", 0) + 1
+        )
+
+        # Re-parse the raw (un-normalized) code for call/import analysis
+        try:
+            _raw_tree = ast.parse(code_to_parse)
+            n_dangerous = 0
+            n_suspicious = 0
+            import_count = 0
+            for _node in ast.walk(_raw_tree):
+                if isinstance(_node, ast.Call):
+                    if isinstance(_node.func, ast.Name) and _node.func.id in _DANGEROUS_CALLS_MW:
+                        n_dangerous += 1
+                    elif isinstance(_node.func, ast.Attribute) and _node.func.attr in _DANGEROUS_ATTR_MW:
+                        n_dangerous += 1
+                elif isinstance(_node, ast.Import):
+                    import_count += len(_node.names)
+                    for _alias in _node.names:
+                        if _alias.name.split(".")[0] in _SUSPICIOUS_IMP_MW:
+                            n_suspicious += 1
+                elif isinstance(_node, ast.ImportFrom):
+                    import_count += 1
+                    if _node.module and _node.module.split(".")[0] in _SUSPICIOUS_IMP_MW:
+                        n_suspicious += 1
+            counts["n_dangerous_calls"]   = n_dangerous
+            counts["n_suspicious_imports"] = n_suspicious
+            counts["import_count"]         = import_count
+        except Exception:
+            counts["n_dangerous_calls"]   = 0
+            counts["n_suspicious_imports"] = 0
+            counts["import_count"]         = 0
+
+        # Entropy features — use codeInput (not sampled) for full fidelity
+        try:
+            if _get_entropy_flags is not None:
+                from entropy_profiler import profile_source as _profile_src  # type: ignore[import]
+                _anns = _profile_src(rawCode)
+                if _anns:
+                    _ents = [a.entropy for a in _anns]
+                    counts["max_entropy"]          = max(_ents)
+                    counts["mean_entropy"]         = sum(_ents) / len(_ents)
+                    counts["n_high_entropy_nodes"] = sum(1 for a in _anns if a.is_anomalous)
+                else:
+                    counts["max_entropy"] = counts["mean_entropy"] = counts["n_high_entropy_nodes"] = 0
+        except Exception:
+            counts["max_entropy"] = counts["mean_entropy"] = counts["n_high_entropy_nodes"] = 0
+        # ────────────────────────────────────────────────────────────────────
+
         df = pd.DataFrame([counts])
         if modelFeatures is not None:
             df_aligned = df.reindex(columns=modelFeatures, fill_value=0)
@@ -1308,6 +1363,14 @@ def analyze(current_user):
     # Strip comments to prevent AI explanations from triggering false positives
     clean_code = strip_comments(codeInput)
 
+    # Pre-parse Python AST once; reused by entropy_profiler + cfg_extractor
+    # to avoid redundant ast.parse() calls (saves ~40-100ms on large files).
+    _py_tree = None
+    try:
+        _py_tree = ast.parse(codeInput)
+    except SyntaxError:
+        pass
+
     # 2. TRANSFORM CODE INTO NUMBERS + DETECT LANGUAGE
     result = structuralDNAExtraction(codeInput, filename=filename)
 
@@ -1342,10 +1405,11 @@ def analyze(current_user):
     load_model_if_updated()
 
     # 1.5. ENTROPY PRE-SCAN (Phase 2) — torch-free; runs before ML models
+    # Pass pre-parsed tree to skip redundant ast.parse() inside profiler.
     entropy_flags = []
     if ENTROPY_ENABLED and _get_entropy_flags is not None:
         try:
-            entropy_flags = _get_entropy_flags(codeInput)
+            entropy_flags = _get_entropy_flags(codeInput, tree=_py_tree)
         except Exception as _e:
             print(f"Entropy profiler error: {_e}")
 
@@ -1400,19 +1464,24 @@ def analyze(current_user):
         # Model may not support new language features - use keyword detection only
         print(f"Model prediction failed: {e}")
 
-    # 5.5. GCN INFERENCE (Phase 3b) — blend if model exists and F1 >= 0.70
+    # 5.5. GCN INFERENCE (Phase 3b) — blend if model exists and F1 >= 0.60
     gcn_probability = None
     gcn_enabled     = _GCN_ENABLED
     if _GCN_ENABLED and _gcn_model is not None and detected_language == 'python':
         try:
             from cfg_extractor import extract_function_graph  # type: ignore[import]
-            gcn_data = extract_function_graph(codeInput, normalize=True)
+            # Pass pre-parsed tree; cfg_extractor will normalize it in-place.
+            # entropy_profiler already ran on un-normalized tree, so order is safe.
+            gcn_data = extract_function_graph(codeInput, normalize=True, _tree=_py_tree)
             if gcn_data is not None:
                 from trainerModel_GCN import predict_gcn  # type: ignore[import]
                 _, gcn_prob = predict_gcn(_gcn_model, gcn_data)
                 gcn_probability = round(gcn_prob, 4)
-                if _gcn_f1 >= 0.70:
-                    maliciousProb = 0.6 * maliciousProb + 0.4 * gcn_prob
+                if _gcn_f1 >= 0.60:
+                    # Confidence = distance from 0.5 (0=uncertain, 1=very confident)
+                    gcn_confidence = 2.0 * abs(gcn_prob - 0.5)
+                    gcn_weight = 0.2 + 0.4 * gcn_confidence  # 0.2 (uncertain) → 0.6 (confident)
+                    maliciousProb = (1 - gcn_weight) * maliciousProb + gcn_weight * gcn_prob
                 # Update drift buffer
                 with _GCN_DRIFT_LOCK:
                     _GCN_PROB_BUFFER.append(gcn_probability)

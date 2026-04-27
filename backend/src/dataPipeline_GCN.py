@@ -88,12 +88,20 @@ def build_gcn_dataset(
         if not folder.exists():
             print(f"[dataPipeline_GCN] Warning: {folder} does not exist, skipping.")
             continue
+        before = len(graphs)
+        file_count = 0
         for path in folder.rglob("*.py"):
             try:
                 source = path.read_text(encoding="utf-8", errors="replace")
                 _ingest(source, label)
+                file_count += 1
             except Exception as exc:
                 print(f"[dataPipeline_GCN] Skipping {path}: {exc}")
+        after = len(graphs)
+        print(
+            f"[dataPipeline_GCN] local/{subdir}: {file_count} files → "
+            f"{after - before} graphs"
+        )
 
     # --- HuggingFace CSV ---
     if HF_CSV.exists():
@@ -107,6 +115,8 @@ def build_gcn_dataset(
                 (c for c in df.columns if "label" in c.lower() or "malicious" in c.lower()), None
             )
             if code_col and label_col:
+                row_count = len(df)
+                before = len(graphs)
                 for _, row in df.iterrows():
                     try:
                         raw = str(row[code_col]).strip()
@@ -119,7 +129,12 @@ def build_gcn_dataset(
                         _ingest(raw, lbl)
                     except Exception:
                         pass
-                print(f"[dataPipeline_GCN] Ingested HuggingFace CSV: {HF_CSV}")
+                after = len(graphs)
+                yield_pct = (after - before) / row_count * 100 if row_count else 0
+                print(
+                    f"[dataPipeline_GCN] HuggingFace CSV: {row_count} rows → "
+                    f"{after - before} graphs ({yield_pct:.1f}% yield)"
+                )
             else:
                 print(
                     f"[dataPipeline_GCN] Could not identify code/label columns in {HF_CSV}. "
@@ -129,7 +144,9 @@ def build_gcn_dataset(
             print(f"[dataPipeline_GCN] HuggingFace CSV load failed: {exc}")
 
     total = len(graphs)
-    print(f"[dataPipeline_GCN] Total graphs after dedup: {total}")
+    n_mal = sum(1 for g in graphs if g.y is not None and int(g.y.item()) == 1)
+    n_ben = total - n_mal
+    print(f"[dataPipeline_GCN] Total graphs after dedup: {total} (benign={n_ben} malicious={n_mal} ratio={n_ben/max(n_mal,1):.1f}:1)")
 
     if total < 100:
         warnings.warn(
@@ -156,6 +173,53 @@ def build_gcn_dataset(
         train = graphs[:n_train]
         val   = graphs[n_train : n_train + n_val]
         test  = graphs[n_train + n_val :]
+
+    # --- Augment malicious graphs in train only (no leakage into val/test) ---
+    import torch as _torch
+    from torch_geometric.data import Data as _Data
+
+    train_mal = [g for g in train if g.y is not None and int(g.y.item()) == 1]
+    train_ben = [g for g in train if g.y is None or int(g.y.item()) == 0]
+    ratio = len(train_ben) / max(len(train_mal), 1)
+
+    if ratio > 5 and len(train_mal) > 0:
+        # Augment until ratio ≤ 5:1 or max 8 augments per graph
+        target_mal = len(train_ben) // 5
+        need       = target_mal - len(train_mal)
+        augments_per = min(8, max(1, -(-need // max(len(train_mal), 1))))  # ceil div
+
+        augmented: list = []
+        _aug_seed = 0
+        for g in train_mal:
+            for _ in range(augments_per):
+                _torch.manual_seed(_aug_seed); _aug_seed += 1
+                # Edge dropout: randomly remove 15% of edges
+                ei, ea = g.edge_index, g.edge_attr
+                if ei.size(1) > 2:
+                    keep = _torch.rand(ei.size(1)) >= 0.15
+                    # Always keep at least 2 edges to preserve graph structure
+                    if keep.sum() < 2:
+                        keep[:2] = True
+                    ei = ei[:, keep]
+                    ea = ea[keep] if ea is not None else None
+                aug = _Data(x=g.x.clone(), edge_index=ei, edge_attr=ea, y=g.y.clone())
+                h = _hash_graph(aug)
+                if h not in seen:
+                    seen.add(h)
+                    augmented.append(aug)
+                if len(train_mal) + len(augmented) >= target_mal:
+                    break
+            if len(train_mal) + len(augmented) >= target_mal:
+                break
+
+        train = train_ben + train_mal + augmented
+        random.seed(43)
+        random.shuffle(train)
+        n_aug_mal = len(train_mal) + len(augmented)
+        print(
+            f"[dataPipeline_GCN] Augmented malicious: {len(train_mal)} → {n_aug_mal} "
+            f"(+{len(augmented)} synthetic). New train ratio={len(train_ben)/max(n_aug_mal,1):.1f}:1"
+        )
 
     print(f"[dataPipeline_GCN] Split → train={len(train)} val={len(val)} test={len(test)}")
 
