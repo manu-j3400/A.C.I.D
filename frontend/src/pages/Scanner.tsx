@@ -80,7 +80,21 @@ interface AnalysisResult {
   status: 'waiting' | 'loading' | 'malicious' | 'clean' | 'error';
   message?: string; confidence?: number; riskLevel?: string;
   language?: string; summary?: string;
-  metadata?: { nodes_scanned?: number; engine?: string; process_time?: string; };
+  metadata?: {
+    nodes_scanned?: number;
+    engine?: string;
+    process_time?: string;
+    gcn_probability?: number | null;
+    gcn_enabled?: boolean;
+    snn_temporal?: {
+      anomaly_prob: number;
+      is_anomalous: boolean;
+      isi_cv: number;
+      firing_rate_hz: number;
+      n_events: number;
+      inference_ms: number;
+    } | null;
+  };
   vulnerabilities?: VulnerabilityItem[];
 }
 interface HistoryItem {
@@ -704,6 +718,53 @@ export default function Scanner() {
                       )}
                       {result.metadata.engine && (
                         <MetaCell label="ENGINE" value={result.metadata.engine.split('+')[0].trim()} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Engine Signal Panel — GCN + SNN */}
+                  {result.metadata && (result.metadata.gcn_probability != null || result.metadata.snn_temporal) && (
+                    <div style={{ marginBottom: 20, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                      {/* GCN structural row */}
+                      {result.metadata.gcn_probability != null && (
+                        <div style={{ padding: '10px 14px', borderBottom: result.metadata.snn_temporal ? `1px solid ${C.border}` : 'none' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                            <span style={{ fontSize: 8, color: C.subdued, letterSpacing: '0.12em' }}>GCN STRUCT</span>
+                            <span style={{ fontSize: 10, color: result.metadata.gcn_probability > 0.5 ? C.red : C.acid, fontFamily: "'JetBrains Mono', monospace" }}>
+                              {(result.metadata.gcn_probability * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ height: 2, background: C.border, width: '100%' }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${result.metadata.gcn_probability * 100}%`,
+                              background: result.metadata.gcn_probability > 0.5 ? C.red : C.acid,
+                              transition: 'width 0.4s ease',
+                            }} />
+                          </div>
+                        </div>
+                      )}
+                      {/* SNN temporal row */}
+                      {result.metadata.snn_temporal && (
+                        <div style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                            <span style={{ fontSize: 8, color: C.subdued, letterSpacing: '0.12em' }}>SNN TEMPORAL</span>
+                            <span style={{ fontSize: 10, color: result.metadata.snn_temporal.is_anomalous ? C.red : C.acid, fontFamily: "'JetBrains Mono', monospace" }}>
+                              {(result.metadata.snn_temporal.anomaly_prob * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ height: 2, background: C.border, width: '100%', marginBottom: 4 }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${result.metadata.snn_temporal.anomaly_prob * 100}%`,
+                              background: result.metadata.snn_temporal.is_anomalous ? C.red : C.acid,
+                              transition: 'width 0.4s ease',
+                            }} />
+                          </div>
+                          <div style={{ fontSize: 8, color: C.subdued, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.08em' }}>
+                            ISI-CV: {result.metadata.snn_temporal.isi_cv.toFixed(2)}&nbsp;&nbsp;RATE: {result.metadata.snn_temporal.firing_rate_hz.toFixed(1)} Hz
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

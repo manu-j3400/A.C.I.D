@@ -695,7 +695,7 @@ export default function DesktopHome() {
                 SELECT 2 TO COMPARE
               </span>
               <span className="text-[9px] ml-auto" style={{ color: C.faint, ...MONO }}>
-                KYBER ENGINE v2.0
+                KYBER ENGINE v3.0
               </span>
             </div>
           </div>
