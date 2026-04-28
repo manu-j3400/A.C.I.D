@@ -22,6 +22,9 @@ const C = {
     sub:    COLORS.sub,
 };
 
+const MONO = "'JetBrains Mono', monospace";
+const SANS = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+
 export default function Login() {
     const { login, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
@@ -46,7 +49,7 @@ export default function Login() {
     const handleGoogleSignIn = async () => {
         setError(''); setLoading(true);
         try { await signInWithGoogle(); }
-        catch (err: unknown) { setError(err instanceof Error ? err.message : 'GOOGLE SIGN-IN FAILED'); }
+        catch (err: unknown) { setError(err instanceof Error ? err.message : 'Google sign-in failed.'); }
         finally { setLoading(false); }
     };
 
@@ -54,13 +57,13 @@ export default function Login() {
         <div style={{
             minHeight: '100vh', background: '#000', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace", color: C.text,
+            fontFamily: SANS, color: C.text,
         }}>
             {/* Corner marks */}
-            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em', fontFamily: MONO }}>
                 SOTERIA / AUTHENTICATE
             </div>
-            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 11, color: C.muted, letterSpacing: '0.1em', fontFamily: MONO }}>
                 [ SECURE ]
             </div>
 
@@ -73,10 +76,10 @@ export default function Login() {
                     padding: '14px 20px', borderBottom: `1px solid ${C.border}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 }}>
-                    <div style={{ fontSize: 11, color: C.sub, letterSpacing: '0.12em' }}>Sign In</div>
+                    <div style={{ fontFamily: SANS, fontSize: 12, color: C.sub }}>Sign in</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.acid, display: 'inline-block' }} />
-                        <span style={{ fontSize: 11, color: C.acid }}>LIVE</span>
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: C.acid }}>LIVE</span>
                     </div>
                 </div>
 
@@ -85,21 +88,21 @@ export default function Login() {
                     <Link to="/home">
                         <img src="/soteria-logo.png" alt="Soteria" style={{ width: 48, height: 48, objectFit: 'cover', margin: '0 auto 12px', display: 'block' }} />
                     </Link>
-                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
-                    <div style={{ fontSize: 11, color: C.sub, letterSpacing: '0.1em' }}>SECURITY INTELLIGENCE PLATFORM</div>
+                    <div style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
+                    <div style={{ fontFamily: SANS, fontSize: 12, color: C.sub }}>Security intelligence platform</div>
                 </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={{ padding: 20 }}>
                     {/* Email */}
                     <div style={{ marginBottom: 12 }}>
-                        <label style={{ fontSize: 11, color: C.sub, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Email Address</label>
+                        <label style={{ fontFamily: SANS, fontSize: 12, color: C.sub, display: 'block', marginBottom: 6 }}>Email address</label>
                         <input
                             type="email" value={email} onChange={e => setEmail(e.target.value)}
                             placeholder="operator@domain.com" required
                             style={{
                                 width: '100%', background: '#000', border: `1px solid ${C.border}`,
-                                outline: 'none', padding: '9px 12px', fontFamily: "'JetBrains Mono', monospace",
+                                outline: 'none', padding: '9px 12px', fontFamily: MONO,
                                 fontSize: 11, color: C.text, boxSizing: 'border-box',
                                 transition: 'border-color 0.15s',
                             }}
@@ -111,12 +114,12 @@ export default function Login() {
                     {/* Password */}
                     <div style={{ marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <label style={{ fontSize: 11, color: C.sub, letterSpacing: '0.06em' }}>Password</label>
-                            <Link to="/forgot-password" style={{ fontSize: 11, color: C.sub, textDecoration: 'none', letterSpacing: '0.08em' }}
+                            <label style={{ fontFamily: SANS, fontSize: 12, color: C.sub }}>Password</label>
+                            <Link to="/forgot-password" style={{ fontFamily: SANS, fontSize: 12, color: C.sub, textDecoration: 'none' }}
                                 onMouseEnter={e => ((e.target as HTMLElement).style.color = C.text)}
                                 onMouseLeave={e => ((e.target as HTMLElement).style.color = C.sub)}
                             >
-                                FORGOT?
+                                Forgot?
                             </Link>
                         </div>
                         <div style={{ position: 'relative' }}>
@@ -127,7 +130,7 @@ export default function Login() {
                                 style={{
                                     width: '100%', background: '#000', border: `1px solid ${C.border}`,
                                     outline: 'none', padding: '9px 36px 9px 12px',
-                                    fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                                    fontFamily: MONO, fontSize: 11,
                                     color: C.text, boxSizing: 'border-box', transition: 'border-color 0.15s',
                                 }}
                                 onFocus={e => (e.target.style.borderColor = C.acid)}
@@ -137,7 +140,7 @@ export default function Login() {
                                 style={{
                                     position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
                                     background: 'none', border: 'none', color: C.muted, cursor: 'pointer',
-                                    fontSize: 10, letterSpacing: '0.06em', fontFamily: "'JetBrains Mono', monospace",
+                                    fontSize: 10, letterSpacing: '0.06em', fontFamily: MONO,
                                 }}
                                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                             >
@@ -148,8 +151,8 @@ export default function Login() {
 
                     {/* Error */}
                     {error && (
-                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 11, color: C.red, letterSpacing: '0.06em' }}>
-                            ! {error}
+                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontFamily: SANS, fontSize: 12, color: C.red }}>
+                            {error}
                         </div>
                     )}
 
@@ -161,7 +164,7 @@ export default function Login() {
                             background: loading ? C.dim : C.acid,
                             border: `1px solid ${loading ? C.muted : C.acid}`,
                             color: loading ? C.sub : '#000',
-                            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                            fontFamily: MONO, fontSize: 11,
                             fontWeight: 700, letterSpacing: '0.1em', cursor: loading ? 'not-allowed' : 'pointer',
                             marginBottom: 12, transition: 'background 0.15s',
                         }}
@@ -172,7 +175,7 @@ export default function Login() {
                     {/* Divider */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0', color: C.muted }}>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
-                        <span style={{ fontSize: 11, letterSpacing: '0.1em' }}>OR</span>
+                        <span style={{ fontFamily: SANS, fontSize: 12 }}>or</span>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
                     </div>
 
@@ -182,8 +185,8 @@ export default function Login() {
                         style={{
                             width: '100%', padding: '10px 0', background: 'transparent',
                             border: `1px solid ${C.border}`, color: C.text,
-                            fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
-                            letterSpacing: '0.08em', cursor: loading ? 'not-allowed' : 'pointer',
+                            fontFamily: SANS, fontSize: 13,
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                             transition: 'border-color 0.15s, color 0.15s',
                         }}
@@ -191,19 +194,19 @@ export default function Login() {
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; }}
                     >
                         <GoogleIcon />
-                        SIGN IN WITH GOOGLE
+                        Sign in with Google
                     </button>
                 </form>
 
                 {/* Footer */}
                 <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 11, color: C.sub }}>
-                        NO ACCOUNT?{' '}
+                    <span style={{ fontFamily: SANS, fontSize: 13, color: C.sub }}>
+                        No account?{' '}
                         <Link to="/signup" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}
                             onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.7')}
                             onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
                         >
-                            REGISTER
+                            Sign up
                         </Link>
                     </span>
                 </div>

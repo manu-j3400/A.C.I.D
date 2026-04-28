@@ -23,6 +23,9 @@ const C = {
     font:    "'JetBrains Mono', monospace",
 };
 
+const MONO: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
+const SANS: React.CSSProperties = { fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" };
+
 const cellStyle: React.CSSProperties = {
     borderRight: `1px solid ${C.border}`,
     padding: '0 16px',
@@ -168,7 +171,7 @@ const RELEASES: Release[] = [
 
 export default function Changelog() {
     return (
-        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: C.font, overflowX: 'hidden', paddingTop: 76 }}>
+        <div style={{ minHeight: '100vh', background: C.bg, color: C.text, overflowX: 'hidden', paddingTop: 76 }}>
             <PublicNavbar />
 
             {/* PAGE TITLE STRIP */}
@@ -188,12 +191,12 @@ export default function Changelog() {
                 <div style={{ maxWidth: '800px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
                         <GitCommit size={14} style={{ color: C.accent }} />
-                        <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>EVERY RELEASE. EVERY CHANGE.</span>
+                        <span style={{ ...MONO, fontSize: '10px', color: C.subdued, letterSpacing: '0.15em' }}>EVERY RELEASE. EVERY CHANGE.</span>
                     </div>
-                    <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px', textTransform: 'uppercase', fontFamily: C.font }}>
-                        SYSTEM LIFECYCLE
+                    <h1 style={{ ...SANS, fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 16px' }}>
+                        System lifecycle
                     </h1>
-                    <p style={{ fontSize: '13px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
+                    <p style={{ ...SANS, fontSize: '14px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
                         Every architectural upgrade, security patch, and feature release mapped across the Soteria lifecycle.
                     </p>
                 </div>
@@ -214,7 +217,7 @@ export default function Changelog() {
                             <div style={{ ...cellStyle, borderRight: `1px solid ${C.border}`, color: C.subdued, minWidth: '160px' }}>
                                 {release.date}
                             </div>
-                            <div style={{ ...cellStyle, flex: 1, color: C.text, fontWeight: 600 }}>
+                            <div style={{ ...cellStyle, ...SANS, flex: 1, color: C.text, fontWeight: 600, fontSize: '12px' }}>
                                 {release.title}
                             </div>
                             <div style={{
@@ -236,7 +239,7 @@ export default function Changelog() {
                                 <div style={{ color: index === 0 ? C.accent : C.subdued, marginBottom: '12px' }}>
                                     <release.icon size={20} />
                                 </div>
-                                <p style={{ fontSize: '11px', color: C.subdued, lineHeight: 1.8 }}>
+                                <p style={{ ...SANS, fontSize: '13px', color: C.subdued, lineHeight: 1.8, margin: 0 }}>
                                     {release.description}
                                 </p>
                             </div>
@@ -254,8 +257,8 @@ export default function Changelog() {
                                                 borderBottom: i < release.features.length - 1 ? `1px solid ${C.border}` : 'none',
                                             }}
                                         >
-                                            <Terminal size={10} style={{ color: C.muted, marginTop: '3px', flexShrink: 0 }} />
-                                            <span style={{ fontSize: '11px', color: C.subdued, lineHeight: 1.7 }}>{feature}</span>
+                                            <Terminal size={10} style={{ color: C.muted, marginTop: '4px', flexShrink: 0 }} />
+                                            <span style={{ ...SANS, fontSize: '12px', color: C.subdued, lineHeight: 1.7 }}>{feature}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -266,7 +269,7 @@ export default function Changelog() {
 
                 <div style={{ paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Zap size={12} style={{ color: C.accent }} />
-                    <span style={{ fontSize: '10px', color: C.subdued, letterSpacing: '0.12em' }}>
+                    <span style={{ ...MONO, fontSize: '10px', color: C.subdued, letterSpacing: '0.12em' }}>
                         LAST SYNC: {new Date().toISOString().slice(0, 10)}
                     </span>
                 </div>
@@ -278,14 +281,14 @@ export default function Changelog() {
                     <Link to="/" style={{ color: C.text, textDecoration: 'none', fontWeight: 700, letterSpacing: '0.15em', fontSize: '11px' }}>SOTERIA</Link>
                 </div>
                 <div style={{ ...cellStyle }}>
-                    <span style={{ color: C.muted }}>© {new Date().getFullYear()} SOTERIA. BUILT FOR BUILDERS.</span>
+                    <span style={{ color: C.muted }}>© {new Date().getFullYear()} Soteria. Built for builders.</span>
                 </div>
                 <div style={{ flex: 1 }} />
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>ABOUT</Link>
+                    <Link to="/about" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>About</Link>
                 </div>
                 <div style={{ ...cellStyle, borderLeft: `1px solid ${C.border}`, borderRight: 'none' }}>
-                    <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>OPEN SOURCE</a>
+                    <a href="https://github.com/manujawahar/ACID" target="_blank" rel="noopener noreferrer" style={{ color: C.subdued, textDecoration: 'none', fontSize: '11px' }}>Open source</a>
                 </div>
             </footer>
         </div>

@@ -18,9 +18,12 @@ const C = {
     text: COLORS.text, sub: COLORS.sub,
 };
 
+const MONO = "'JetBrains Mono', monospace";
+const SANS = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+
 const inputStyle: React.CSSProperties = {
     width: '100%', background: '#000', border: `1px solid #1E1E1E`,
-    outline: 'none', padding: '9px 12px', fontFamily: "'JetBrains Mono', monospace",
+    outline: 'none', padding: '9px 12px', fontFamily: MONO,
     fontSize: 11, color: '#E5E5E5', boxSizing: 'border-box' as const,
     transition: 'border-color 0.15s',
 };
@@ -39,7 +42,7 @@ export default function Signup() {
         e.preventDefault(); setError(''); setEmailExists(false); setLoading(true);
         try { await signup(name, email, password); navigate('/dashboard'); }
         catch (err: any) {
-            const msg: string = err.message || 'SIGNUP FAILED';
+            const msg: string = err.message || 'Signup failed.';
             if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || err.status === 409) setEmailExists(true);
             else setError(msg);
         } finally { setLoading(false); }
@@ -48,7 +51,7 @@ export default function Signup() {
     const handleGoogleSignIn = async () => {
         setError(''); setLoading(true);
         try { await signInWithGoogle(); }
-        catch (err: unknown) { setError(err instanceof Error ? err.message : 'GOOGLE SIGN-UP FAILED'); }
+        catch (err: unknown) { setError(err instanceof Error ? err.message : 'Google sign-up failed.'); }
         finally { setLoading(false); }
     };
 
@@ -56,19 +59,19 @@ export default function Signup() {
         <div style={{
             minHeight: '100vh', background: '#000', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace", color: C.text,
+            fontFamily: SANS, color: C.text,
         }}>
-            <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, fontFamily: MONO, fontSize: 10, color: C.muted, letterSpacing: '0.1em' }}>
                 SOTERIA / REGISTER
             </div>
-            <div style={{ position: 'absolute', top: 20, right: 20, fontSize: 9, color: C.muted, letterSpacing: '0.1em' }}>
+            <div style={{ position: 'absolute', top: 20, right: 20, fontFamily: MONO, fontSize: 10, color: C.muted, letterSpacing: '0.1em' }}>
                 [ NEW ACCOUNT ]
             </div>
 
             <div style={{ width: '100%', maxWidth: 400, border: `1px solid ${C.border}`, background: C.dim }}>
                 {/* Header */}
                 <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.12em' }}>CREATE OPERATOR ACCOUNT</div>
+                    <div style={{ fontFamily: SANS, fontSize: 12, color: C.sub }}>Create account</div>
                 </div>
 
                 {/* Logo */}
@@ -76,19 +79,19 @@ export default function Signup() {
                     <Link to="/home">
                         <img src="/soteria-logo.png" alt="Soteria" style={{ width: 48, height: 48, objectFit: 'cover', margin: '0 auto 12px', display: 'block' }} />
                     </Link>
-                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
-                    <div style={{ fontSize: 9, color: C.sub, letterSpacing: '0.1em' }}>SECURITY INTELLIGENCE PLATFORM</div>
+                    <div style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 4 }}>SOTERIA</div>
+                    <div style={{ fontFamily: SANS, fontSize: 12, color: C.sub }}>Security intelligence platform</div>
                 </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={{ padding: 20 }}>
                     {[
-                        { label: 'OPERATOR NAME', type: 'text', val: name, set: setName, placeholder: 'Your name', required: true },
-                        { label: 'EMAIL ADDRESS', type: 'email', val: email, set: setEmail, placeholder: 'operator@domain.com', required: true },
-                        { label: 'PASSWORD', type: 'password', val: password, set: setPassword, placeholder: 'Min. 6 characters', required: true, minLength: 6 },
+                        { label: 'Name', type: 'text', val: name, set: setName, placeholder: 'Your name', required: true },
+                        { label: 'Email address', type: 'email', val: email, set: setEmail, placeholder: 'operator@domain.com', required: true },
+                        { label: 'Password', type: 'password', val: password, set: setPassword, placeholder: 'Min. 6 characters', required: true, minLength: 6 },
                     ].map(({ label, type, val, set, placeholder, required, minLength }) => (
                         <div key={label} style={{ marginBottom: 12 }}>
-                            <label style={{ fontSize: 8, color: C.sub, letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>{label}</label>
+                            <label style={{ fontFamily: SANS, fontSize: 12, color: C.sub, display: 'block', marginBottom: 6 }}>{label}</label>
                             <input
                                 type={type} value={val} onChange={e => set(e.target.value)}
                                 placeholder={placeholder} required={required}
@@ -101,17 +104,17 @@ export default function Signup() {
                     ))}
 
                     {error && (
-                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontSize: 9, color: C.red, letterSpacing: '0.06em' }}>
-                            ! {error}
+                        <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,49,49,0.06)', border: `1px solid rgba(255,49,49,0.3)`, fontFamily: SANS, fontSize: 12, color: C.red }}>
+                            {error}
                         </div>
                     )}
 
                     {emailExists && (
-                        <div style={{ marginBottom: 12, padding: '10px 12px', background: 'rgba(255,140,0,0.06)', border: `1px solid rgba(255,140,0,0.3)`, fontSize: 9, color: C.amber, lineHeight: 1.8 }}>
-                            ! EMAIL ALREADY REGISTERED.{' '}
-                            <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>SIGN IN</Link>
-                            {' '}OR{' '}
-                            <Link to="/forgot-password" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>RESET PASSWORD</Link>
+                        <div style={{ marginBottom: 12, padding: '10px 12px', background: 'rgba(255,140,0,0.06)', border: `1px solid rgba(255,140,0,0.3)`, fontFamily: SANS, fontSize: 12, color: C.amber, lineHeight: 1.8 }}>
+                            Email already registered.{' '}
+                            <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>Sign in</Link>
+                            {' '}or{' '}
+                            <Link to="/forgot-password" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>reset your password</Link>
                         </div>
                     )}
 
@@ -122,7 +125,7 @@ export default function Signup() {
                             background: loading ? C.dim : C.acid,
                             border: `1px solid ${loading ? C.muted : C.acid}`,
                             color: loading ? C.sub : '#000',
-                            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                            fontFamily: MONO, fontSize: 11,
                             fontWeight: 700, letterSpacing: '0.1em', cursor: loading ? 'not-allowed' : 'pointer',
                             marginBottom: 12, transition: 'background 0.15s',
                         }}
@@ -132,7 +135,7 @@ export default function Signup() {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0', color: C.muted }}>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
-                        <span style={{ fontSize: 8, letterSpacing: '0.1em' }}>OR</span>
+                        <span style={{ fontFamily: SANS, fontSize: 12 }}>or</span>
                         <div style={{ flex: 1, height: 1, background: C.border }} />
                     </div>
 
@@ -141,8 +144,8 @@ export default function Signup() {
                         style={{
                             width: '100%', padding: '10px 0', background: 'transparent',
                             border: `1px solid ${C.border}`, color: C.text,
-                            fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
-                            letterSpacing: '0.08em', cursor: loading ? 'not-allowed' : 'pointer',
+                            fontFamily: SANS, fontSize: 13,
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                             transition: 'border-color 0.15s',
                         }}
@@ -150,14 +153,14 @@ export default function Signup() {
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; }}
                     >
                         <GoogleIcon />
-                        SIGN UP WITH GOOGLE
+                        Sign up with Google
                     </button>
                 </form>
 
                 <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 9, color: C.sub }}>
-                        HAVE AN ACCOUNT?{' '}
-                        <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>SIGN IN</Link>
+                    <span style={{ fontFamily: SANS, fontSize: 13, color: C.sub }}>
+                        Already have an account?{' '}
+                        <Link to="/login" style={{ color: C.acid, textDecoration: 'none', fontWeight: 700 }}>Sign in</Link>
                     </span>
                 </div>
             </div>
