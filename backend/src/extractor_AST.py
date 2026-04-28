@@ -3,15 +3,89 @@ import ast
 from collections import Counter
 from pathlib import Path
 
+_DANGEROUS_CALLS = frozenset({
+    "eval", "exec", "compile", "__import__",
+})
+_DANGEROUS_ATTR_CALLS = frozenset({
+    "system",   # os.system
+    "popen",    # os.popen
+    "call", "Popen", "run", "check_output",  # subprocess
+})
+_SUSPICIOUS_IMPORTS = frozenset({
+    "os", "subprocess", "socket", "ctypes",
+    "pickle", "marshal", "base64",
+})
+
+
 def get_Node_Counts(sourceCode=""):
     """
-    Counts the occurrences of each AST node type in the code.
+    Counts AST node types plus 7 engineered security features.
     """
 
     try:
         tree = ast.parse(sourceCode)
-        nodeCount = [type(node).__name__ for node in ast.walk(tree)]  # Walk the tree and collect the name of every node type (eg., Call, Import, Assign)
-        return dict(Counter(nodeCount))
+        nodeCount = [type(node).__name__ for node in ast.walk(tree)]
+        counts = dict(Counter(nodeCount))
+
+        # ── Engineered features ──────────────────────────────────────────────
+        # cyclomatic complexity proxy
+        cc = (
+            counts.get("If", 0)
+            + counts.get("For", 0)
+            + counts.get("While", 0)
+            + counts.get("Try", 0)
+            + 1
+        )
+        counts["cyclomatic_complexity"] = cc
+
+        # dangerous call count: eval/exec/compile/__import__
+        n_dangerous = 0
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id in _DANGEROUS_CALLS:
+                    n_dangerous += 1
+                elif isinstance(node.func, ast.Attribute) and node.func.attr in _DANGEROUS_ATTR_CALLS:
+                    n_dangerous += 1
+        counts["n_dangerous_calls"] = n_dangerous
+
+        # suspicious import count
+        n_suspicious = 0
+        import_count = 0
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                import_count += len(node.names)
+                for alias in node.names:
+                    base = alias.name.split(".")[0]
+                    if base in _SUSPICIOUS_IMPORTS:
+                        n_suspicious += 1
+            elif isinstance(node, ast.ImportFrom):
+                import_count += 1
+                if node.module:
+                    base = node.module.split(".")[0]
+                    if base in _SUSPICIOUS_IMPORTS:
+                        n_suspicious += 1
+        counts["n_suspicious_imports"] = n_suspicious
+        counts["import_count"] = import_count
+
+        # entropy features — delegate to entropy_profiler
+        try:
+            from entropy_profiler import profile_source  # type: ignore[import]
+            annotations = profile_source(sourceCode)
+            if annotations:
+                entropies = [a.entropy for a in annotations]
+                counts["max_entropy"] = max(entropies)
+                counts["mean_entropy"] = sum(entropies) / len(entropies)
+                counts["n_high_entropy_nodes"] = sum(1 for a in annotations if a.is_anomalous)
+            else:
+                counts["max_entropy"] = 0.0
+                counts["mean_entropy"] = 0.0
+                counts["n_high_entropy_nodes"] = 0
+        except Exception:
+            counts["max_entropy"] = 0.0
+            counts["mean_entropy"] = 0.0
+            counts["n_high_entropy_nodes"] = 0
+
+        return counts
 
     except Exception as e:
         return e

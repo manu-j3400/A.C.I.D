@@ -930,6 +930,7 @@ def extract_function_graph(
     source_or_func: str | ast.FunctionDef | ast.AsyncFunctionDef,
     label: int | None = None,
     normalize: bool = True,
+    _tree: "ast.Module | None" = None,
 ):
     """
     High-level entry point: source code (or pre-parsed FunctionDef) → PyG Data.
@@ -956,11 +957,14 @@ def extract_function_graph(
         nodes, edges = extractor.extract(source_or_func)
         return graph_to_pyg(nodes, edges, label=label)
 
-    # Parse from source string
-    try:
-        tree = ast.parse(source_or_func)
-    except SyntaxError:
-        return None
+    # Parse from source string (skip if pre-parsed tree supplied)
+    if _tree is not None:
+        tree = _tree
+    else:
+        try:
+            tree = ast.parse(source_or_func)
+        except SyntaxError:
+            return None
 
     if normalize:
         try:
@@ -1009,6 +1013,11 @@ def extract_all_functions(
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             ns, es = extractor.extract(node)
             graphs.append(graph_to_pyg(ns, es, label=label))
+        elif isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    ns, es = extractor.extract(item)
+                    graphs.append(graph_to_pyg(ns, es, label=label))
 
     return graphs
 

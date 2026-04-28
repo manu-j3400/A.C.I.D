@@ -25,7 +25,7 @@ class codeNormalizer(ast.NodeTransformer):
 
     def visit_Name(self, node):
         # renames all variables
-        node.id = self.get_id(node)
+        node.id = self.get_id(node.id)
         return node
     
     def visit_arg(self, node):

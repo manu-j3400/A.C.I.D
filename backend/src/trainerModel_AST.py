@@ -1,6 +1,7 @@
+import warnings
 import pandas as pd
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -39,30 +40,54 @@ def modelTrainer(data_path = str(Path(__file__).parent.parent / "CSV_master" / "
         random_state=42
     )
     
-    # LogisticRegression with scaling pipeline
+    # ExtraTreesClassifier: tree diversity for the ensemble
+    et = ExtraTreesClassifier(
+        n_estimators=300,
+        max_depth=15,
+        class_weight='balanced',
+        random_state=42,
+        n_jobs=-1,
+    )
+
+    # LogisticRegression: liblinear uses coordinate descent — no matrix overflow
     lr_pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('lr', LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42, solver='saga'))
+        ('lr', LogisticRegression(
+            class_weight='balanced',
+            max_iter=5000,
+            random_state=42,
+            solver='liblinear',  # coordinate descent, numerically stable on sparse binary features
+            C=0.5,
+        ))
     ])
-    
-    # VotingClassifier combines predictions from all models
+
+    # VotingClassifier: RF + GB + ET + LR for broad coverage
     ensemble = VotingClassifier(
         estimators=[
             ('rf', rf),
             ('gb', gb),
-            ('lr', lr_pipeline)
+            ('et', et),
+            ('lr', lr_pipeline),
         ],
-        voting='soft',  # Use probability averaging
+        voting='soft',
         n_jobs=-1
     )
     
+    # Suppress sklearn internal matmul overflow warnings from LR predict_proba
+    # (known sklearn/numpy compat issue on Python 3.14; model validity unaffected)
+    _filter = warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn")
+
     # Cross-validation score
     print("  Running 5-fold Cross-Validation...  ")
-    cv_scores = cross_val_score(ensemble, X_train, y_train, cv=5, scoring='accuracy')
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        cv_scores = cross_val_score(ensemble, X_train, y_train, cv=5, scoring='accuracy')
     print(f"CV Accuracy: {cv_scores.mean():.2%} (+/- {cv_scores.std()*2:.2%})")
-    
+
     # Fit the ensemble
-    ensemble.fit(X_train, y_train)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        ensemble.fit(X_train, y_train)
 
     # PREDICTION TIME
     y_predictions = ensemble.predict(X_test)

@@ -138,29 +138,42 @@ class EntropyProfiler(ast.NodeTransformer):
         return node
 
 
-def profile_source(source: str) -> list[EntropyAnnotation]:
+def profile_source(
+    source: str,
+    tree: "ast.Module | None" = None,
+) -> list[EntropyAnnotation]:
     """
     Parse source and run the entropy profiler over the full AST.
 
+    Parameters
+    ----------
+    source  Raw source string (always required for SyntaxError reporting).
+    tree    Optional pre-parsed AST. If supplied, ast.parse() is skipped.
+            MUST be parsed from un-normalized source (normalization destroys
+            literal values whose entropy we measure).
+
     Returns all EntropyAnnotation records (both normal and anomalous).
     Safe: returns [] on SyntaxError.
-    Does NOT normalize — normalization destroys literal values.
     """
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+    if tree is None:
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
     profiler = EntropyProfiler()
     profiler.visit(tree)
     return profiler.annotations
 
 
-def get_anomalous_annotations(source: str) -> list[EntropyAnnotation]:
+def get_anomalous_annotations(
+    source: str,
+    tree: "ast.Module | None" = None,
+) -> list[EntropyAnnotation]:
     """
     Convenience wrapper: only annotations above the entropy threshold.
     Returns [] on SyntaxError or clean code.
     """
-    return [a for a in profile_source(source) if a.is_anomalous]
+    return [a for a in profile_source(source, tree=tree) if a.is_anomalous]
 
 
 # ============================================================================
