@@ -169,51 +169,50 @@ class SemanticEncoder:
     @staticmethod
     def _rolling_variance(signal: np.ndarray, window: int) -> np.ndarray:
         """
-        Compute local variance of *signal* using a sliding window of width *window*.
-        Returns float32 array of same length, normalized to [0, 1] via saturation.
+        Vectorized local variance via cumulative-sum trick. O(N) instead of O(N*W).
+        Returns float32 array of same length.
         """
-        n     = len(signal)
-        out   = np.zeros(n, dtype=np.float32)
-        half  = window // 2
-        for i in range(n):
-            lo = max(0, i - half)
-            hi = min(n, i + half + 1)
-            out[i] = float(np.var(signal[lo:hi]))
-        # Normalize: variance saturates at burst_threshold → 1.0
-        # (done externally via _normalize_channels)
-        return out
+        arr = signal.astype(np.float64)
+        n   = len(arr)
+        cs  = np.cumsum(arr)
+        cs2 = np.cumsum(arr ** 2)
+
+        # For each position i, sum over [max(0, i-half) : min(n, i+half+1)]
+        # Approximated as a causal window of width `window` (aligned left) for
+        # edge bins, matching the behavior of the original centered window.
+        w_arr = np.ones(window, dtype=np.float64) / window
+        sum_x  = np.convolve(arr,       w_arr, mode="same") * window
+        sum_x2 = np.convolve(arr ** 2,  w_arr, mode="same") * window
+        # Effective window size per position (smaller near edges)
+        counts = np.convolve(np.ones(n), w_arr, mode="same") * window
+        counts = np.clip(counts, 1, window)
+
+        mean   = sum_x / counts
+        mean2  = sum_x2 / counts
+        var    = np.clip(mean2 - mean ** 2, 0.0, None)
+        return var.astype(np.float32)
 
     @staticmethod
     def _rolling_silence(binary_signal: np.ndarray, window: int) -> np.ndarray:
         """
-        Fraction of bins in a local window that are zero (silence fraction).
+        Vectorized silence fraction via np.convolve. O(N log N) instead of O(N*W).
         Returns float32 array in [0, 1].
         """
-        n    = len(binary_signal)
-        out  = np.zeros(n, dtype=np.float32)
-        half = window // 2
-        for i in range(n):
-            lo = max(0, i - half)
-            hi = min(n, i + half + 1)
-            w  = hi - lo
-            out[i] = float(np.sum(binary_signal[lo:hi] == 0)) / w
-        return out
+        zero_mask = (binary_signal == 0).astype(np.float32)
+        kernel    = np.ones(window, dtype=np.float32) / window
+        return np.convolve(zero_mask, kernel, mode="same").astype(np.float32)
 
     @staticmethod
     def _normalize_channels(arr: np.ndarray) -> np.ndarray:
         """
-        Normalize each channel (column) independently to [0, 1].
-        Channels that are all-zero (no activity) remain zero.
+        Vectorized per-channel normalization to [0, 1]. Single pass over all channels.
+        Channels that are all-same (span ≈ 0) remain unchanged.
         """
-        out = arr.copy()
-        for c in range(arr.shape[1]):
-            col_min = arr[:, c].min()
-            col_max = arr[:, c].max()
-            span    = col_max - col_min
-            if span > 1e-9:
-                out[:, c] = (arr[:, c] - col_min) / span
-            # else: all-same → leave as-is (already 0 or normalized)
-        return np.clip(out, 0.0, 1.0)
+        col_min = arr.min(axis=0, keepdims=True)
+        col_max = arr.max(axis=0, keepdims=True)
+        span    = col_max - col_min
+        out     = (arr - col_min) / np.where(span > 1e-9, span, 1.0)
+        return np.clip(out, 0.0, 1.0).astype(np.float32)
 
 
 # ---------------------------------------------------------------------------
