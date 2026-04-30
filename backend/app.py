@@ -256,7 +256,12 @@ def scan_file_content(content):
             
     # 2. Regex Checks for SQL Injection (f-strings with SQL keywords)
     # Detects: f"SELECT ... {var}" or f'INSERT ... {var}'
-    sql_fstring_regex = re.compile(r'f[\"\'].*(SELECT|INSERT|UPDATE|DELETE|DROP).*\{.*\}', re.IGNORECASE)
+    if len(content) > 50_000:
+        content = content[:50_000]
+    sql_fstring_regex = re.compile(
+        r'f["\'][^\n]{0,200}(SELECT|INSERT|UPDATE|DELETE|DROP)[^\n]{0,200}\{[^\n]{0,100}\}',
+        re.IGNORECASE
+    )
     if sql_fstring_regex.search(content):
         found_patterns.append('Direct SQL F-String Interpolation')
 
@@ -378,7 +383,8 @@ def scan_repo():
                     print(f"Error scanning {file_path}: {e}")
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Repo scan error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         # Cleanup
         shutil.rmtree(temp_dir)
@@ -413,7 +419,8 @@ def train_model():
         
         return jsonify({'status': 'success', 'message': 'Training completed successfully'})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        app.logger.error("Training error: %s", str(e), exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 @app.route('/model-stats', methods=['GET'])
 def model_stats():
@@ -445,7 +452,8 @@ def model_stats():
             'model_type': 'Hybrid (Neural + Ensemble)'
         })
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        app.logger.error("Model stats error: %s", str(e), exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -454,4 +462,5 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print(f"Starting Kyber Engine Backend on port {port}...")
-    app.run(debug=True, port=port)
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    app.run(debug=debug_mode, port=port)

@@ -22,6 +22,7 @@ import uuid
 import logging
 import json as json_stdlib
 import requests
+import html as _html
 from functools import wraps, lru_cache
 
 BUZZ_WORDS = {}       # Placeholder - will be loaded from vulnerability_db
@@ -1001,7 +1002,8 @@ def admin_users(current_user):
         conn.close()
         return jsonify({'users': users})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 def save_scan_result(user_id=None, language=None, risk_level=None, confidence=None,
@@ -1291,6 +1293,8 @@ def strip_comments(code_str):
     Remove comments and multi-line strings from code before keyword scanning.
     Prevents AI explanations (e.g., // Removed exec()) from triggering false positives.
     """
+    if len(code_str) > 100_000:
+        code_str = code_str[:100_000]
     # Remove single-line comments (Python # and JS/Java //)
     code_str = re.sub(r'//.*', '', code_str)
     code_str = re.sub(r'#.*', '', code_str)
@@ -1954,7 +1958,8 @@ def scan_history(current_user):
         conn.close()
         return jsonify({'scans': rows, 'total': total, 'limit': limit, 'offset': offset})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/scan-history/compare', methods=['GET'])
@@ -2058,7 +2063,8 @@ def scan_history_compare(current_user):
             'filename_2': _filename(row2),
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/scan-history/export', methods=['GET'])
@@ -2102,7 +2108,8 @@ def scan_history_export(current_user):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/training-data/export', methods=['GET'])
@@ -2153,7 +2160,8 @@ def training_data_export(current_user):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/training-data/stats', methods=['GET'])
@@ -2209,7 +2217,8 @@ def training_data_stats(current_user):
             'last_collected': last_collected,
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/training-data/stats/me', methods=['GET'])
@@ -2248,7 +2257,8 @@ def training_data_stats_me(current_user):
             'last_collected': last_collected,
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/settings/webhook', methods=['GET'])
@@ -2279,7 +2289,8 @@ def get_webhook_setting(current_user):
         return jsonify({'webhook_url': row['webhook_url'] if row else None,
                         'updated_at': row['updated_at'] if row else None})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/settings/webhook', methods=['POST'])
@@ -2325,7 +2336,8 @@ def set_webhook_setting(current_user):
         conn.close()
         return jsonify({'ok': True, 'webhook_url': webhook_url or None})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/model/drift', methods=['GET'])
@@ -2457,7 +2469,8 @@ def security_score(current_user):
             'recent_scans': recent
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error("Internal error: %s", str(e), exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/model-stats', methods=['GET'])
@@ -2562,7 +2575,8 @@ def train_stream(current_user):
             else:
                 yield f"data: [ERROR] Training failed with exit code {proc.returncode}\n\n"
         except Exception as e:
-            yield f"data: [ERROR] {str(e)}\n\n"
+            app.logger.error("Training stream error: %s", str(e), exc_info=True)
+            yield "data: [ERROR] Internal server error\n\n"
         finally:
             _TRAINING_LOCK.release()
         yield "data: [STREAM_END]\n\n"
@@ -2701,8 +2715,8 @@ def batch_scan(current_user):
 
     result = process_files_batch(files, user_id=current_user.get('user_id'))
     if isinstance(result, tuple):
-        return jsonify(result[0]), result[1]
-    return jsonify(result), 200
+        return jsonify(result[0]), result[1]  # lgtm[py/reflective-xss] - jsonify sets Content-Type: application/json
+    return jsonify(result), 200  # lgtm[py/reflective-xss] - jsonify sets Content-Type: application/json
 
 @app.route('/automation/run-improver', methods=['POST'])
 @rate_limit(max_requests=6, window_seconds=60)
@@ -2793,10 +2807,11 @@ def run_improver():
         }
         http_status = 429
     except Exception as e:
+        app.logger.error("Enqueue failed: %s", str(e), exc_info=True)
         response_payload = {
             'status': 'error',
             'error_code': 'enqueue_failed',
-            'message': str(e),
+            'message': 'Internal server error',
             'idempotency_key': idempotency_key
         }
         http_status = 500
@@ -2813,17 +2828,21 @@ def run_improver():
 
 def _automation_error(endpoint, error_code, message, status_code=500):
     """Build a JSON error response with email_html for automation endpoints."""
+    app.logger.error("Automation error [%s] %s: %s", endpoint, error_code, message)
+    safe_message = message if status_code != 500 else 'Internal server error'
     sys.path.insert(0, str(ROOT))
     try:
         from email_builder import error_email
         html = error_email(endpoint, error_code, message, status_code)
     except Exception:
-        html = f"<p>Error on {endpoint}: {error_code} — {message}</p>"
+        html = (f"<p>Error on {_html.escape(str(endpoint))}: "
+                f"{_html.escape(str(error_code))} — "
+                f"{_html.escape(str(safe_message)[:500])}</p>")
     return jsonify({
         'status': 'error',
         'error_code': error_code,
-        'notification_summary': f'{endpoint} error: {message[:120]}',
-        'message': message,
+        'notification_summary': f'{endpoint} error: {safe_message[:120]}',
+        'message': safe_message,
         'email_html': html
     }), status_code
 
@@ -3092,7 +3111,8 @@ def submit_feedback(current_user):
     except ValueError as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        app.logger.error("Feedback error: %s", str(e), exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 
 @app.route('/automation/ml-health', methods=['GET'])
@@ -3347,10 +3367,11 @@ def process_files_batch(files, user_id=None):
             )
             
         except Exception as e:
+            app.logger.error("Batch scan error for %s: %s", filename, str(e), exc_info=True)
             results.append({
                 'filename': filename,
                 'status': 'error',
-                'message': str(e),
+                'message': 'Error processing file',
                 'risk_level': 'INVALID',
                 'confidence': 0,
                 'language': 'unknown'
@@ -3561,7 +3582,8 @@ def engines_status(current_user=None):
             importlib.import_module(module_path)
             status["loaded"] = True
         except Exception as e:
-            status["error"] = str(e)[:120]
+            app.logger.error("Engine load error for %s: %s", module_path, str(e))
+            status["error"] = "Load failed"
         if checkpoint:
             cp = os.path.join(ROOT, checkpoint) if not os.path.isabs(checkpoint) else checkpoint
             status["checkpoint"] = os.path.exists(cp)
