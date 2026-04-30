@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import io as _io
 import os
 import random
 import sys
@@ -142,12 +143,14 @@ def bootstrap_from_csv(
     #     samples cannot affect the project directory
     _SAMPLE_TIMEOUT_S = 5
 
-    _orig_cwd   = os.getcwd()
-    _safe_dir   = tempfile.mkdtemp(prefix="soteria_bootstrap_")
-    _orig_stdin = sys.stdin
+    _orig_cwd    = os.getcwd()
+    _safe_dir    = tempfile.mkdtemp(prefix="soteria_bootstrap_")
+    _orig_stdin  = sys.stdin
+    _orig_stdout = sys.stdout
 
     for code, label in all_samples:
-        sys.stdin = io.StringIO('')
+        sys.stdin  = io.StringIO('')
+        sys.stdout = _io.StringIO()   # suppress noise (e.g. input() prompts) from executed code
         os.chdir(_safe_dir)
 
         result_exc: List[Optional[Exception]] = [None]
@@ -162,9 +165,10 @@ def bootstrap_from_csv(
         t.start()
         t.join(timeout=_SAMPLE_TIMEOUT_S)
 
-        # Restore cwd and stdin regardless of outcome.
+        # Restore cwd and stdio before any progress prints.
         os.chdir(_orig_cwd)
-        sys.stdin = _orig_stdin
+        sys.stdin  = _orig_stdin
+        sys.stdout = _orig_stdout
 
         if t.is_alive():
             n_failed += 1

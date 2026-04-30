@@ -24,6 +24,18 @@ interface ContribStats {
   last_collected: string | null;
 }
 
+interface DriftData {
+  status: 'ok' | 'insufficient_data';
+  total_samples?: number;
+  baseline_samples?: number;
+  recent_window?: number;
+  kl_divergence?: number;
+  drift_alert?: boolean;
+  recent_mean?: number;
+  baseline_mean?: number;
+  samples?: number;
+}
+
 interface SecurityScoreData {
   score: number;
   grade: string;
@@ -220,6 +232,7 @@ export default function DesktopHome() {
   const [webhookSaved, setWebhookSaved] = useState(false);
   const [showWebhook, setShowWebhook] = useState(false);
   const [contrib, setContrib] = useState<ContribStats | null>(null);
+  const [drift, setDrift] = useState<DriftData | null>(null);
 
   /* Fetch score */
   useEffect(() => {
@@ -249,6 +262,15 @@ export default function DesktopHome() {
     fetch(`${API_BASE_URL}/api/training-data/stats/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setContrib(d))
+      .catch(() => {});
+  }, [token]);
+
+  /* Fetch model drift */
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/model/drift`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setDrift(d))
       .catch(() => {});
   }, [token]);
 
@@ -478,6 +500,58 @@ export default function DesktopHome() {
                     {contrib.last_collected && (
                       <div className="px-5 py-1.5 text-[8px]" style={{ color: C.sub, ...MONO }}>
                         LAST: {new Date(contrib.last_collected).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Model drift */}
+            {drift && (
+              <div style={{ borderBottom: `1px solid ${C.dim}` }}>
+                <div className="px-5 pt-3 pb-1 flex items-center justify-between">
+                  <span className="text-[9px] tracking-[0.2em] font-bold" style={{ color: C.faint }}>MODEL DRIFT</span>
+                  <span
+                    className="w-1.5 h-1.5 flex-shrink-0"
+                    style={{
+                      background: drift.status === 'insufficient_data'
+                        ? C.faint
+                        : drift.drift_alert ? C.red : C.acid,
+                      borderRadius: 0,
+                    }}
+                  />
+                </div>
+                {drift.status === 'insufficient_data' ? (
+                  <div className="px-5 py-2 text-[9px]" style={{ color: C.sub, ...MONO }}>
+                    CALIBRATING — {drift.samples ?? 0}/100 SAMPLES
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between px-5 py-1.5" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                      <span className="text-[9px] tracking-[0.1em]" style={{ color: C.muted }}>KL DIVERGENCE</span>
+                      <span className="text-[10px] font-bold tabular-nums" style={{
+                        color: (drift.kl_divergence ?? 0) > 0.5 ? C.red : C.acid,
+                        ...MONO,
+                      }}>
+                        {(drift.kl_divergence ?? 0).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between px-5 py-1.5" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                      <span className="text-[9px] tracking-[0.1em]" style={{ color: C.muted }}>BASELINE → RECENT</span>
+                      <span className="text-[9px] tabular-nums" style={{ color: C.sub, ...MONO }}>
+                        {(drift.baseline_mean ?? 0).toFixed(4)} → {(drift.recent_mean ?? 0).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between px-5 py-1.5" style={{ borderBottom: `1px solid ${C.faint}` }}>
+                      <span className="text-[9px] tracking-[0.1em]" style={{ color: C.muted }}>SAMPLES</span>
+                      <span className="text-[9px] tabular-nums" style={{ color: C.sub, ...MONO }}>
+                        {drift.total_samples} (base: {drift.baseline_samples}, win: {drift.recent_window})
+                      </span>
+                    </div>
+                    {drift.drift_alert && (
+                      <div className="px-5 py-1.5 text-[9px] font-bold tracking-widest" style={{ color: C.red, ...MONO }}>
+                        ⚠ DRIFT ALERT — KL &gt; 0.5
                       </div>
                     )}
                   </>

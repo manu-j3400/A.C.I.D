@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    volumes:
+      # Persist model files and scan history DB across restarts
+      - ./backend/ML_master:/app/backend/ML_master
+      - ./backend/GCN_master:/app/backend/GCN_master
+      - ./engines/kyber/snn:/app/engines/kyber/snn
+      - soteria_db:/app/middleware
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:5001
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  soteria_db:
