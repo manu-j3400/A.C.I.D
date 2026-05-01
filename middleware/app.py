@@ -798,6 +798,7 @@ def auth_signup():
     if len(password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters'}), 400
 
+    conn = None
     try:
         pw_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         conn = get_db_connection()
@@ -808,7 +809,6 @@ def auth_signup():
         )
         conn.commit()
         user_id = c.lastrowid
-        conn.close()
 
         token = generate_token(user_id, email)
         return jsonify({
@@ -820,6 +820,9 @@ def auth_signup():
     except Exception as e:
         app.logger.exception('Signup error')
         return jsonify({'error': 'An internal error occurred. Please try again.'}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route('/api/auth/login', methods=['POST'])
