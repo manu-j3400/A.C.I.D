@@ -564,7 +564,8 @@ def scan_trends() -> list[dict]:
                     if c.fetchone():
                         continue
 
-                    is_x = "x.com" in story_url or "twitter.com" in story_url
+                    _host = (urllib.parse.urlparse(story_url).hostname or '').lower()
+                    is_x = _host in ('x.com', 'twitter.com') or _host.endswith('.x.com') or _host.endswith('.twitter.com')
                     is_actionable = is_x or points > 30
 
                     c.execute(

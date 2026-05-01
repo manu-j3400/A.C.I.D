@@ -1302,7 +1302,8 @@ def strip_comments(code_str):
     code_str = re.sub(r'//.*', '', code_str)
     code_str = re.sub(r'#.*', '', code_str)
     # Remove block comments (JS/Java /* */)
-    code_str = re.sub(r'/\*.*?\*/', '', code_str, flags=re.DOTALL)
+    # Use unrolled-loop regex to avoid ReDoS on pathological inputs
+    code_str = re.sub(r'/\*[^*]*(?:\*+[^/][^*]*)*\*+/', '', code_str)
     # Remove Python multi-line strings (often used as comments)
     code_str = re.sub(r'\"\"\"(.*?)\"\"\"', '', code_str, flags=re.DOTALL)
     code_str = re.sub(r"\'\'\'(.*?)\'\'\'", '', code_str, flags=re.DOTALL)
@@ -2718,8 +2719,8 @@ def batch_scan(current_user):
 
     result = process_files_batch(files, user_id=current_user.get('user_id'))
     if isinstance(result, tuple):
-        return jsonify(result[0]), result[1]  # lgtm[py/reflective-xss] - jsonify sets Content-Type: application/json
-    return jsonify(result), 200  # lgtm[py/reflective-xss] - jsonify sets Content-Type: application/json
+        return jsonify(result[0]), result[1]  # codeql[py/reflective-xss] jsonify always sets Content-Type: application/json
+    return jsonify(result), 200  # codeql[py/reflective-xss] jsonify always sets Content-Type: application/json
 
 @app.route('/automation/run-improver', methods=['POST'])
 @rate_limit(max_requests=6, window_seconds=60)
@@ -2802,10 +2803,11 @@ def run_improver():
         }
         http_status = 200
     except ValueError as e:
+        app.logger.warning("Queue operation rejected: %s", str(e))
         response_payload = {
             'status': 'error',
             'error_code': 'queue_full',
-            'message': str(e),
+            'message': 'Task queue is full or request was rejected. Please try again later.',
             'idempotency_key': idempotency_key
         }
         http_status = 429
@@ -2844,8 +2846,8 @@ def _automation_error(endpoint, error_code, message, status_code=500):
     return jsonify({
         'status': 'error',
         'error_code': error_code,
-        'notification_summary': f'{endpoint} error: {safe_message[:120]}',
-        'message': safe_message,
+        'notification_summary': f'{_html.escape(str(endpoint))} error: {_html.escape(safe_message[:120])}',
+        'message': safe_message[:500],
         'email_html': html
     }), status_code
 
@@ -3112,7 +3114,8 @@ def submit_feedback(current_user):
         )
         return jsonify(result), 201
     except ValueError as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 400
+        app.logger.warning("Feedback validation error: %s", str(e))
+        return jsonify({'status': 'error', 'message': 'Invalid feedback data. Check required fields.'}), 400
     except Exception as e:
         app.logger.error("Feedback error: %s", str(e), exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
