@@ -1291,6 +1291,30 @@ def _log_perf(t_start: float, code_size: int, language: str):
     elif elapsed > 0.5:
         print(f"📊 Parse time: {elapsed:.2f}s for {code_size} chars ({language})")
     
+def _remove_block_comments(s: str) -> str:
+    """
+    Remove /* ... */ block comments using a linear character scan.
+    No regex backtracking — O(n) time regardless of input structure.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(s)
+    while i < n:
+        if s[i] == '/' and i + 1 < n and s[i + 1] == '*':
+            i += 2
+            while i < n - 1:
+                if s[i] == '*' and s[i + 1] == '/':
+                    i += 2
+                    break
+                i += 1
+            else:
+                i = n  # unclosed comment — consume rest
+        else:
+            out.append(s[i])
+            i += 1
+    return ''.join(out)
+
+
 def strip_comments(code_str):
     """
     Remove comments and multi-line strings from code before keyword scanning.
@@ -1301,9 +1325,8 @@ def strip_comments(code_str):
     # Remove single-line comments (Python # and JS/Java //)
     code_str = re.sub(r'//.*', '', code_str)
     code_str = re.sub(r'#.*', '', code_str)
-    # Remove block comments (JS/Java /* */)
-    # Use unrolled-loop regex to avoid ReDoS on pathological inputs
-    code_str = re.sub(r'/\*[^*]*(?:\*+[^/][^*]*)*\*+/', '', code_str)
+    # Remove block comments (JS/Java /* */) — use linear scanner, not regex
+    code_str = _remove_block_comments(code_str)
     # Remove Python multi-line strings (often used as comments)
     code_str = re.sub(r'\"\"\"(.*?)\"\"\"', '', code_str, flags=re.DOTALL)
     code_str = re.sub(r"\'\'\'(.*?)\'\'\'", '', code_str, flags=re.DOTALL)
@@ -2719,8 +2742,8 @@ def batch_scan(current_user):
 
     result = process_files_batch(files, user_id=current_user.get('user_id'))
     if isinstance(result, tuple):
-        return jsonify(result[0]), result[1]  # codeql[py/reflective-xss] jsonify always sets Content-Type: application/json
-    return jsonify(result), 200  # codeql[py/reflective-xss] jsonify always sets Content-Type: application/json
+        return jsonify(result[0]), result[1]
+    return jsonify(result), 200
 
 @app.route('/automation/run-improver', methods=['POST'])
 @rate_limit(max_requests=6, window_seconds=60)
@@ -2833,21 +2856,21 @@ def run_improver():
 
 def _automation_error(endpoint, error_code, message, status_code=500):
     """Build a JSON error response with email_html for automation endpoints."""
+    # Log full details server-side; never expose raw exception strings in HTTP responses
     app.logger.error("Automation error [%s] %s: %s", endpoint, error_code, message)
-    safe_message = message if status_code != 500 else 'Internal server error'
+    response_message = 'Internal server error' if status_code >= 500 else 'Automation request failed.'
     sys.path.insert(0, str(ROOT))
     try:
         from email_builder import error_email
         html = error_email(endpoint, error_code, message, status_code)
     except Exception:
         html = (f"<p>Error on {_html.escape(str(endpoint))}: "
-                f"{_html.escape(str(error_code))} — "
-                f"{_html.escape(str(safe_message)[:500])}</p>")
+                f"{_html.escape(str(error_code))}</p>")
     return jsonify({
         'status': 'error',
         'error_code': error_code,
-        'notification_summary': f'{_html.escape(str(endpoint))} error: {_html.escape(safe_message[:120])}',
-        'message': safe_message[:500],
+        'notification_summary': f'{_html.escape(str(endpoint))} error: {_html.escape(str(error_code))}',
+        'message': response_message,
         'email_html': html
     }), status_code
 
@@ -3243,7 +3266,7 @@ def process_files_batch(files, user_id=None):
         if not isinstance(file_item, dict):
             continue
             
-        filename = file_item.get('filename', 'unknown')
+        filename = _html.escape(str(file_item.get('filename', 'unknown'))[:255])
         code = file_item.get('code', '')
         
         if not isinstance(code, str):
