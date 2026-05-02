@@ -86,5 +86,8 @@
     "postcss": "^8.4.38",
     "tw-animate-css": "^1.2.8",
     "vite-plugin-singlefile": "^2.3.0"
+  },
+  "overrides": {
+    "dompurify": ">=3.4.0"
   }
 }

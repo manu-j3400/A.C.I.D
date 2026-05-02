@@ -2862,7 +2862,8 @@ def _automation_error(endpoint, error_code, message, status_code=500):
     sys.path.insert(0, str(ROOT))
     try:
         from email_builder import error_email
-        html = error_email(endpoint, error_code, message, status_code)
+        # Use response_message (never raw exception string) so html field is clean
+        html = error_email(endpoint, error_code, response_message, status_code)
     except Exception:
         html = (f"<p>Error on {_html.escape(str(endpoint))}: "
                 f"{_html.escape(str(error_code))}</p>")
