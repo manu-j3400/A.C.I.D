@@ -409,8 +409,8 @@ class MAPPOTrainer:
         for agent in self.agents:
             fpath = p / f"actor_{agent.agent_id}.pt"
             if fpath.exists():
-                agent.actor.load_state_dict(torch.load(fpath, map_location="cpu"))
+                agent.actor.load_state_dict(torch.load(fpath, map_location="cpu", weights_only=True))
         if self.critic is not None:
             cpath = p / "critic.pt"
             if cpath.exists():
-                self.critic.load_state_dict(torch.load(cpath, map_location="cpu"))
+                self.critic.load_state_dict(torch.load(cpath, map_location="cpu", weights_only=True))

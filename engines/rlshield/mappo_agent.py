@@ -282,7 +282,7 @@ class MAPPOAgent:
 
     def load(self, path: str) -> None:
         """Restore weights from a checkpoint file (CPU-safe map_location)."""
-        payload = torch.load(path, map_location=self.device)
+        payload = torch.load(path, map_location=self.device, weights_only=True)
         for role in self.config.role_names:
             self.actors[role].load_state_dict(payload["actors"][role])
             self.actor_optims[role].load_state_dict(payload["actor_optims"][role])

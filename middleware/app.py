@@ -3063,8 +3063,9 @@ def github_push_webhook():
                     continue
                 batch_files.append({"filename": entry["path"], "code": code})
             except Exception as fetch_err:
-                scan_results.append({"file": entry["path"], "status": "error",
-                                     "reason": str(fetch_err)[:200]})
+                app.logger.warning("File fetch error for %s: %s", entry.get("path"), str(fetch_err))
+                scan_results.append({"file": entry.get("path", "?"), "status": "error",
+                                     "reason": "Failed to fetch file content"})
 
         if batch_files:
             batch_result = process_files_batch(batch_files)
@@ -3498,6 +3499,7 @@ def github_token():
             'code': code,
         },
         headers={'Accept': 'application/json'},
+        timeout=30,
     )
     return jsonify(resp.json()), resp.status_code
 
@@ -3510,7 +3512,7 @@ def github_repos():
     resp = requests.get('https://api.github.com/user/repos', headers={
         'Authorization': auth_header,
         'Accept': 'application/vnd.github.v3+json'
-    }, params={'sort': 'updated', 'per_page': 100})
+    }, params={'sort': 'updated', 'per_page': 100}, timeout=30)
     
     return jsonify(resp.json()), resp.status_code
 

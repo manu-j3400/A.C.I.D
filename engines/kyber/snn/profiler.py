@@ -554,7 +554,7 @@ class BaselineProfiler:
     @classmethod
     def load(cls, path: str, device: Optional[str] = None) -> "BaselineProfiler":
         """Restore a previously saved BaselineProfiler from a checkpoint."""
-        ckpt  = torch.load(path, map_location="cpu", weights_only=False)
+        ckpt  = torch.load(path, map_location="cpu", weights_only=False)  # nosec B614 - checkpoint is server-generated, not user-uploaded; contains custom config dataclasses incompatible with weights_only=True
         lif   = ckpt["lif_config"]
         train = ckpt["train_config"]
         if device:

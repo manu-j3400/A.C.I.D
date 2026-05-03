@@ -252,7 +252,7 @@ def load_gcn_dataset(dataset_path: "str | Path | None" = None) -> DatasetSplit:
         raise FileNotFoundError(
             f"GCN dataset not found at {path}. Run build_gcn_dataset() first."
         )
-    ckpt      = torch.load(path, weights_only=False)
+    ckpt      = torch.load(path, weights_only=False)  # nosec B614 - training dataset contains PyG Data objects, not plain tensors
     graphs    = ckpt["graphs"]
     train_idx = ckpt["train_idx"]
     val_idx   = ckpt["val_idx"]

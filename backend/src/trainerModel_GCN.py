@@ -306,7 +306,7 @@ def load_gcn_model(
         ckpt = torch.load(path, map_location=device, weights_only=True)
     except Exception:
         # weights_only may fail on older checkpoints; fall back gracefully
-        ckpt = torch.load(path, map_location=device, weights_only=False)
+        ckpt = torch.load(path, map_location=device, weights_only=False)  # nosec B614 - fallback for legacy checkpoints only; primary path uses weights_only=True
 
     model = MalwareGCN(
         in_channels=ckpt.get("in_channels", FEATURE_DIM),

@@ -252,6 +252,6 @@ class APTHunter:
     def load(self, path: Optional[str] = None) -> None:
         """Restore rule engine weights from *path* (default: config.checkpoint_path)."""
         src = path or self.config.checkpoint_path
-        checkpoint = torch.load(src, map_location=self.device)
+        checkpoint = torch.load(src, map_location=self.device, weights_only=True)
         self.rule_engine.load_state_dict(checkpoint["rule_engine_state"])
         self.rule_engine.to(self.device)

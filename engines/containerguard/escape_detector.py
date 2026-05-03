@@ -264,6 +264,7 @@ class EscapeDetector:
         state = torch.load(
             path or self.config.checkpoint_path,
             map_location=self._device,
+            weights_only=True,
         )
         self._model.load_state_dict(state)
         self._model.eval()
